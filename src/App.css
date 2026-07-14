@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-paper: #faf8f5;
+  --color-paper-dark: #242322;
+  --color-ink: #1a1a1a;
+  --color-ink-dark: #e8e6e3;
+  --color-ink-muted: #6b6b6b;
+  --color-ink-muted-dark: #9a9896;
+  --color-accent: #8b5a2b;
+  --color-accent-light: #a67c52;
+  --color-warm-gray: #e8e4de;
+  --color-warm-gray-dark: #3a3836;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Microsoft YaHei", serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+@layer components {
+  .inkwell-editor .ProseMirror {
+    outline: none;
+    min-height: 100%;
+    font-size: var(--inkwell-font-size, 18px);
+    line-height: var(--inkwell-line-height, 1.85);
+  }
+
+  .inkwell-editor .ProseMirror p {
+    margin: 0;
+    margin-bottom: var(--inkwell-paragraph-spacing, 0.8em);
+    line-height: inherit;
+  }
+
+  .inkwell-editor .ProseMirror p.is-empty::before {
+    color: rgba(0, 0, 0, 0.25);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    text-indent: 0;
+  }
+
+  .dark .inkwell-editor .ProseMirror p.is-empty::before {
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .inkwell-editor .ProseMirror h1,
+  .inkwell-editor .ProseMirror h2,
+  .inkwell-editor .ProseMirror h3 {
+    text-indent: 0;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 1.2em 0 0.6em;
+  }
+
+  .inkwell-editor .ProseMirror h1 {
+    font-size: 1.6em;
+  }
+
+  .inkwell-editor .ProseMirror h2 {
+    font-size: 1.35em;
+  }
+
+  .inkwell-editor .ProseMirror h3 {
+    font-size: 1.15em;
+  }
+
+  .inkwell-editor .ProseMirror blockquote {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 1em;
+    margin: 1em 0;
+    color: var(--color-ink-muted);
+    text-indent: 0;
+  }
+
+  .inkwell-editor .ProseMirror hr {
+    border: none;
+    border-top: 1px solid var(--color-warm-gray);
+    margin: 1.5em 0;
+  }
+
+  .inkwell-editor .ProseMirror ul,
+  .inkwell-editor .ProseMirror ol {
+    padding-left: 1.5em;
+    text-indent: 0;
+  }
+
+  .inkwell-editor .ProseMirror li {
+    margin: 0.25em 0;
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

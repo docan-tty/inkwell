@@ -27,8 +27,11 @@ export function Workspace() {
 
   const [localContent, setLocalContent] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showTopBars, setShowTopBars] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(appSettings.leftSidebarWidth || 256);
   const wordCountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const topBarsHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(appSettings.leftSidebarWidth || 256);
@@ -49,6 +52,7 @@ export function Workspace() {
   useEffect(() => {
     return () => {
       if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
+      if (topBarsHideTimer.current) clearTimeout(topBarsHideTimer.current);
     };
   }, []);
 
@@ -96,6 +100,30 @@ export function Workspace() {
 
   if (!currentProject) return null;
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  const enterTopBars = useCallback(() => {
+    if (topBarsHideTimer.current) {
+      clearTimeout(topBarsHideTimer.current);
+      topBarsHideTimer.current = null;
+    }
+    setShowTopBars(true);
+  }, []);
+
+  const leaveTopBars = useCallback(() => {
+    topBarsHideTimer.current = setTimeout(() => {
+      setShowTopBars(false);
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    if (!focusMode && !isFullscreen) {
+      setShowTopBars(false);
+    }
+  }, [focusMode, isFullscreen]);
+
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     resizing.current = true;
@@ -130,8 +158,10 @@ export function Workspace() {
       <div
         className={cn(
           "flex h-12 shrink-0 items-center justify-between border-b border-warm-gray px-4 transition-all dark:border-warm-gray-dark",
-          focusMode && "opacity-0 hover:opacity-100",
+          (focusMode || isFullscreen) && !showTopBars && "opacity-0",
         )}
+        onMouseEnter={(focusMode || isFullscreen) ? enterTopBars : undefined}
+        onMouseLeave={(focusMode || isFullscreen) ? leaveTopBars : undefined}
       >
         <div className="flex items-center gap-3">
           <button
@@ -188,6 +218,11 @@ export function Workspace() {
               content={localContent}
               onChange={handleContentChange}
               onSave={handleManualSave}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              showToolbar={showTopBars}
+              onToolbarEnter={enterTopBars}
+              onToolbarLeave={leaveTopBars}
             />
           ) : (
             <div className="flex flex-1 items-center justify-center bg-paper dark:bg-paper-dark">

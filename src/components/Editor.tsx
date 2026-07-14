@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { useAppStore } from "../store";
 import { Toolbar } from "./Toolbar";
 import { cn } from "../lib/utils";
@@ -11,13 +11,25 @@ interface EditorProps {
   content: string;
   onChange: (content: string) => void;
   onSave?: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  showToolbar?: boolean;
+  onToolbarEnter?: () => void;
+  onToolbarLeave?: () => void;
 }
 
-export function Editor({ content, onChange, onSave }: EditorProps) {
+export function Editor({
+  content,
+  onChange,
+  onSave,
+  isFullscreen = false,
+  onToggleFullscreen,
+  showToolbar = false,
+  onToolbarEnter,
+  onToolbarLeave,
+}: EditorProps) {
   const { currentProject, focusMode, updateAppSettings, appSettings } = useAppStore();
   const typography = appSettings.editorTypography;
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showToolbar, setShowToolbar] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -57,22 +69,14 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullscreen) {
+      if (e.key === "Escape" && isFullscreen && onToggleFullscreen) {
         e.preventDefault();
-        setIsFullscreen(false);
+        onToggleFullscreen();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen]);
-
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-  }, []);
-
-  useEffect(() => {
-    setShowToolbar(false);
-  }, [focusMode, isFullscreen]);
+  }, [isFullscreen, onToggleFullscreen]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -112,12 +116,8 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
       {isFullscreen || focusMode ? (
         <div
           className="relative shrink-0"
-          onMouseOver={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-              setShowToolbar(true);
-            }
-          }}
-          onMouseLeave={() => setShowToolbar(false)}
+          onMouseEnter={focusMode ? onToolbarEnter : undefined}
+          onMouseLeave={focusMode ? onToolbarLeave : undefined}
         >
           <div
             className={cn(
@@ -129,7 +129,7 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
               editor={editor}
               onSave={onSave}
               isFullscreen={isFullscreen}
-              onToggleFullscreen={toggleFullscreen}
+              onToggleFullscreen={onToggleFullscreen}
             />
           </div>
         </div>
@@ -139,7 +139,7 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
             editor={editor}
             onSave={onSave}
             isFullscreen={isFullscreen}
-            onToggleFullscreen={toggleFullscreen}
+            onToggleFullscreen={onToggleFullscreen}
           />
         </div>
       )}

@@ -17,6 +17,7 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
   const { currentProject, focusMode, updateAppSettings, appSettings } = useAppStore();
   const typography = appSettings.editorTypography;
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showToolbar, setShowToolbar] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -69,6 +70,10 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
     setIsFullscreen((prev) => !prev);
   }, []);
 
+  useEffect(() => {
+    setShowToolbar(false);
+  }, [focusMode, isFullscreen]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
@@ -102,24 +107,42 @@ export function Editor({ content, onChange, onSave }: EditorProps) {
       className={cn(
         "flex min-w-0 flex-1 flex-col min-h-0",
         isFullscreen && "fixed inset-0 z-50",
-        (isFullscreen || focusMode) && "group",
       )}
     >
-      <div
-        className={cn(
-          "shrink-0 transition-opacity duration-300",
-          isFullscreen || focusMode
-            ? "pointer-events-none opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto"
-            : "opacity-100",
-        )}
-      >
-        <Toolbar
-          editor={editor}
-          onSave={onSave}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={toggleFullscreen}
-        />
-      </div>
+      {isFullscreen || focusMode ? (
+        <div
+          className="relative shrink-0"
+          onMouseOver={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setShowToolbar(true);
+            }
+          }}
+          onMouseLeave={() => setShowToolbar(false)}
+        >
+          <div
+            className={cn(
+              "shrink-0 transition-opacity duration-300",
+              showToolbar ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            <Toolbar
+              editor={editor}
+              onSave={onSave}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="shrink-0">
+          <Toolbar
+            editor={editor}
+            onSave={onSave}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+          />
+        </div>
+      )}
       <div
         className={cn(
           "inkwell-editor flex-1 w-full min-h-0 overflow-y-auto bg-paper dark:bg-paper-dark transition-all duration-300",

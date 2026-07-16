@@ -65,7 +65,9 @@ export function Editor({
     editorEl.style.setProperty("--inkwell-font-size", `${typography.fontSize}px`);
     editorEl.style.setProperty("--inkwell-line-height", `${typography.lineHeight}`);
     editorEl.style.setProperty("--inkwell-paragraph-spacing", `${typography.paragraphSpacing}em`);
-  }, [editor, typography]);
+    // 首行缩进开关（默认开）— 中文小说排版惯例两字符缩进。
+    editorEl.style.setProperty("--inkwell-indent", appSettings.firstLineIndent === false ? "0" : "2em");
+  }, [editor, typography, appSettings.firstLineIndent]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,11 +84,12 @@ export function Editor({
     (e: React.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        const html = editor?.getHTML() || "";
-        onChange(html);
+        // localContent is already kept in sync by onUpdate -> onChange on every
+        // keystroke, so onSave (handleManualSave) reads the latest content.
+        onSave?.();
       }
     },
-    [editor, onChange],
+    [onSave],
   );
 
   const handleWheel = useCallback(
@@ -156,7 +159,10 @@ export function Editor({
         <div
           className="min-h-full py-12"
           style={{
-            maxWidth: "720px",
+            // In fullscreen (window or edit) we widen the reading column so it
+            // actually uses the available pane — 900px on a >1600px screen
+            // leaves very wide empty margins on both sides, which feels wrong.
+            maxWidth: isFullscreen ? "1100px" : "720px",
             margin: "0 auto",
           }}
         >

@@ -1,18 +1,167 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, isTauri, getDefaultExportDirectory } from "./storage";
-import { useAppStore } from "../store";
-import type { Chapter, Project, Volume } from "../types";
+import { sanitizeFileName } from "./utils";
+import type { AppSettings, Chapter, Project, Volume } from "../types";
 
-async function getExportDefaultPath(defaultName: string): Promise<string> {
-  const dir = await getDefaultExportDirectory(useAppStore.getState().appSettings);
+const BLOCK_TAGS = new Set([
+  "address",
+  "article",
+  "aside",
+  "blockquote",
+  "canvas",
+  "dd",
+  "div",
+  "dl",
+  "dt",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "hr",
+  "li",
+  "main",
+  "nav",
+  "noscript",
+  "ol",
+  "p",
+  "pre",
+  "section",
+  "table",
+  "tfoot",
+  "ul",
+  "video",
+]);
+
+const ALLOWED_TAGS = new Set([
+  "a",
+  "b",
+  "blockquote",
+  "br",
+  "code",
+  "div",
+  "em",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+  "i",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "s",
+  "span",
+  "strike",
+  "strong",
+  "u",
+  "ul",
+]);
+
+const REMOVE_TAGS = new Set([
+  "script",
+  "style",
+  "iframe",
+  "object",
+  "embed",
+  "form",
+  "input",
+  "textarea",
+  "button",
+  "select",
+  "option",
+]);
+
+const DANGEROUS_ATTRS = new Set(["style"]);
+
+function isDangerousUrl(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.startsWith("javascript:") || trimmed.startsWith("data:text/html");
+}
+
+export function sanitizeHtml(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  function clean(node: Node): Node | null {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.cloneNode();
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+
+    if (REMOVE_TAGS.has(tag)) {
+      return null;
+    }
+
+    if (!ALLOWED_TAGS.has(tag)) {
+      const fragment = doc.createDocumentFragment();
+      Array.from(el.childNodes).forEach((child) => {
+        const cleaned = clean(child);
+        if (cleaned) fragment.appendChild(cleaned);
+      });
+      return fragment;
+    }
+
+    const newEl = doc.createElement(tag);
+    Array.from(el.attributes).forEach((attr) => {
+      const name = attr.name.toLowerCase();
+      const value = attr.value;
+
+      if (DANGEROUS_ATTRS.has(name)) return;
+      if (name.startsWith("on")) return;
+      if ((name === "href" || name === "src") && isDangerousUrl(value)) return;
+
+      newEl.setAttribute(name, value);
+    });
+
+    Array.from(el.childNodes).forEach((child) => {
+      const cleaned = clean(child);
+      if (cleaned) newEl.appendChild(cleaned);
+    });
+
+    return newEl;
+  }
+
+  const fragment = doc.createDocumentFragment();
+  Array.from(doc.body.childNodes).forEach((child) => {
+    const cleaned = clean(child);
+    if (cleaned) fragment.appendChild(cleaned);
+  });
+
+  const wrapper = doc.createElement("div");
+  wrapper.appendChild(fragment);
+  return wrapper.innerHTML;
+}
+
+async function getExportDefaultPath(defaultName: string, config: AppSettings): Promise<string> {
+  const dir = await getDefaultExportDirectory(config);
   return `${dir.replace(/\/+$/, "").replace(/\\+$/, "")}/${defaultName}`;
 }
 
-async function pickSavePath(defaultName: string, filters: { name: string; extensions: string[] }[]) {
+async function pickSavePath(
+  defaultName: string,
+  filters: { name: string; extensions: string[] }[],
+  config: AppSettings,
+) {
   if (!isTauri()) {
     return { canceled: false as const, path: defaultName, fallback: true as const };
   }
-  const defaultPath = await getExportDefaultPath(defaultName);
+  const defaultPath = await getExportDefaultPath(defaultName, config);
   const path = await save({ defaultPath, filters });
   if (!path) return { canceled: true as const, path: undefined, fallback: false as const };
   return { canceled: false as const, path, fallback: false as const };
@@ -30,66 +179,53 @@ function downloadFile(filename: string, content: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
+export function stripHtml(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  function walk(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent || "";
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return "";
+    }
+
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "br") {
+      return "\n";
+    }
+
+    let text = "";
+    Array.from(el.childNodes).forEach((child) => {
+      text += walk(child);
+    });
+
+    if (BLOCK_TAGS.has(tag)) {
+      text += "\n";
+    }
+
+    return text;
+  }
+
+  return walk(doc.body)
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-export type ExportFormat = "chapter-md" | "chapter-txt" | "project-html";
-
-export interface ExportPayload {
-  project: Project;
-  volumes: Volume[];
-  chapters: Chapter[];
-  getChapterContent: (chapterId: string) => Promise<string>;
-}
-
-export async function exportDocument(payload: ExportPayload, format: ExportFormat) {
-  const { project, volumes, chapters, getChapterContent } = payload;
-
-  const defaultName =
-    format === "project-html"
-      ? `${sanitize(project.name)}.html`
-      : `${sanitize(project.name)}-章节.md`;
-
-  const filters =
-    format === "project-html"
-      ? [{ name: "HTML", extensions: ["html"] }]
-      : format === "chapter-txt"
-        ? [{ name: "Text", extensions: ["txt"] }]
-        : [{ name: "Markdown", extensions: ["md"] }];
-
-  const defaultPath = await getExportDefaultPath(defaultName);
-  const path = await save({
-    defaultPath,
-    filters,
-  });
-
-  if (!path) return { canceled: true };
-
-  let content = "";
-
-  if (format === "chapter-md") {
-    const chapter = chapters.find((c) => c.wordCount >= 0); // placeholder; caller passes selected chapter
-    if (!chapter) throw new Error("No chapter to export");
-    content = buildChapterMarkdown(chapter, await getChapterContent(chapter.id));
-  } else if (format === "chapter-txt") {
-    const chapter = chapters.find((c) => c.wordCount >= 0);
-    if (!chapter) throw new Error("No chapter to export");
-    content = stripHtml(await getChapterContent(chapter.id));
-  } else {
-    content = await buildProjectHtml(project, volumes, chapters, getChapterContent);
-  }
-
-  await writeTextFile(path, content);
-  return { canceled: false, path };
+function escapeMarkdown(text: string): string {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/`/g, "\\`")
+    .replace(/\*/g, "\\*")
+    .replace(/_/g, "\\_")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/#/g, "\\#")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 export async function exportChapter(
@@ -97,11 +233,14 @@ export async function exportChapter(
   chapter: Chapter,
   getChapterContent: (id: string) => Promise<string>,
   format: "md" | "txt",
+  config: AppSettings,
 ) {
-  const defaultName = `${sanitize(project.name)}-${sanitize(chapter.title)}.${format}`;
-  const { canceled, path, fallback } = await pickSavePath(defaultName, [
-    { name: format === "md" ? "Markdown" : "Text", extensions: [format] },
-  ]);
+  const defaultName = `${sanitizeFileName(project.name)}-${sanitizeFileName(chapter.title)}.${format}`;
+  const { canceled, path, fallback } = await pickSavePath(
+    defaultName,
+    [{ name: format === "md" ? "Markdown" : "Text", extensions: [format] }],
+    config,
+  );
   if (canceled || !path) return { canceled: true };
 
   const content =
@@ -123,15 +262,28 @@ export async function exportProject(
   volumes: Volume[],
   chapters: Chapter[],
   getChapterContent: (id: string) => Promise<string>,
+  config: AppSettings,
+  format: "html" | "txt" | "md" = "html",
 ) {
-  const defaultName = `${sanitize(project.name)}.html`;
-  const { canceled, path, fallback } = await pickSavePath(defaultName, [{ name: "HTML", extensions: ["html"] }]);
+  const defaultName = `${sanitizeFileName(project.name)}.${format}`;
+  const filterName = format === "html" ? "HTML" : format === "md" ? "Markdown" : "Text";
+  const { canceled, path, fallback } = await pickSavePath(
+    defaultName,
+    [{ name: filterName, extensions: [format] }],
+    config,
+  );
   if (canceled || !path) return { canceled: true };
 
-  const content = await buildProjectHtml(project, volumes, chapters, getChapterContent);
+  let content: string;
+  if (format === "html") {
+    content = await buildProjectHtml(project, volumes, chapters, getChapterContent);
+  } else {
+    content = await buildProjectPlain(project, volumes, chapters, getChapterContent, format);
+  }
 
   if (fallback) {
-    downloadFile(defaultName, content, "text/html");
+    const mime = format === "html" ? "text/html" : format === "md" ? "text/markdown" : "text/plain";
+    downloadFile(defaultName, content, mime);
     return { canceled: false, path: defaultName };
   }
 
@@ -139,9 +291,68 @@ export async function exportProject(
   return { canceled: false, path };
 }
 
+/** Sorts chapters the same way the tree and HTML export do: volume order,
+ *  then chapter order within each volume. */
+function sortChaptersForExport(
+  volumes: Volume[],
+  chapters: Chapter[],
+): { sorted: Chapter[]; volumeMap: Map<string, Volume> } {
+  const volumeMap = new Map(volumes.map((v) => [v.id, v]));
+  const sorted = [...chapters].sort((a, b) => {
+    const va = volumeMap.get(a.parentId || "")?.order ?? -1;
+    const vb = volumeMap.get(b.parentId || "")?.order ?? -1;
+    if (va !== vb) return va - vb;
+    return a.order - b.order;
+  });
+  return { sorted, volumeMap };
+}
+
+// Whole-book plain-text / Markdown export. Chapters are grouped under their
+// volume headings (Markdown only — TXT uses a simple separator line), with
+// the same ordering as the HTML export.
+async function buildProjectPlain(
+  project: Project,
+  volumes: Volume[],
+  chapters: Chapter[],
+  getChapterContent: (id: string) => Promise<string>,
+  format: "txt" | "md",
+): Promise<string> {
+  const { sorted, volumeMap } = sortChaptersForExport(volumes, chapters);
+
+  const header: string[] = [];
+  if (format === "md") {
+    header.push(`# ${escapeMarkdown(project.name)}`);
+    if (project.author) header.push(`\n> 作者：${escapeMarkdown(project.author)}`);
+  } else {
+    header.push(project.name);
+    if (project.author) header.push(`作者：${project.author}`);
+  }
+
+  const parts: string[] = [];
+  let lastVolumeId: string | null | undefined = undefined;
+  for (const chapter of sorted) {
+    const volumeId = chapter.parentId ?? null;
+    if (volumeId !== lastVolumeId) {
+      lastVolumeId = volumeId;
+      const volume = volumeId ? volumeMap.get(volumeId) : null;
+      if (volume) {
+        parts.push(format === "md" ? `\n## ${escapeMarkdown(volume.title)}\n` : `\n【${volume.title}】\n`);
+      }
+    }
+    const text = stripHtml(await getChapterContent(chapter.id));
+    if (format === "md") {
+      parts.push(`\n### ${escapeMarkdown(chapter.title)}\n\n${text}\n`);
+    } else {
+      parts.push(`\n${chapter.title}\n\n${text}\n`);
+    }
+  }
+
+  return header.join("\n") + "\n" + parts.join("\n");
+}
+
 function buildChapterMarkdown(chapter: Chapter, html: string): string {
   const text = stripHtml(html);
-  return `# ${chapter.title}\n\n${text}\n`;
+  return `# ${escapeMarkdown(chapter.title)}\n\n${text}\n`;
 }
 
 async function buildProjectHtml(
@@ -150,22 +361,17 @@ async function buildProjectHtml(
   chapters: Chapter[],
   getChapterContent: (id: string) => Promise<string>,
 ): Promise<string> {
-  const volumeMap = new Map(volumes.map((v) => [v.id, v]));
-  const sortedChapters = [...chapters].sort((a, b) => {
-    const va = volumeMap.get(a.parentId || "")?.order ?? -1;
-    const vb = volumeMap.get(b.parentId || "")?.order ?? -1;
-    if (va !== vb) return va - vb;
-    return a.order - b.order;
-  });
+  const { sorted: sortedChapters, volumeMap } = sortChaptersForExport(volumes, chapters);
 
   const chapterContents = await Promise.all(
     sortedChapters.map(async (c) => {
       const volume = c.parentId ? volumeMap.get(c.parentId) : null;
+      const html = sanitizeHtml(await getChapterContent(c.id));
       return `
         <section class="chapter">
           <h2>${escapeHtml(c.title)}</h2>
           ${volume ? `<p class="volume">${escapeHtml(volume.title)}</p>` : ""}
-          ${await getChapterContent(c.id)}
+          ${html}
         </section>
       `;
     }),
@@ -190,10 +396,6 @@ async function buildProjectHtml(
   ${chapterContents.join("\n")}
 </body>
 </html>`;
-}
-
-function sanitize(name: string): string {
-  return name.replace(/[<>:"/\\|?*]/g, "_").trim() || "untitled";
 }
 
 function escapeHtml(text: string): string {

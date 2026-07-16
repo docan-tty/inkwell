@@ -1,35 +1,89 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, BookOpen, MoreVertical, Trash2, Edit3, FileText, Settings } from "lucide-react";
 import { useAppStore } from "../store";
 import type { Project } from "../types";
 import { formatNumber, formatDateTime } from "../lib/utils";
 import { GlobalSettingsModal } from "./GlobalSettingsModal";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { loadProjectFromLocal } from "../lib/storage";
 
 export function ProjectList() {
   const { projects, loadProjects, createProject, openProject, deleteProject, updateProject } =
     useAppStore();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [createError, setCreateError] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleting, setDeleting] = useState<Project | null>(null);
+  const [deletingChapterCount, setDeletingChapterCount] = useState(0);
+  // Total word count per project, aggregated from each project file so the
+  // cards can show live progress without opening the project.
+  const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
+  // Aggregate per-project word counts for the progress display. Reads each
+  // project file once per registry change — cheap JSON, no chapter content.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const settings = useAppStore.getState().appSettings;
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        projects.map(async (p) => {
+          const loaded = await loadProjectFromLocal(p.id, settings);
+          counts[p.id] = (loaded?.chapters || []).reduce((sum, c) => sum + c.wordCount, 0);
+        }),
+      );
+      if (!cancelled) setWordCounts(counts);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projects]);
+
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    const project = await createProject({ name: newName.trim() });
-    await openProject(project);
-    setCreating(false);
-    setNewName("");
+    try {
+      const project = await createProject({ name: newName.trim() });
+      await openProject(project);
+      setCreating(false);
+      setNewName("");
+      setCreateError("");
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : String(err));
+    }
   };
+
+  const requestDelete = useCallback(async (project: Project) => {
+    setDeleting(project);
+    setDeletingChapterCount(0);
+    try {
+      const loaded = await loadProjectFromLocal(
+        project.id,
+        useAppStore.getState().appSettings,
+      );
+      setDeletingChapterCount(loaded?.chapters.length || 0);
+    } catch {
+      setDeletingChapterCount(0);
+    }
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleting) return;
+    const id = deleting.id;
+    setDeleting(null);
+    await deleteProject(id);
+  }, [deleting, deleteProject]);
 
   return (
     <div className="flex h-full flex-col bg-paper dark:bg-paper-dark">
       <div className="flex h-16 items-center justify-between border-b border-warm-gray px-6 dark:border-warm-gray-dark">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-sm">
             <BookOpen size={20} />
           </div>
           <div>
@@ -39,7 +93,7 @@ export function ProjectList() {
         </div>
         <button
           onClick={() => setSettingsOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-ink-muted dark:text-ink-muted-dark hover:bg-warm-gray dark:hover:bg-warm-gray-dark"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
           title="全局设置"
         >
           <Settings size={18} />
@@ -48,30 +102,35 @@ export function ProjectList() {
 
       <div className="relative flex-1 overflow-y-auto p-6">
         {creating && (
-          <div className="mb-6 rounded-lg border border-warm-gray bg-paper p-4 shadow-sm dark:border-warm-gray-dark dark:bg-paper-dark">
+          <div className="mb-6 rounded-xl border border-warm-gray bg-paper p-4 shadow-sm dark:border-warm-gray-dark dark:bg-paper-dark">
             <h3 className="mb-3 text-sm font-medium text-ink dark:text-ink-dark">新建作品</h3>
             <div className="space-y-3">
               <input
                 autoFocus
                 value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                onChange={(e) => {
+                  setNewName(e.target.value);
+                  setCreateError("");
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 placeholder="作品名称"
-                className="w-full rounded-md border border-warm-gray bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-accent dark:border-warm-gray-dark dark:bg-paper-dark dark:text-ink-dark"
+                className="w-full rounded-lg border border-warm-gray bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent dark:border-warm-gray-dark dark:bg-paper-dark dark:text-ink-dark"
               />
+              {createError && <p className="text-xs text-red-600 dark:text-red-400">{createError}</p>}
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => {
                     setCreating(false);
                     setNewName("");
+                    setCreateError("");
                   }}
-                  className="rounded-md px-3 py-1.5 text-sm text-ink-muted dark:text-ink-muted-dark hover:bg-warm-gray dark:hover:bg-warm-gray-dark"
+                  className="rounded-lg px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
                 >
                   取消
                 </button>
                 <button
                   onClick={handleCreate}
-                  className="rounded-md bg-accent px-3 py-1.5 text-sm text-white hover:bg-accent-light"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-sm text-white transition-colors hover:bg-accent-light"
                 >
                   创建
                 </button>
@@ -89,7 +148,7 @@ export function ProjectList() {
             <p className="mb-6 text-sm text-ink-muted dark:text-ink-muted-dark">创建一个新作品，开始你的创作之旅</p>
             <button
               onClick={() => setCreating(true)}
-              className="flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-light"
+              className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-accent-light hover:shadow"
             >
               <Plus size={16} />
               新建作品
@@ -102,33 +161,48 @@ export function ProjectList() {
             <ProjectCard
               key={project.id}
               project={project}
+              totalWords={wordCounts[project.id]}
               onOpen={() => openProject(project)}
               onUpdate={(data) => updateProject(project.id, data)}
-              onDelete={() => deleteProject(project.id)}
+              onDelete={() => requestDelete(project)}
             />
           ))}
         </div>
 
         <button
           onClick={() => setCreating(true)}
-          className="fixed bottom-6 right-6 flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-accent-light"
+          className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-accent-light hover:shadow-xl"
         >
           <Plus size={16} />
           新建作品
         </button>
       </div>
       <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ConfirmDialog
+        open={deleting !== null}
+        title={`删除作品「${deleting?.name ?? ""}」？`}
+        message={
+          deletingChapterCount > 0
+            ? `将永久删除该作品及其 ${deletingChapterCount} 个章节的全部内容，此操作不可撤销。`
+            : "将永久删除该作品，此操作不可撤销。"
+        }
+        confirmLabel="永久删除"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   );
 }
 
 function ProjectCard({
   project,
+  totalWords,
   onOpen,
   onUpdate,
   onDelete,
 }: {
   project: Project;
+  totalWords?: number;
   onOpen: () => void;
   onUpdate: (data: Partial<Project>) => void;
   onDelete: () => void;
@@ -139,13 +213,28 @@ function ProjectCard({
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
 
+  const progress =
+    totalWords !== undefined && project.targetWords > 0
+      ? Math.min(100, Math.round((totalWords / project.targetWords) * 100))
+      : null;
+
+  const commitRename = () => {
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== project.name) {
+      onUpdate({ name: trimmed });
+    } else {
+      setName(project.name);
+    }
+    setEditing(false);
+  };
+
   return (
     <div
       onClick={onOpen}
-      className="group relative cursor-pointer rounded-lg border border-warm-gray bg-paper p-5 transition-all hover:border-accent hover:shadow-md dark:border-warm-gray-dark dark:bg-paper-dark"
+      className="group relative cursor-pointer rounded-xl border border-warm-gray bg-paper p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark"
     >
       <div className="mb-3 flex items-start justify-between">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warm-gray text-accent dark:bg-warm-gray-dark">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warm-gray text-accent transition-colors group-hover:bg-accent/10 dark:bg-warm-gray-dark">
           <BookOpen size={24} />
         </div>
         <div ref={menuRef} className="relative">
@@ -154,19 +243,19 @@ function ProjectCard({
               e.stopPropagation();
               setMenuOpen(!menuOpen);
             }}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted dark:text-ink-muted-dark opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:hover:bg-warm-gray-dark"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
           >
             <MoreVertical size={16} />
           </button>
           {menuOpen && (
-            <div className="absolute right-5 top-14 z-10 w-32 rounded-md border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark">
+            <div className="absolute right-0 top-9 z-10 w-32 rounded-lg border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditing(true);
                   setMenuOpen(false);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark"
               >
                 <Edit3 size={12} />
                 重命名
@@ -177,7 +266,7 @@ function ProjectCard({
                   onDelete();
                   setMenuOpen(false);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-warm-gray dark:hover:bg-warm-gray-dark"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 transition-colors hover:bg-red-500/10 dark:text-red-400"
               >
                 <Trash2 size={12} />
                 删除
@@ -192,13 +281,11 @@ function ProjectCard({
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onBlur={() => {
-            onUpdate({ name });
-            setEditing(false);
-          }}
+          onBlur={commitRename}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              onUpdate({ name });
+            if (e.key === "Enter") commitRename();
+            if (e.key === "Escape") {
+              setName(project.name);
               setEditing(false);
             }
           }}
@@ -209,12 +296,28 @@ function ProjectCard({
         <h3 className="mb-1 text-base font-semibold text-ink dark:text-ink-dark">{project.name}</h3>
       )}
 
-      <p className="mb-4 line-clamp-2 text-sm text-ink-muted dark:text-ink-muted-dark">
+      <p className="mb-4 line-clamp-2 min-h-[2.5em] text-sm text-ink-muted dark:text-ink-muted-dark">
         {project.description || "暂无简介"}
       </p>
 
-      <div className="flex items-center justify-between text-xs text-ink-muted dark:text-ink-muted-dark">
-        <span>目标 {formatNumber(project.targetWords)} 字</span>
+      {progress !== null && (
+        <div className="mb-3">
+          <div className="mb-1 flex items-center justify-between text-xs">
+            <span className="text-ink dark:text-ink-dark">
+              {formatNumber(totalWords!)} <span className="text-ink-muted dark:text-ink-muted-dark">/ {formatNumber(project.targetWords)} 字</span>
+            </span>
+            <span className="font-medium text-accent">{progress}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-warm-gray dark:bg-warm-gray-dark">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-end text-xs text-ink-muted dark:text-ink-muted-dark">
         <span>更新于 {formatDateTime(project.updatedAt)}</span>
       </div>
     </div>

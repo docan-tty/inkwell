@@ -25,37 +25,19 @@ export function formatNumber(num: number): string {
 
 export function countWords(text: string, includePunctuation = true): number {
   if (!text) return 0;
-  const cleaned = text.replace(/\s+/g, "");
   if (includePunctuation) {
+    const cleaned = text.replace(/\s+/g, "");
     return Array.from(cleaned).length;
   }
-  // Count CJK characters and words separately
-  const cjk = (cleaned.match(/[一-鿿]/g) || []).length;
-  const nonPunctuation = (cleaned.match(/[a-zA-Z0-9]+/g) || []).length;
-  return cjk + nonPunctuation;
+  // Count CJK characters and English words separately, excluding punctuation.
+  // Match English words on the original text (with whitespace) so that
+  // "Hello world" counts as 2 words, not 1 — stripping whitespace first would
+  // merge separate words into one token.
+  const cjk = (text.match(/[一-鿿]/g) || []).length;
+  const words = (text.match(/[a-zA-Z0-9]+/g) || []).length;
+  return cjk + words;
 }
 
 export function sanitizeFileName(name: string): string {
   return name.replace(/[<>:"/\\|?*]/g, "_").trim() || "untitled";
-}
-
-export function throttle<T extends (...args: unknown[]) => void>(
-  fn: T,
-  delay: number,
-): (...args: Parameters<T>) => void {
-  let last = 0;
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  return (...args: Parameters<T>) => {
-    const now = Date.now();
-    if (now - last >= delay) {
-      last = now;
-      fn(...args);
-    } else if (!timeout) {
-      timeout = setTimeout(() => {
-        last = Date.now();
-        timeout = null;
-        fn(...args);
-      }, delay - (now - last));
-    }
-  };
 }

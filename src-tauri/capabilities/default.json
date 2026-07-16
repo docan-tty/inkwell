@@ -5,20 +5,8 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default",
-    "fs:default",
-    "dialog:default",
-    {
-      "identifier": "fs:allow-appdata-read-recursive",
-      "allow": [{"path": "$APPDATA/**"}]
-    },
-    {
-      "identifier": "fs:allow-appdata-write-recursive",
-      "allow": [{"path": "$APPDATA/**"}]
-    },
-    {
-      "identifier": "fs:allow-appdata-meta-recursive",
-      "allow": [{"path": "$APPDATA/**"}]
-    }
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "dialog:default"
   ]
 }

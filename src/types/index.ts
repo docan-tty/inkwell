@@ -6,7 +6,6 @@ export interface Chapter {
   parentId: string | null;
   title: string;
   summary: string;
-  contentPath: string;
   order: number;
   status: ChapterStatus;
   wordCount: number;
@@ -36,11 +35,6 @@ export interface Project {
   targetWords: number;
   createdAt: number;
   updatedAt: number;
-  settings: ProjectSettings;
-}
-
-export interface ProjectSettings {
-  // All editor-level settings have moved to AppSettings.
 }
 
 export interface EditorTypography {
@@ -62,14 +56,19 @@ export interface AppSettings {
   includePunctuationInWordCount: boolean;
   defaultChapterTargetWords: number;
   leftSidebarWidth?: number;
+  // Chinese-novel typography: indent the first line of every paragraph by
+  // 2em. On by default — the README promises it; headings, lists and
+  // blockquotes always reset to 0 indent regardless of this setting.
+  firstLineIndent?: boolean;
+  // Custom location for the user's novel content (project JSON files and
+  // chapter `.md` files). When unset, content falls back to the data folder.
+  // The data folder itself holds app-level data only — settings and the
+  // project index (`registry.json`).
   projectSaveDirectory?: string;
-  chapterCacheDirectory?: string;
 }
 
 export type ViewMode = "projects" | "editor";
-export type RightPanelTab = "outline" | "none";
-
-export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {};
+export type RightPanelTab = "outline" | "history" | "none";
 
 export const DEFAULT_PROJECT_TARGET_WORDS = 4000;
 
@@ -84,11 +83,4 @@ export const STATUS_LABELS: Record<ChapterStatus, string> = {
   editing: "修改中",
   review: "待校对",
   done: "已完成",
-};
-
-export const STATUS_COLORS: Record<ChapterStatus, string> = {
-  draft: "bg-warm-gray dark:bg-warm-gray-dark",
-  editing: "bg-amber-100 dark:bg-amber-900/40",
-  review: "bg-blue-100 dark:bg-blue-900/40",
-  done: "bg-emerald-100 dark:bg-emerald-900/40",
 };

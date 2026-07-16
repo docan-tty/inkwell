@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { useAppStore } from "../store";
 import { Toolbar } from "./Toolbar";
 import { cn } from "../lib/utils";
@@ -30,6 +30,10 @@ export function Editor({
 }: EditorProps) {
   const { currentProject, focusMode, updateAppSettings, appSettings } = useAppStore();
   const typography = appSettings.editorTypography;
+  // 编辑区最大宽度：设置里可调，默认 880px。宽屏下给足阅读宽度。
+  const editorMaxWidth = appSettings.editorMaxWidth || 880;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   const editor = useEditor({
     extensions: [
@@ -68,6 +72,20 @@ export function Editor({
     // 首行缩进开关（默认开）— 中文小说排版惯例两字符缩进。
     editorEl.style.setProperty("--inkwell-indent", appSettings.firstLineIndent === false ? "0" : "2em");
   }, [editor, typography, appSettings.firstLineIndent]);
+
+  // Track the actual editing-pane width so the text column can adapt: use the
+  // full configured max width, but never leave absurdly wide empty margins on
+  // very wide screens, nor overflow on narrow ones.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    setContainerWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -147,6 +165,7 @@ export function Editor({
         </div>
       )}
       <div
+        ref={containerRef}
         className={cn(
           "inkwell-editor flex-1 w-full min-h-0 overflow-y-auto bg-paper dark:bg-paper-dark transition-all duration-300",
           focusMode ? "opacity-100" : "",
@@ -159,10 +178,12 @@ export function Editor({
         <div
           className="min-h-full py-12"
           style={{
-            // In fullscreen (window or edit) we widen the reading column so it
-            // actually uses the available pane — 900px on a >1600px screen
-            // leaves very wide empty margins on both sides, which feels wrong.
-            maxWidth: isFullscreen ? "1100px" : "720px",
+            // Adaptive column width: prefer the configured max width, but on a
+            // narrow pane shrink to fit (minus padding), and on a very wide
+            // pane cap at the configured width so lines stay readable.
+            maxWidth: containerWidth
+              ? Math.min(editorMaxWidth, Math.max(420, containerWidth - appSettings.editorPadding * 2))
+              : editorMaxWidth,
             margin: "0 auto",
           }}
         >

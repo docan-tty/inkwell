@@ -20,7 +20,9 @@ import { useAppStore } from "../store";
 import type { EditorTypography } from "../types";
 import { ThemeButton, RangeField, PathField, ShortcutItem } from "./settings/widgets";
 import { revealInFolder, copyDirRecursive, exists, join, isTauri } from "../lib/storage";
+import { ACCENT_ORDER, ACCENTS, PAPER_ORDER, PAPERS } from "../lib/theme";
 import { cn } from "../lib/utils";
+import { Check } from "lucide-react";
 
 interface GlobalSettingsModalProps {
   open: boolean;
@@ -152,6 +154,74 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
             </div>
           </Section>
 
+          {/* 个性化：主题色 + 纸张质感 */}
+          <Section icon={<Palette size={16} />} title="个性化">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="text-xs text-ink-muted dark:text-ink-muted-dark">主题色</div>
+                <div className="flex flex-wrap gap-2">
+                  {ACCENT_ORDER.map((key) => {
+                    const a = ACCENTS[key];
+                    const active = (appSettings.themeColor || "brown") === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => updateAppSettings({ themeColor: key })}
+                        title={a.label}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-2.5 text-xs transition-all",
+                          active
+                            ? "border-accent bg-accent/10 text-ink dark:text-ink-dark"
+                            : "border-warm-gray text-ink-muted hover:border-accent/50 dark:border-warm-gray-dark dark:text-ink-muted-dark",
+                        )}
+                      >
+                        <span
+                          className="h-4 w-4 rounded-full border border-black/10"
+                          style={{ backgroundColor: a.swatch }}
+                        />
+                        {a.label}
+                        {active && <Check size={12} className="text-accent" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs text-ink-muted dark:text-ink-muted-dark">
+                  纸张质感 <span className="text-ink-muted/60">（浅色模式生效）</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PAPER_ORDER.map((key) => {
+                    const p = PAPERS[key];
+                    const active = (appSettings.paperTexture || "plain") === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => updateAppSettings({ paperTexture: key })}
+                        className={cn(
+                          "flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-all",
+                          active
+                            ? "border-accent bg-accent/10"
+                            : "border-warm-gray hover:border-accent/50 dark:border-warm-gray-dark",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-ink dark:text-ink-dark">
+                          <span
+                            className="h-3.5 w-3.5 rounded-sm border border-black/10"
+                            style={{ backgroundColor: p.base.paper }}
+                          />
+                          {p.label}
+                          {active && <Check size={12} className="text-accent" />}
+                        </span>
+                        <span className="text-[10px] text-ink-muted dark:text-ink-muted-dark">{p.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Section>
+
           {/* 字体排版 */}
           <Section icon={<Type size={16} />} title="字体排版">
             <RangeField
@@ -178,6 +248,15 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
               step={0.1}
               unit="em"
               onChange={(v) => updateTypography({ paragraphSpacing: v })}
+            />
+            <RangeField
+              label="编辑区宽度"
+              value={appSettings.editorMaxWidth || 880}
+              min={560}
+              max={1280}
+              step={40}
+              unit="px"
+              onChange={(v) => updateAppSettings({ editorMaxWidth: v })}
             />
             <label className="flex items-center justify-between text-sm text-ink dark:text-ink-dark">
               <span className="flex items-center gap-1.5">

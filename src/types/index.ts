@@ -53,6 +53,8 @@ export interface AppSettings {
   };
   editorTypography: EditorTypography;
   editorPadding: number;
+  /** 编辑区正文最大宽度（px），随窗口自适应。 */
+  editorMaxWidth?: number;
   includePunctuationInWordCount: boolean;
   defaultChapterTargetWords: number;
   leftSidebarWidth?: number;
@@ -60,6 +62,10 @@ export interface AppSettings {
   // 2em. On by default — the README promises it; headings, lists and
   // blockquotes always reset to 0 indent regardless of this setting.
   firstLineIndent?: boolean;
+  /** 个性化主题色（墨棕/黛蓝/松绿/胭脂/紫檀）。 */
+  themeColor?: string;
+  /** 纸张质感（米白/羊皮纸/护眼绿），仅浅色模式生效。 */
+  paperTexture?: string;
   // Custom location for the user's novel content (project JSON files and
   // chapter `.md` files). When unset, content falls back to the data folder.
   // The data folder itself holds app-level data only — settings and the
@@ -67,8 +73,16 @@ export interface AppSettings {
   projectSaveDirectory?: string;
 }
 
+/** 写作笔记：全书共享的随手记（人物设定、灵感、伏笔等）。 */
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: number;
+}
+
 export type ViewMode = "projects" | "editor";
-export type RightPanelTab = "outline" | "history" | "none";
+export type RightPanelTab = "outline" | "history" | "notes" | "none";
 
 export const DEFAULT_PROJECT_TARGET_WORDS = 4000;
 

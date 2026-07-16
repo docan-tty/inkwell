@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   AppSettings,
   Chapter,
+  Note,
   Project,
   RightPanelTab,
   ViewMode,
@@ -14,8 +15,10 @@ import {
 import {
   getLocalProjectRegistry,
   loadChapterContentFromLocal,
+  loadNotesFromLocal,
   loadProjectFromLocal,
   saveChapterContentToLocal,
+  saveNotesToLocal,
   saveProjectToLocal,
   setLocalProjectRegistry,
   removeChapterContentFromLocal,
@@ -25,6 +28,7 @@ import { countWords, generateId } from "../lib/utils";
 import { stripHtml } from "../lib/export";
 import { clearDraft } from "../lib/draft";
 import { createSnapshot, removeSnapshots } from "../lib/snapshots";
+import { computeThemeVars, type AccentKey, type PaperKey } from "../lib/theme";
 
 export function reorderChaptersByVolume(chapters: Chapter[]): Chapter[] {
   const byVolume = new Map<string, Chapter[]>();
@@ -51,10 +55,13 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   recentProjects: [],
   editorTypography: DEFAULT_EDITOR_TYPOGRAPHY,
   editorPadding: 64,
+  editorMaxWidth: 880,
   includePunctuationInWordCount: true,
   defaultChapterTargetWords: 4000,
   leftSidebarWidth: 256,
   firstLineIndent: true,
+  themeColor: "brown",
+  paperTexture: "plain",
 };
 
 // Minimum interval between automatic version snapshots of the same chapter.
@@ -120,6 +127,14 @@ interface AppState {
   focusMode: boolean;
   toggleFocusMode: () => void;
 
+  // Notes (写作笔记) — per-project scratch notes, debounced autosave.
+  notes: Note[];
+  activeNoteId: string | null;
+  setActiveNote: (id: string | null) => void;
+  addNote: () => void;
+  updateNote: (id: string, data: Partial<Note>) => void;
+  removeNote: (id: string) => void;
+
   // Persistence
   saveCurrentProject: () => Promise<void>;
 
@@ -172,6 +187,9 @@ const persistAppSettings = (settings: AppSettings) => {
 // store re-creation (HMR) and is shared by the snapshot policy.
 const lastSnapshotAt = new Map<string, number>();
 
+// Layout snapshot taken when entering focus mode, restored on exit.
+let preFocusLayout: { left: boolean; right: boolean; tab: RightPanelTab } | null = null;
+
 export const useAppStore = create<AppState>((set, get) => ({
   view: "projects",
   setView: (view) => set({ view }),
@@ -186,7 +204,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const theme = appSettings.theme === "system" ? (prefersDark ? "dark" : "light") : appSettings.theme;
     set({ theme });
-    document.documentElement.classList.toggle("dark", theme === "dark");
+
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+
+    // Write the full palette as CSS variables; Tailwind utilities read these.
+    const vars = computeThemeVars(
+      appSettings.theme,
+      (appSettings.themeColor as AccentKey) || "brown",
+      (appSettings.paperTexture as PaperKey) || "plain",
+      prefersDark,
+    );
+    for (const [k, v] of Object.entries(vars)) {
+      root.style.setProperty(`--${k}`, v);
+    }
   },
 
   appSettings: loadAppSettings(),
@@ -194,7 +225,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = { ...get().appSettings, ...settings };
     set({ appSettings: next });
     persistAppSettings(next);
-    if (settings.theme) get().applyTheme();
+    if (settings.theme || settings.themeColor || settings.paperTexture) get().applyTheme();
   },
 
   projects: [],
@@ -287,10 +318,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     const recent = [project.id, ...appSettings.recentProjects.filter((id) => id !== project.id)].slice(0, 10);
     get().updateAppSettings({ recentProjects: recent });
     get().applyTheme();
+    // Load this project's writing notes alongside its chapters.
+    const notes = await loadNotesFromLocal(project.id, appSettings).catch(() => []);
+    set({ notes, activeNoteId: notes[0]?.id ?? null });
   },
   closeProject: async () => {
     const savePromise = get().saveCurrentProject();
-    set({ currentProject: null, volumes: [], chapters: [], currentChapter: null, view: "projects", focusMode: false });
+    set({
+      currentProject: null,
+      volumes: [],
+      chapters: [],
+      currentChapter: null,
+      view: "projects",
+      focusMode: false,
+      notes: [],
+      activeNoteId: null,
+    });
     await savePromise;
   },
 
@@ -487,11 +530,59 @@ export const useAppStore = create<AppState>((set, get) => ({
       rightPanelTab: s.rightSidebarOpen ? "none" : "outline",
     })),
   focusMode: false,
-  toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+  toggleFocusMode: () =>
+    set((s) => {
+      if (s.focusMode) {
+        // Leaving focus mode: restore the layout from before we entered it.
+        const saved = preFocusLayout;
+        preFocusLayout = null;
+        return {
+          focusMode: false,
+          leftSidebarOpen: saved?.left ?? s.leftSidebarOpen,
+          rightSidebarOpen: saved?.right ?? false,
+          rightPanelTab: saved?.right ? (saved.tab === "none" ? "outline" : saved.tab) : "none",
+        };
+      }
+      // Entering focus mode: remember the layout, then hide both sidebars.
+      preFocusLayout = {
+        left: s.leftSidebarOpen,
+        right: s.rightSidebarOpen,
+        tab: s.rightPanelTab,
+      };
+      return { focusMode: true, leftSidebarOpen: false, rightSidebarOpen: false, rightPanelTab: "none" };
+    }),
 
   lastSavedAt: 0,
   saveError: null,
   dismissSaveError: () => set({ saveError: null }),
+
+  // --- Notes --------------------------------------------------------------
+  notes: [],
+  activeNoteId: null,
+  setActiveNote: (id) => set({ activeNoteId: id }),
+  addNote: () => {
+    const note: Note = {
+      id: generateId(),
+      title: `笔记 ${get().notes.length + 1}`,
+      content: "",
+      updatedAt: Date.now(),
+    };
+    set((s) => ({ notes: [note, ...s.notes], activeNoteId: note.id }));
+    scheduleNoteSave();
+  },
+  updateNote: (id, data) => {
+    set((s) => ({
+      notes: s.notes.map((n) => (n.id === id ? { ...n, ...data, updatedAt: Date.now() } : n)),
+    }));
+    scheduleNoteSave();
+  },
+  removeNote: (id) => {
+    set((s) => ({
+      notes: s.notes.filter((n) => n.id !== id),
+      activeNoteId: s.activeNoteId === id ? null : s.activeNoteId,
+    }));
+    scheduleNoteSave();
+  },
 
   saveCurrentProject: async () => {
     const { currentProject, volumes, chapters } = get();
@@ -519,4 +610,15 @@ export function scheduleAutoSave(chapterId: string, content: string) {
         });
       });
   }, 3000);
+}
+
+// Debounced persistence for the notes list of the open project.
+let noteSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleNoteSave() {
+  if (noteSaveTimer) clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(() => {
+    const { currentProject, notes, appSettings } = useAppStore.getState();
+    if (!currentProject) return;
+    saveNotesToLocal(currentProject.id, notes, appSettings).catch(() => {});
+  }, 800);
 }

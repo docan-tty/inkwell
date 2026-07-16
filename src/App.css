@@ -2,17 +2,28 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --color-paper: #faf8f5;
-  --color-paper-dark: #242322;
-  --color-ink: #1a1a1a;
-  --color-ink-dark: #e8e6e3;
-  --color-ink-muted: #6b6b6b;
-  --color-ink-muted-dark: #9a9896;
-  --color-accent: #8b5a2b;
-  --color-accent-light: #a67c52;
-  --color-warm-gray: #e8e4de;
-  --color-warm-gray-dark: #3a3836;
+/*
+ * Theme architecture
+ * ------------------
+ * Colors are NOT hard-coded. Every palette token is a CSS variable set on
+ * <html> by JavaScript (store.applyTheme), driven by three user choices:
+ *   - light / dark / system   (class "dark" on <html>)
+ *   - accent color            (data-accent="brown|blue|green|red|purple")
+ *   - paper texture           (data-paper="plain|parchment|eye")
+ * Tailwind's `paper` / `ink` / `accent` utilities read the variables below,
+ * so switching theme is a pure variable swap — zero class changes.
+ */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-dark: var(--paper-dark);
+  --color-ink: var(--ink);
+  --color-ink-dark: var(--ink-dark);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-muted-dark: var(--ink-muted-dark);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-warm-gray: var(--warm-gray);
+  --color-warm-gray-dark: var(--warm-gray-dark);
 }
 
 @layer base {
@@ -38,9 +49,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Softer, theme-aware scrollbars (dark included). */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -48,20 +60,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 3px;
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.25);
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--scrollbar-thumb-hover);
   }
 }
 
@@ -71,29 +75,24 @@
     min-height: 100%;
     font-size: var(--inkwell-font-size, 18px);
     line-height: var(--inkwell-line-height, 1.85);
+    color: var(--editor-ink);
   }
 
   .inkwell-editor .ProseMirror p {
     margin: 0;
     margin-bottom: var(--inkwell-paragraph-spacing, 0.8em);
     line-height: inherit;
-    /* 中文小说排版：默认首行缩进两字符。标题/列表/引用单独复位为 0。
-       The --inkwell-indent variable flips between 2em and 0 from the
-       "首行缩进" setting. */
+    /* 中文小说排版：默认首行缩进两字符。标题/列表/引用单独复位为 0。 */
     text-indent: var(--inkwell-indent, 2em);
   }
 
   .inkwell-editor .ProseMirror p.is-empty::before {
-    color: rgba(0, 0, 0, 0.25);
+    color: var(--placeholder);
     content: attr(data-placeholder);
     float: left;
     height: 0;
     pointer-events: none;
     text-indent: 0;
-  }
-
-  .dark .inkwell-editor .ProseMirror p.is-empty::before {
-    color: rgba(255, 255, 255, 0.25);
   }
 
   .inkwell-editor .ProseMirror h1,
@@ -103,6 +102,7 @@
     font-weight: 700;
     line-height: 1.4;
     margin: 1.2em 0 0.6em;
+    color: var(--editor-ink);
   }
 
   .inkwell-editor .ProseMirror h1 {
@@ -118,16 +118,16 @@
   }
 
   .inkwell-editor .ProseMirror blockquote {
-    border-left: 3px solid var(--color-accent);
+    border-left: 3px solid var(--accent);
     padding-left: 1em;
     margin: 1em 0;
-    color: var(--color-ink-muted);
+    color: var(--ink-muted);
     text-indent: 0;
   }
 
   .inkwell-editor .ProseMirror hr {
     border: none;
-    border-top: 1px solid var(--color-warm-gray);
+    border-top: 1px solid var(--warm-gray);
     margin: 1.5em 0;
   }
 

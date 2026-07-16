@@ -23,6 +23,7 @@ import type { EditorTypography } from "../types";
 import { ThemeButton, RangeField, PathField, ShortcutItem } from "./settings/widgets";
 import { revealInFolder, copyDirRecursive, exists, join, isTauri } from "../lib/storage";
 import { ACCENT_ORDER, ACCENTS, PAPER_ORDER, PAPERS } from "../lib/theme";
+import { UI_FONT_PRESETS } from "../lib/fonts";
 import { cn } from "../lib/utils";
 
 interface GlobalSettingsModalProps {
@@ -252,43 +253,59 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
 
             {activeSection === "typography" && (
               <div className="space-y-5">
-                <RangeField
-                  label="字号"
-                  value={appSettings.editorTypography.fontSize}
-                  min={12}
-                  max={32}
-                  unit="px"
-                  onChange={(v) => updateTypography({ fontSize: v })}
-                />
-                <RangeField
-                  label="行高"
-                  value={appSettings.editorTypography.lineHeight}
-                  min={1.2}
-                  max={2.5}
-                  step={0.05}
-                  onChange={(v) => updateTypography({ lineHeight: v })}
-                />
-                <RangeField
-                  label="段间距"
-                  value={appSettings.editorTypography.paragraphSpacing}
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  unit="em"
-                  onChange={(v) => updateTypography({ paragraphSpacing: v })}
-                />
-                <label className="flex items-center justify-between text-sm text-ink dark:text-ink-dark">
-                  <span className="flex items-center gap-1.5">
-                    <Pilcrow size={14} className="text-ink-muted dark:text-ink-muted-dark" />
-                    段落首行缩进（两字符）
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={appSettings.firstLineIndent !== false}
-                    onChange={(e) => updateAppSettings({ firstLineIndent: e.target.checked })}
-                    className="h-4 w-4 accent-accent"
+                <Group title="编辑区字体" hint="正文与标题">
+                  <FontPicker
+                    value={appSettings.editorFontFamily}
+                    onChange={(v) => updateAppSettings({ editorFontFamily: v })}
                   />
-                </label>
+                </Group>
+                <Group title="界面字体" hint="侧栏、按钮、菜单">
+                  <FontPicker
+                    value={appSettings.uiFontFamily}
+                    onChange={(v) => updateAppSettings({ uiFontFamily: v })}
+                  />
+                </Group>
+                <div className="border-t border-warm-gray pt-5 dark:border-warm-gray-dark">
+                  <div className="space-y-5">
+                    <RangeField
+                      label="字号"
+                      value={appSettings.editorTypography.fontSize}
+                      min={12}
+                      max={32}
+                      unit="px"
+                      onChange={(v) => updateTypography({ fontSize: v })}
+                    />
+                    <RangeField
+                      label="行高"
+                      value={appSettings.editorTypography.lineHeight}
+                      min={1.2}
+                      max={2.5}
+                      step={0.05}
+                      onChange={(v) => updateTypography({ lineHeight: v })}
+                    />
+                    <RangeField
+                      label="段间距"
+                      value={appSettings.editorTypography.paragraphSpacing}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      unit="em"
+                      onChange={(v) => updateTypography({ paragraphSpacing: v })}
+                    />
+                    <label className="flex items-center justify-between text-sm text-ink dark:text-ink-dark">
+                      <span className="flex items-center gap-1.5">
+                        <Pilcrow size={14} className="text-ink-muted dark:text-ink-muted-dark" />
+                        段落首行缩进（两字符）
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={appSettings.firstLineIndent !== false}
+                        onChange={(e) => updateAppSettings({ firstLineIndent: e.target.checked })}
+                        className="h-4 w-4 accent-accent"
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -509,6 +526,48 @@ function Group({
         {hint && <span className="ml-2 font-normal text-ink-muted/60">（{hint}）</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// 字体选择卡片：每个预设渲染自身字体样字，所见即所得。
+// value 为 undefined 时「默认」高亮（即「思源宋体」预设，与 App.css 回落栈一致）。
+function FontPicker({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (fontFamily: string) => void;
+}) {
+  const active = value ?? UI_FONT_PRESETS[0].value;
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {UI_FONT_PRESETS.map((preset) => {
+        const selected = active === preset.value;
+        return (
+          <button
+            key={preset.id}
+            onClick={() => onChange(preset.value)}
+            className={cn(
+              "flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 transition-all",
+              selected
+                ? "border-accent bg-accent/10 dark:bg-accent/20"
+                : "border-warm-gray hover:border-accent/50 dark:border-warm-gray-dark",
+            )}
+          >
+            <span
+              className="text-base leading-tight text-ink dark:text-ink-dark"
+              style={{ fontFamily: preset.value }}
+            >
+              {preset.preview}
+            </span>
+            <span className="flex items-center gap-1 text-[10px] text-ink-muted dark:text-ink-muted-dark">
+              {preset.label}
+              {selected && <Check size={10} className="text-accent" />}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

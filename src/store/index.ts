@@ -233,6 +233,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     for (const [k, v] of Object.entries(vars)) {
       root.style.setProperty(`--${k}`, v);
     }
+
+    // 界面字体：设置项为空时移除变量，回落到 App.css 里的默认栈。
+    if (appSettings.uiFontFamily) {
+      root.style.setProperty("--inkwell-ui-font", appSettings.uiFontFamily);
+    } else {
+      root.style.removeProperty("--inkwell-ui-font");
+    }
   },
 
   appSettings: loadAppSettings(),
@@ -240,7 +247,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = { ...get().appSettings, ...settings };
     set({ appSettings: next });
     persistAppSettings(next);
-    if (settings.theme || settings.themeColor || settings.paperTexture) get().applyTheme();
+    if (settings.theme || settings.themeColor || settings.paperTexture || settings.uiFontFamily !== undefined)
+      get().applyTheme();
   },
 
   projects: [],

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Plus, BookOpen, MoreVertical, Trash2, FileText, Settings, PencilLine } from "lucide-react";
+import { Plus, BookOpen, MoreVertical, Trash2, FileText, Settings, PencilLine, Feather } from "lucide-react";
 import { useAppStore } from "../store";
 import type { Project } from "../types";
 import { formatNumber, formatDateTime } from "../lib/utils";
@@ -156,10 +156,11 @@ export function ProjectList() {
         )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {projects.map((project, idx) => (
             <ProjectCard
               key={project.id}
               project={project}
+              index={idx}
               totalWords={wordCounts[project.id]}
               onOpen={() => openProject(project)}
               onEdit={() => setEditingProject(project)}
@@ -202,12 +203,14 @@ export function ProjectList() {
 
 function ProjectCard({
   project,
+  index,
   totalWords,
   onOpen,
   onEdit,
   onDelete,
 }: {
   project: Project;
+  index: number;
   totalWords?: number;
   onOpen: () => void;
   onEdit: () => void;
@@ -225,10 +228,14 @@ function ProjectCard({
   return (
     <div
       onClick={onOpen}
-      className="group relative cursor-pointer rounded-xl border border-warm-gray bg-paper p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark"
+      style={{ "--inkwell-card-delay": `${Math.min(index, 8) * 45}ms` } as React.CSSProperties}
+      className="inkwell-card-enter group relative cursor-pointer overflow-hidden rounded-xl border border-warm-gray bg-paper p-5 transition-all duration-200 hover:-translate-y-1 hover:border-accent/60 hover:shadow-xl dark:border-warm-gray-dark dark:bg-paper-dark"
     >
+      {/* 悬停时的墨色渐变角标，给卡片一点「翻开书页」的气息 */}
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/10 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100" />
+
       <div className="mb-3 flex items-start justify-between">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warm-gray text-accent transition-colors group-hover:bg-accent/10 dark:bg-warm-gray-dark">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warm-gray text-accent transition-all duration-200 group-hover:scale-105 group-hover:bg-accent group-hover:text-white group-hover:shadow-md dark:bg-warm-gray-dark">
           <BookOpen size={24} />
         </div>
         <div ref={menuRef} className="relative">
@@ -270,12 +277,17 @@ function ProjectCard({
         </div>
       </div>
 
-      <h3 className="mb-1 text-base font-semibold text-ink dark:text-ink-dark">{project.name}</h3>
+      <h3 className="mb-1 truncate text-base font-semibold text-ink transition-colors group-hover:text-accent dark:text-ink-dark">
+        {project.name}
+      </h3>
       {project.author && (
-        <p className="mb-1 text-xs text-ink-muted dark:text-ink-muted-dark">{project.author} 著</p>
+        <p className="mb-1 flex items-center gap-1 text-xs text-ink-muted dark:text-ink-muted-dark">
+          <Feather size={10} className="shrink-0" />
+          {project.author} 著
+        </p>
       )}
 
-      <p className="mb-4 line-clamp-2 min-h-[2.5em] text-sm text-ink-muted dark:text-ink-muted-dark">
+      <p className="mb-4 line-clamp-2 min-h-[2.5em] text-sm leading-relaxed text-ink-muted dark:text-ink-muted-dark">
         {project.description || "暂无简介"}
       </p>
 
@@ -289,14 +301,18 @@ function ProjectCard({
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-warm-gray dark:bg-warm-gray-dark">
             <div
-              className="h-full rounded-full bg-accent transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-end text-xs text-ink-muted dark:text-ink-muted-dark">
+      <div className="flex items-center justify-between text-xs text-ink-muted dark:text-ink-muted-dark">
+        <span className="flex items-center gap-1 font-medium text-accent opacity-0 transition-all duration-200 group-hover:opacity-100">
+          继续写作
+          <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+        </span>
         <span>更新于 {formatDateTime(project.updatedAt)}</span>
       </div>
     </div>

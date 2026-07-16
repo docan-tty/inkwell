@@ -30,6 +30,20 @@ function App() {
     applyTheme();
   }, [applyTheme]);
 
+  // 屏蔽 webview 默认右键菜单（Copy / Inspect Element 等）。
+  // 写作区自行提供编辑菜单（Editor 的 onContextMenuCapture 在 capture
+  // 阶段先跑并 setData，这里检查标记跳过），输入框保留默认的剪贴板菜单。
+  useEffect(() => {
+    const onCtx = (e: MouseEvent) => {
+      if ((e as unknown as Record<string, unknown>).__inkwellCtxHandled) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea")) return;
+      e.preventDefault();
+    };
+    document.addEventListener("contextmenu", onCtx);
+    return () => document.removeEventListener("contextmenu", onCtx);
+  }, []);
+
   // Crash recovery scan: compare every buffered draft against the on-disk
   // chapter file. Anything newer than disk is offered for restore. Runs once
   // on launch, after the project registry is available.
@@ -160,7 +174,10 @@ function App() {
 
   return (
     <div className="h-full w-full bg-paper text-ink dark:bg-paper-dark dark:text-ink-dark">
-      {view === "projects" ? <ProjectList /> : <Workspace />}
+      {/* key 让两个视图各自重新挂载，触发 inkwell-view-enter 进场动效 */}
+      <div key={view} className="inkwell-view-enter h-full w-full">
+        {view === "projects" ? <ProjectList /> : <Workspace />}
+      </div>
       <RecoveryDialog
         drafts={recoveryDrafts}
         chapterTitle={chapterTitle}

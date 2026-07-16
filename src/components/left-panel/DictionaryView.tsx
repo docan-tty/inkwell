@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
-import { BookMarked, Check, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, BookMarked, Check, Plus, Search, Trash2, X } from "lucide-react";
 import { useAppStore } from "../../store";
 import { cn } from "../../lib/utils";
 import { DICT_CATEGORIES } from "../../types";
+import type { DictEntry } from "../../types";
 import { ConfirmDialog } from "../ConfirmDialog";
 
 // 设定词典：小说世界观设定库（人物卡、地点、势力……）。
-// 左侧栏页签内的独立区域：上方搜索 + 分类筛选，中部词条列表，下方词条编辑器。
-// 输入即防抖自动保存，存储于 dictionary/<projectId>.json。
+// 列表 ↔ 详情两级导航：列表页占满侧栏（搜索 + 分类筛选 + 词条行），
+// 点词条进入全高度详情编辑（返回键回到列表）。输入即防抖自动保存，
+// 存储于 dictionary/<projectId>.json。
 export function DictionaryView() {
   const {
     dictEntries,
@@ -20,7 +22,6 @@ export function DictionaryView() {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
-  const [customCategory, setCustomCategory] = useState(false);
 
   const active = dictEntries.find((e) => e.id === activeDictId) || null;
 
@@ -48,6 +49,33 @@ export function DictionaryView() {
         );
       });
   }, [dictEntries, query, categoryFilter]);
+
+  // 详情视图：词条占满侧栏剩余高度，编辑不再被列表挤压。
+  if (active) {
+    return (
+      <div className="flex h-full flex-col">
+        <EntryDetail
+          entry={active}
+          allCategories={allCategories}
+          onBack={() => setActiveDict(null)}
+          onUpdate={(data) => updateDictEntry(active.id, data)}
+          onDelete={() => setConfirmingDelete(active.id)}
+        />
+        <ConfirmDialog
+          open={confirmingDelete !== null}
+          title="删除词条？"
+          message="这个词条及其设定内容将被删除，且无法恢复。"
+          confirmLabel="删除"
+          danger
+          onConfirm={() => {
+            if (confirmingDelete) removeDictEntry(confirmingDelete);
+            setConfirmingDelete(null);
+          }}
+          onCancel={() => setConfirmingDelete(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -92,159 +120,159 @@ export function DictionaryView() {
         </div>
       )}
 
-      {/* 词条列表 */}
-      <div className="max-h-44 shrink-0 overflow-y-auto border-b border-warm-gray dark:border-warm-gray-dark">
+      {/* 词条列表：占满剩余空间 */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <div className="px-3 py-4 text-center text-xs text-ink-muted dark:text-ink-muted-dark">
-            {dictEntries.length === 0 ? "还没有词条，点右上角 + 创建第一张设定卡" : "没有匹配的词条"}
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <BookMarked size={26} className="text-ink-muted/40 dark:text-ink-muted-dark/40" />
+            <p className="text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+              {dictEntries.length === 0 ? (
+                <>
+                  词典是小说的设定库。
+                  <br />
+                  人物卡、地名、势力关系，随查随写。
+                </>
+              ) : (
+                "没有匹配的词条"
+              )}
+            </p>
+            {dictEntries.length === 0 && (
+              <button
+                onClick={addDictEntry}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-light"
+              >
+                <Plus size={14} />
+                新建词条
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((e) => (
             <button
               key={e.id}
               onClick={() => setActiveDict(e.id)}
-              className={cn(
-                "flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
-                e.id === activeDictId
-                  ? "bg-accent/10 dark:bg-accent/20"
-                  : "hover:bg-warm-gray dark:hover:bg-warm-gray-dark",
-              )}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-warm-gray dark:hover:bg-warm-gray-dark"
             >
-              <span
-                className={cn(
-                  "shrink-0 rounded px-1 py-0.5 text-[10px]",
-                  e.id === activeDictId
-                    ? "bg-accent/20 text-accent"
-                    : "bg-warm-gray text-ink-muted dark:bg-warm-gray-dark dark:text-ink-muted-dark",
-                )}
-              >
+              <span className="shrink-0 rounded bg-warm-gray px-1 py-0.5 text-[10px] text-ink-muted dark:bg-warm-gray-dark dark:text-ink-muted-dark">
                 {e.category || "未分类"}
               </span>
-              <span
-                className={cn(
-                  "min-w-0 flex-1 truncate text-sm",
-                  e.id === activeDictId
-                    ? "font-medium text-accent"
-                    : "text-ink dark:text-ink-dark",
-                )}
-              >
-                {e.term || "未命名词条"}
-              </span>
-              {e.aliases.length > 0 && (
-                <span className="shrink-0 truncate text-[10px] text-ink-muted dark:text-ink-muted-dark">
-                  {e.aliases[0]}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm text-ink dark:text-ink-dark">
+                  {e.term || "未命名词条"}
                 </span>
-              )}
+                {e.aliases.length > 0 && (
+                  <span className="block truncate text-[11px] text-ink-muted dark:text-ink-muted-dark">
+                    {e.aliases.join(" / ")}
+                  </span>
+                )}
+              </span>
             </button>
           ))
         )}
       </div>
+    </div>
+  );
+}
 
-      {/* 编辑器 */}
-      {active ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
-          <div className="flex items-center gap-2">
-            <input
-              value={active.term}
-              onChange={(e) => updateDictEntry(active.id, { term: e.target.value })}
-              placeholder="词条名（如：顾云峥）"
-              className="min-w-0 flex-1 rounded-md bg-transparent px-1 py-1 text-sm font-medium text-ink outline-none placeholder:text-ink-muted/50 dark:text-ink-dark"
-            />
-            <button
-              onClick={() => setConfirmingDelete(active.id)}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-red-500/10 hover:text-red-500 dark:text-ink-muted-dark"
-              title="删除词条"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
+// 词条详情：词条名 / 分类 / 别名 / 设定详情，占满侧栏高度。
+function EntryDetail({
+  entry,
+  allCategories,
+  onBack,
+  onUpdate,
+  onDelete,
+}: {
+  entry: DictEntry;
+  allCategories: string[];
+  onBack: () => void;
+  onUpdate: (data: Partial<DictEntry>) => void;
+  onDelete: () => void;
+}) {
+  const [customCategory, setCustomCategory] = useState(
+    () =>
+      !!entry.category &&
+      !(DICT_CATEGORIES as readonly string[]).includes(entry.category),
+  );
 
-          {/* 分类 */}
-          <div className="flex flex-wrap items-center gap-1">
-            {allCategories.map((c) => (
-              <button
-                key={c}
-                onClick={() => {
-                  setCustomCategory(false);
-                  updateDictEntry(active.id, { category: c });
-                }}
-                className={cn(
-                  "rounded-full border px-2 py-0.5 text-[11px] transition-colors",
-                  !customCategory && active.category === c
-                    ? "border-accent bg-accent/10 text-accent dark:bg-accent/20"
-                    : "border-warm-gray text-ink-muted hover:border-accent/50 dark:border-warm-gray-dark dark:text-ink-muted-dark",
-                )}
-              >
-                {c}
-              </button>
-            ))}
+  return (
+    <>
+      {/* 标题栏：返回 + 词条名 + 删除 */}
+      <div className="flex shrink-0 items-center gap-1 border-b border-warm-gray px-2 py-1.5 dark:border-warm-gray-dark">
+        <button
+          onClick={onBack}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+          title="返回词条列表"
+        >
+          <ArrowLeft size={15} />
+        </button>
+        <input
+          value={entry.term}
+          onChange={(e) => onUpdate({ term: e.target.value })}
+          placeholder="词条名（如：顾云峥）"
+          className="min-w-0 flex-1 rounded-md bg-transparent px-1.5 py-1 text-sm font-medium text-ink outline-none placeholder:text-ink-muted/50 dark:text-ink-dark"
+        />
+        <button
+          onClick={onDelete}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-red-500/10 hover:text-red-500 dark:text-ink-muted-dark"
+          title="删除词条"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* 元信息：分类 + 别名，内容超长时独立滚动，不挤压详情区 */}
+      <div className="max-h-40 shrink-0 space-y-2 overflow-y-auto border-b border-warm-gray px-3 py-2.5 dark:border-warm-gray-dark">
+        <div className="flex flex-wrap items-center gap-1">
+          {allCategories.map((c) => (
             <button
-              onClick={() => setCustomCategory(true)}
+              key={c}
+              onClick={() => {
+                setCustomCategory(false);
+                onUpdate({ category: c });
+              }}
               className={cn(
                 "rounded-full border px-2 py-0.5 text-[11px] transition-colors",
-                customCategory
+                !customCategory && entry.category === c
                   ? "border-accent bg-accent/10 text-accent dark:bg-accent/20"
-                  : "border-dashed border-warm-gray text-ink-muted hover:border-accent/50 dark:border-warm-gray-dark dark:text-ink-muted-dark",
+                  : "border-warm-gray text-ink-muted hover:border-accent/50 dark:border-warm-gray-dark dark:text-ink-muted-dark",
               )}
             >
-              自定义…
+              {c}
             </button>
-            {customCategory && (
-              <input
-                autoFocus
-                value={active.category}
-                onChange={(e) => updateDictEntry(active.id, { category: e.target.value })}
-                placeholder="输入分类名"
-                className="w-24 rounded-md border border-accent bg-paper px-2 py-0.5 text-[11px] text-ink outline-none dark:bg-paper-dark dark:text-ink-dark"
-              />
-            )}
-          </div>
-
-          {/* 别名 */}
-          <AliasesEditor
-            aliases={active.aliases}
-            onChange={(aliases) => updateDictEntry(active.id, { aliases })}
-          />
-
-          {/* 内容 */}
-          <textarea
-            value={active.content}
-            onChange={(e) => updateDictEntry(active.id, { content: e.target.value })}
-            placeholder="设定详情……（自动保存）"
-            className="min-h-0 flex-1 resize-none rounded-md bg-transparent py-1 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted/50 dark:text-ink-dark"
-          />
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <BookMarked size={26} className="text-ink-muted/40 dark:text-ink-muted-dark/40" />
-          <p className="text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
-            词典是小说的设定库。
-            <br />
-            人物卡、地名、势力关系，随查随写。
-          </p>
+          ))}
           <button
-            onClick={addDictEntry}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-light"
+            onClick={() => setCustomCategory(true)}
+            className={cn(
+              "rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+              customCategory
+                ? "border-accent bg-accent/10 text-accent dark:bg-accent/20"
+                : "border-dashed border-warm-gray text-ink-muted hover:border-accent/50 dark:border-warm-gray-dark dark:text-ink-muted-dark",
+            )}
           >
-            <Plus size={14} />
-            新建词条
+            自定义…
           </button>
+          {customCategory && (
+            <input
+              autoFocus
+              value={entry.category}
+              onChange={(e) => onUpdate({ category: e.target.value })}
+              placeholder="输入分类名"
+              className="w-24 rounded-md border border-accent bg-paper px-2 py-0.5 text-[11px] text-ink outline-none dark:bg-paper-dark dark:text-ink-dark"
+            />
+          )}
         </div>
-      )}
 
-      <ConfirmDialog
-        open={confirmingDelete !== null}
-        title="删除词条？"
-        message="这个词条及其设定内容将被删除，且无法恢复。"
-        confirmLabel="删除"
-        danger
-        onConfirm={() => {
-          if (confirmingDelete) removeDictEntry(confirmingDelete);
-          setConfirmingDelete(null);
-        }}
-        onCancel={() => setConfirmingDelete(null)}
+        <AliasesEditor aliases={entry.aliases} onChange={(aliases) => onUpdate({ aliases })} />
+      </div>
+
+      {/* 设定详情：占满剩余高度 */}
+      <textarea
+        value={entry.content}
+        onChange={(e) => onUpdate({ content: e.target.value })}
+        placeholder="设定详情……（自动保存）"
+        className="min-h-0 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted/50 dark:text-ink-dark"
       />
-    </div>
+    </>
   );
 }
 

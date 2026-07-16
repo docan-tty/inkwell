@@ -52,6 +52,10 @@ export interface AppSettings {
     maximized: boolean;
   };
   editorTypography: EditorTypography;
+  /** 编辑区正文字体（UI_FONT_PRESETS 中的字体栈）。 */
+  editorFontFamily?: string;
+  /** 界面字体（侧栏 / 按钮 / 菜单等编辑区之外的部分）。 */
+  uiFontFamily?: string;
   editorPadding: number;
   /** 编辑区正文最大宽度（px），随窗口自适应。 */
   editorMaxWidth?: number;
@@ -78,6 +82,8 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  /** 置顶笔记排在列表最前（置顶区内部按更新时间排序）。 */
+  pinned?: boolean;
   updatedAt: number;
 }
 

@@ -1,4 +1,4 @@
-import type { Chapter, Project, Volume } from "../types";
+import type { Chapter, Note, Project, Volume } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { appDataDir, dirname, join } from "@tauri-apps/api/path";
 
@@ -223,6 +223,40 @@ export async function removeProjectFromLocal(projectId: string, config?: Storage
 
 export async function getDefaultExportDirectory(config?: StorageConfig): Promise<string> {
   return config?.projectSaveDirectory || (await getAppDataDir());
+}
+
+// --- Notes (写作笔记) -----------------------------------------------------
+// Per-project scratch notes (人物设定、灵感、伏笔). Live next to the project
+// file so they migrate with the rest of the content. Debounced autosave in
+// the UI calls saveNotesToLocal; reads fall back to [] when absent.
+async function getNotesFilePath(projectId: string, config?: StorageConfig): Promise<string> {
+  const dir = await getContentBaseDir(config);
+  return buildPath([dir, "notes", `${projectId}.json`]);
+}
+
+export async function loadNotesFromLocal(projectId: string, config?: StorageConfig): Promise<Note[]> {
+  const fallback = () => localStorage.getItem(`inkwell-notes-${projectId}`);
+  const raw = await readFileOrFallback(await getNotesFilePath(projectId, config), fallback);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveNotesToLocal(projectId: string, notes: Note[], config?: StorageConfig): Promise<void> {
+  const raw = JSON.stringify(notes);
+  if (!isTauri()) {
+    localStorage.setItem(`inkwell-notes-${projectId}`, raw);
+    return;
+  }
+  await invoke("write_text_file", {
+    path: await getNotesFilePath(projectId, config),
+    content: raw,
+  });
+  localStorage.setItem(`inkwell-notes-${projectId}`, raw);
 }
 
 // Opens the given folder in the OS file explorer (Windows Explorer / macOS

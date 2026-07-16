@@ -22,6 +22,7 @@ export function Workspace() {
     updateChapterContent,
     leftSidebarOpen,
     rightSidebarOpen,
+    rightPanelTab,
     focusMode,
     setRightPanelTab,
     saveCurrentProject,
@@ -238,7 +239,7 @@ export function Workspace() {
   const leaveTopBars = useCallback(() => {
     topBarsHideTimer.current = setTimeout(() => {
       setShowTopBars(false);
-    }, 100);
+    }, 400);
   }, []);
 
   useEffect(() => {
@@ -246,6 +247,20 @@ export function Workspace() {
       setShowTopBars(false);
     }
   }, [focusMode, isFullscreen]);
+
+  // Top-edge hot zone: while the bars are hidden (focus / fullscreen), moving
+  // the mouse into the top ~6px of the window reveals them — the hidden bar
+  // itself can't be hovered (pointer-events-none), so we watch the cursor.
+  useEffect(() => {
+    if (!focusMode && !isFullscreen) return;
+    const onMove = (e: MouseEvent) => {
+      if (e.clientY <= 6) {
+        enterTopBars();
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [focusMode, isFullscreen, enterTopBars]);
 
   if (!currentProject) return null;
 
@@ -312,15 +327,25 @@ export function Workspace() {
             <Search size={17} />
           </button>
           <button
-            onClick={() => setRightPanelTab(rightSidebarOpen ? "none" : "outline")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+            onClick={() => setRightPanelTab(rightSidebarOpen && rightPanelTab === "outline" ? "none" : "outline")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+              rightSidebarOpen && rightPanelTab === "outline"
+                ? "bg-accent/10 text-accent dark:bg-accent/20"
+                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
+            )}
             title="大纲 (Ctrl+Alt+O)"
           >
             <ListTree size={18} />
           </button>
           <button
-            onClick={() => setRightPanelTab("history")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+            onClick={() => setRightPanelTab(rightSidebarOpen && rightPanelTab === "history" ? "none" : "history")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+              rightSidebarOpen && rightPanelTab === "history"
+                ? "bg-accent/10 text-accent dark:bg-accent/20"
+                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
+            )}
             title="历史版本"
           >
             <History size={17} />

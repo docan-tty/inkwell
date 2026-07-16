@@ -37,6 +37,7 @@ export function VolumeItem({
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [selfDragging, setSelfDragging] = useState(false);
   const dragDepth = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
@@ -97,8 +98,9 @@ export function VolumeItem({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       className={cn(
-        "rounded-md border border-transparent transition-colors",
+        "rounded-md border border-transparent transition-all duration-150",
         dragOver && "border-accent/50 bg-accent/10 dark:bg-accent/20",
+        selfDragging && "opacity-40",
       )}
     >
       <div className="group flex items-center gap-1 rounded-md px-2 py-1.5 transition-colors hover:bg-warm-gray dark:hover:bg-warm-gray-dark">
@@ -108,9 +110,13 @@ export function VolumeItem({
             onDragStart={(e) => {
               e.dataTransfer.setData("inkwell/volume-id", volume.id);
               e.dataTransfer.effectAllowed = "move";
+              setSelfDragging(true);
               onVolumeDragStart?.();
             }}
-            onDragEnd={() => onVolumeDragEnd?.()}
+            onDragEnd={() => {
+              setSelfDragging(false);
+              onVolumeDragEnd?.();
+            }}
             className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-ink-muted opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100 dark:text-ink-muted-dark"
             title="拖拽调整卷顺序"
           >

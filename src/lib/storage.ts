@@ -1,4 +1,4 @@
-import type { Chapter, Note, Project, Volume } from "../types";
+import type { Chapter, DictEntry, Note, Project, Volume } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { appDataDir, dirname, join } from "@tauri-apps/api/path";
 
@@ -257,6 +257,40 @@ export async function saveNotesToLocal(projectId: string, notes: Note[], config?
     content: raw,
   });
   localStorage.setItem(`inkwell-notes-${projectId}`, raw);
+}
+
+// --- Dictionary (设定词典) -------------------------------------------------
+// Per-project worldbuilding entries (人物卡 / 地点 / 势力 …). Same storage
+// pattern as notes: one JSON file per project under dictionary/<id>.json,
+// with a localStorage fallback for the browser dev mode.
+async function getDictFilePath(projectId: string, config?: StorageConfig): Promise<string> {
+  const dir = await getContentBaseDir(config);
+  return buildPath([dir, "dictionary", `${projectId}.json`]);
+}
+
+export async function loadDictFromLocal(projectId: string, config?: StorageConfig): Promise<DictEntry[]> {
+  const fallback = () => localStorage.getItem(`inkwell-dict-${projectId}`);
+  const raw = await readFileOrFallback(await getDictFilePath(projectId, config), fallback);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveDictToLocal(projectId: string, entries: DictEntry[], config?: StorageConfig): Promise<void> {
+  const raw = JSON.stringify(entries);
+  if (!isTauri()) {
+    localStorage.setItem(`inkwell-dict-${projectId}`, raw);
+    return;
+  }
+  await invoke("write_text_file", {
+    path: await getDictFilePath(projectId, config),
+    content: raw,
+  });
+  localStorage.setItem(`inkwell-dict-${projectId}`, raw);
 }
 
 // Opens the given folder in the OS file explorer (Windows Explorer / macOS

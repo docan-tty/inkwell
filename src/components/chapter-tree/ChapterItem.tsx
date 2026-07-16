@@ -20,6 +20,9 @@ interface ChapterItemProps {
 export function ChapterItem({ chapter, active, onSelect, onUpdate, onDelete, onDragStart, onDragEnd }: ChapterItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  // Drag is handle-only (GripVertical): dragging from the row body would
+  // fight with text selection and accidental drags while clicking around.
+  const [dragging, setDragging] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
 
@@ -31,29 +34,37 @@ export function ChapterItem({ chapter, active, onSelect, onUpdate, onDelete, onD
 
   return (
     <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("inkwell/chapter-id", chapter.id);
-        e.dataTransfer.effectAllowed = "move";
-        onDragStart?.();
-      }}
-      onDragEnd={() => {
-        onDragEnd?.();
-      }}
       onClick={onSelect}
       className={cn(
-        "group relative flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 transition-colors duration-150 active:cursor-grabbing",
+        "group relative flex items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-150",
+        dragging && "opacity-40",
         active
           ? "bg-accent/10 text-accent dark:bg-accent/20"
           : "hover:bg-warm-gray dark:hover:bg-warm-gray-dark",
       )}
     >
+      <span
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("inkwell/chapter-id", chapter.id);
+          e.dataTransfer.effectAllowed = "move";
+          setDragging(true);
+          onDragStart?.();
+        }}
+        onDragEnd={() => {
+          setDragging(false);
+          onDragEnd?.();
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-ink-muted transition-opacity active:cursor-grabbing dark:text-ink-muted-dark",
+          dragging ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+        )}
+        title="拖拽调整章节顺序"
+      >
+        <GripVertical size={12} />
+      </span>
       <StatusDot status={chapter.status} />
-      <GripVertical
-        size={12}
-        className="shrink-0 cursor-grab text-ink-muted opacity-0 transition-opacity group-hover:opacity-100 dark:text-ink-muted-dark"
-        aria-hidden
-      />
       <FileText size={14} className="shrink-0 text-ink-muted dark:text-ink-muted-dark" />
       <EditableLabel
         value={chapter.title}

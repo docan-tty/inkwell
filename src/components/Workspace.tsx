@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ArrowLeft, ListTree, Globe, Search, History, FilePlus2 } from "lucide-react";
+import { ArrowLeft, ListTree, Globe, Search, History, NotebookPen, FilePlus2 } from "lucide-react";
 import { useAppStore, scheduleAutoSave, pendingChapterContent } from "../store";
 import { ChapterTree } from "./chapter-tree";
 import { Editor } from "./Editor";
@@ -7,6 +7,9 @@ import { StatusBar } from "./StatusBar";
 import { RightPanel } from "./RightPanel";
 import { GlobalSettingsModal } from "./GlobalSettingsModal";
 import { SearchPanel } from "./SearchPanel";
+import { LeftSidebarTabs } from "./left-panel/LeftSidebarTabs";
+import { NotesView } from "./left-panel/NotesView";
+import { DictionaryView } from "./left-panel/DictionaryView";
 import { cn, countWords } from "../lib/utils";
 import { stripHtml } from "../lib/export";
 import { saveDraft, getDraft } from "../lib/draft";
@@ -25,6 +28,8 @@ export function Workspace() {
     rightPanelTab,
     focusMode,
     setRightPanelTab,
+    leftSidebarTab,
+    setLeftSidebarTab,
     saveCurrentProject,
     appSettings,
     updateAppSettings,
@@ -327,6 +332,24 @@ export function Workspace() {
             <Search size={17} />
           </button>
           <button
+            onClick={() => {
+              if (leftSidebarOpen && leftSidebarTab === "notes") {
+                toggleLeftSidebar();
+              } else {
+                setLeftSidebarTab("notes");
+              }
+            }}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+              leftSidebarOpen && leftSidebarTab === "notes"
+                ? "bg-accent/10 text-accent dark:bg-accent/20"
+                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
+            )}
+            title="写作笔记"
+          >
+            <NotebookPen size={17} />
+          </button>
+          <button
             onClick={() => setRightPanelTab(rightSidebarOpen && rightPanelTab === "outline" ? "none" : "outline")}
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
@@ -364,10 +387,15 @@ export function Workspace() {
         {leftSidebarOpen && !focusMode && (
           <>
             <div
-              className="shrink-0 border-r border-warm-gray dark:border-warm-gray-dark"
+              className="flex shrink-0 flex-col border-r border-warm-gray dark:border-warm-gray-dark"
               style={{ width: sidebarWidth }}
             >
-              <ChapterTree onSelectChapter={handleSelectChapter} />
+              <LeftSidebarTabs />
+              <div className="min-h-0 flex-1">
+                {leftSidebarTab === "chapters" && <ChapterTree onSelectChapter={handleSelectChapter} />}
+                {leftSidebarTab === "notes" && <NotesView />}
+                {leftSidebarTab === "dictionary" && <DictionaryView />}
+              </div>
             </div>
             <div
               onMouseDown={handleResizeStart}

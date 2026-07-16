@@ -99,6 +99,22 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
     setActiveDrop(null);
   };
 
+  // While a drag is in progress, auto-scroll the tree when the pointer
+  // nears the top/bottom edge — otherwise long lists can't be reordered
+  // past the visible window.
+  const handleListDragOver = (e: React.DragEvent) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 48;
+    const speed = 12;
+    if (e.clientY < rect.top + margin) {
+      el.scrollTop -= speed;
+    } else if (e.clientY > rect.bottom - margin) {
+      el.scrollTop += speed;
+    }
+  };
+
   const handleDrop = (volumeId: string | null, index: number) => {
     if (draggingChapterId) {
       moveChapter(draggingChapterId, volumeId, index);
@@ -187,7 +203,7 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
 
   return (
     <div className="flex h-full flex-col bg-paper dark:bg-paper-dark">
-      <div className="flex h-12 items-center justify-between border-b border-warm-gray px-3 dark:border-warm-gray-dark">
+      <div className="flex h-11 items-center justify-between border-b border-warm-gray px-3 dark:border-warm-gray-dark">
         <span className="text-sm font-medium text-ink dark:text-ink-dark">目录</span>
         <div className="flex gap-1">
           <button
@@ -214,7 +230,7 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-2">
+      <div ref={scrollRef} onDragOver={handleListDragOver} className="flex-1 overflow-y-auto p-2">
         {volumes.length === 0 && orphanedChapters.length === 0 && (
           <div className="mt-8 px-3 text-sm leading-relaxed text-ink-muted dark:text-ink-muted-dark">
             还没有章节。

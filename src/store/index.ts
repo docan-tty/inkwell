@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type {
   AppSettings,
   Chapter,
+  DictEntry,
+  LeftSidebarTab,
   Note,
   Project,
   RightPanelTab,
@@ -15,9 +17,11 @@ import {
 import {
   getLocalProjectRegistry,
   loadChapterContentFromLocal,
+  loadDictFromLocal,
   loadNotesFromLocal,
   loadProjectFromLocal,
   saveChapterContentToLocal,
+  saveDictToLocal,
   saveNotesToLocal,
   saveProjectToLocal,
   setLocalProjectRegistry,
@@ -120,6 +124,9 @@ interface AppState {
   // UI
   rightPanelTab: RightPanelTab;
   setRightPanelTab: (tab: RightPanelTab) => void;
+  /** 左侧栏当前页签（目录 / 笔记 / 词典）。 */
+  leftSidebarTab: LeftSidebarTab;
+  setLeftSidebarTab: (tab: LeftSidebarTab) => void;
   leftSidebarOpen: boolean;
   toggleLeftSidebar: () => void;
   rightSidebarOpen: boolean;
@@ -134,6 +141,14 @@ interface AppState {
   addNote: () => void;
   updateNote: (id: string, data: Partial<Note>) => void;
   removeNote: (id: string) => void;
+
+  // Dictionary (设定词典) — per-project worldbuilding entries, debounced autosave.
+  dictEntries: DictEntry[];
+  activeDictId: string | null;
+  setActiveDict: (id: string | null) => void;
+  addDictEntry: () => void;
+  updateDictEntry: (id: string, data: Partial<DictEntry>) => void;
+  removeDictEntry: (id: string) => void;
 
   // Persistence
   saveCurrentProject: () => Promise<void>;
@@ -320,7 +335,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().applyTheme();
     // Load this project's writing notes alongside its chapters.
     const notes = await loadNotesFromLocal(project.id, appSettings).catch(() => []);
-    set({ notes, activeNoteId: notes[0]?.id ?? null });
+    const dictEntries = await loadDictFromLocal(project.id, appSettings).catch(() => []);
+    set({ notes, activeNoteId: notes[0]?.id ?? null, dictEntries, activeDictId: dictEntries[0]?.id ?? null });
   },
   closeProject: async () => {
     const savePromise = get().saveCurrentProject();
@@ -333,6 +349,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       focusMode: false,
       notes: [],
       activeNoteId: null,
+      dictEntries: [],
+      activeDictId: null,
     });
     await savePromise;
   },
@@ -521,6 +539,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   rightPanelTab: "none",
   setRightPanelTab: (tab) => set({ rightPanelTab: tab, rightSidebarOpen: tab !== "none" }),
+  leftSidebarTab: "chapters",
+  setLeftSidebarTab: (tab) => set({ leftSidebarTab: tab, leftSidebarOpen: true }),
   leftSidebarOpen: true,
   toggleLeftSidebar: () => set((s) => ({ leftSidebarOpen: !s.leftSidebarOpen })),
   rightSidebarOpen: false,
@@ -577,11 +597,47 @@ export const useAppStore = create<AppState>((set, get) => ({
     scheduleNoteSave();
   },
   removeNote: (id) => {
-    set((s) => ({
-      notes: s.notes.filter((n) => n.id !== id),
-      activeNoteId: s.activeNoteId === id ? null : s.activeNoteId,
-    }));
+    set((s) => {
+      const next = s.notes.filter((n) => n.id !== id);
+      return {
+        notes: next,
+        activeNoteId: s.activeNoteId === id ? (next[0]?.id ?? null) : s.activeNoteId,
+      };
+    });
     scheduleNoteSave();
+  },
+
+  // --- Dictionary -----------------------------------------------------------
+  dictEntries: [],
+  activeDictId: null,
+  setActiveDict: (id) => set({ activeDictId: id }),
+  addDictEntry: () => {
+    const entry: DictEntry = {
+      id: generateId(),
+      term: "",
+      aliases: [],
+      category: "人物",
+      content: "",
+      updatedAt: Date.now(),
+    };
+    set((s) => ({ dictEntries: [entry, ...s.dictEntries], activeDictId: entry.id }));
+    scheduleDictSave();
+  },
+  updateDictEntry: (id, data) => {
+    set((s) => ({
+      dictEntries: s.dictEntries.map((e) => (e.id === id ? { ...e, ...data, updatedAt: Date.now() } : e)),
+    }));
+    scheduleDictSave();
+  },
+  removeDictEntry: (id) => {
+    set((s) => {
+      const next = s.dictEntries.filter((e) => e.id !== id);
+      return {
+        dictEntries: next,
+        activeDictId: s.activeDictId === id ? (next[0]?.id ?? null) : s.activeDictId,
+      };
+    });
+    scheduleDictSave();
   },
 
   saveCurrentProject: async () => {
@@ -620,5 +676,16 @@ function scheduleNoteSave() {
     const { currentProject, notes, appSettings } = useAppStore.getState();
     if (!currentProject) return;
     saveNotesToLocal(currentProject.id, notes, appSettings).catch(() => {});
+  }, 800);
+}
+
+// Debounced persistence for the dictionary of the open project.
+let dictSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleDictSave() {
+  if (dictSaveTimer) clearTimeout(dictSaveTimer);
+  dictSaveTimer = setTimeout(() => {
+    const { currentProject, dictEntries, appSettings } = useAppStore.getState();
+    if (!currentProject) return;
+    saveDictToLocal(currentProject.id, dictEntries, appSettings).catch(() => {});
   }, 800);
 }

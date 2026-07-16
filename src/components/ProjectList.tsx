@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Plus, BookOpen, MoreVertical, Trash2, Edit3, FileText, Settings } from "lucide-react";
+import { Plus, BookOpen, MoreVertical, Trash2, FileText, Settings, PencilLine } from "lucide-react";
 import { useAppStore } from "../store";
 import type { Project } from "../types";
 import { formatNumber, formatDateTime } from "../lib/utils";
 import { GlobalSettingsModal } from "./GlobalSettingsModal";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ProjectEditDialog } from "./ProjectEditDialog";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { loadProjectFromLocal } from "../lib/storage";
 
@@ -16,6 +17,7 @@ export function ProjectList() {
   const [createError, setCreateError] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleting, setDeleting] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingChapterCount, setDeletingChapterCount] = useState(0);
   // Total word count per project, aggregated from each project file so the
   // cards can show live progress without opening the project.
@@ -86,10 +88,7 @@ export function ProjectList() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-sm">
             <BookOpen size={20} />
           </div>
-          <div>
-            <h1 className="text-lg font-semibold text-ink dark:text-ink-dark">墨池 InkWell</h1>
-            <p className="text-xs text-ink-muted dark:text-ink-muted-dark">本地优先的小说写作工具</p>
-          </div>
+          <h1 className="text-lg font-semibold text-ink dark:text-ink-dark">墨池</h1>
         </div>
         <button
           onClick={() => setSettingsOpen(true)}
@@ -163,7 +162,7 @@ export function ProjectList() {
               project={project}
               totalWords={wordCounts[project.id]}
               onOpen={() => openProject(project)}
-              onUpdate={(data) => updateProject(project.id, data)}
+              onEdit={() => setEditingProject(project)}
               onDelete={() => requestDelete(project)}
             />
           ))}
@@ -178,6 +177,13 @@ export function ProjectList() {
         </button>
       </div>
       <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ProjectEditDialog
+        project={editingProject}
+        onSave={(data) => {
+          if (editingProject) updateProject(editingProject.id, data);
+        }}
+        onClose={() => setEditingProject(null)}
+      />
       <ConfirmDialog
         open={deleting !== null}
         title={`删除作品「${deleting?.name ?? ""}」？`}
@@ -198,18 +204,16 @@ function ProjectCard({
   project,
   totalWords,
   onOpen,
-  onUpdate,
+  onEdit,
   onDelete,
 }: {
   project: Project;
   totalWords?: number;
   onOpen: () => void;
-  onUpdate: (data: Partial<Project>) => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(project.name);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
 
@@ -217,16 +221,6 @@ function ProjectCard({
     totalWords !== undefined && project.targetWords > 0
       ? Math.min(100, Math.round((totalWords / project.targetWords) * 100))
       : null;
-
-  const commitRename = () => {
-    const trimmed = name.trim();
-    if (trimmed && trimmed !== project.name) {
-      onUpdate({ name: trimmed });
-    } else {
-      setName(project.name);
-    }
-    setEditing(false);
-  };
 
   return (
     <div
@@ -252,13 +246,13 @@ function ProjectCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditing(true);
+                  onEdit();
                   setMenuOpen(false);
                 }}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark"
               >
-                <Edit3 size={12} />
-                重命名
+                <PencilLine size={12} />
+                编辑信息
               </button>
               <button
                 onClick={(e) => {
@@ -276,24 +270,9 @@ function ProjectCard({
         </div>
       </div>
 
-      {editing ? (
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={commitRename}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commitRename();
-            if (e.key === "Escape") {
-              setName(project.name);
-              setEditing(false);
-            }
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="mb-1 w-full max-w-sm rounded border border-accent bg-paper px-1 py-0.5 text-base font-semibold text-ink outline-none dark:bg-paper-dark dark:text-ink-dark"
-        />
-      ) : (
-        <h3 className="mb-1 text-base font-semibold text-ink dark:text-ink-dark">{project.name}</h3>
+      <h3 className="mb-1 text-base font-semibold text-ink dark:text-ink-dark">{project.name}</h3>
+      {project.author && (
+        <p className="mb-1 text-xs text-ink-muted dark:text-ink-muted-dark">{project.author} 著</p>
       )}
 
       <p className="mb-4 line-clamp-2 min-h-[2.5em] text-sm text-ink-muted dark:text-ink-muted-dark">

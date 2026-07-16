@@ -82,7 +82,27 @@ export interface Note {
 }
 
 export type ViewMode = "projects" | "editor";
-export type RightPanelTab = "outline" | "history" | "notes" | "none";
+export type RightPanelTab = "outline" | "history" | "none";
+/** 左侧栏页签：章节目录 / 写作笔记 / 设定词典。 */
+export type LeftSidebarTab = "chapters" | "notes" | "dictionary";
+
+/** 词典词条预设分类。 */
+export const DICT_CATEGORIES = ["人物", "地点", "势力", "物品", "概念"] as const;
+export type DictCategory = (typeof DICT_CATEGORIES)[number] | (string & {});
+
+/** 词典词条：小说设定库（人物卡、地名、势力关系……），按分类检索。 */
+export interface DictEntry {
+  id: string;
+  /** 词条名，如「顾云峥」 */
+  term: string;
+  /** 别名/称呼，多个，如「云峥 / 峥哥」 */
+  aliases: string[];
+  /** 分类，见 DICT_CATEGORIES 预设，也允许自定义。 */
+  category: string;
+  /** 词条内容（设定详情）。 */
+  content: string;
+  updatedAt: number;
+}
 
 export const DEFAULT_PROJECT_TARGET_WORDS = 4000;
 

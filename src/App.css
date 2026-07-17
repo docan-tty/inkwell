@@ -44,7 +44,11 @@
   }
 
   body {
-    font-family: "Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Microsoft YaHei", serif;
+    /* 界面字体可在设置里更换（--inkwell-ui-font 由 applyTheme 写入 <html>）。 */
+    font-family: var(
+      --inkwell-ui-font,
+      "Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Microsoft YaHei", serif
+    );
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -75,6 +79,7 @@
     min-height: 100%;
     font-size: var(--inkwell-font-size, 18px);
     line-height: var(--inkwell-line-height, 1.85);
+    font-family: var(--inkwell-editor-font, inherit);
     color: var(--editor-ink);
   }
 
@@ -170,6 +175,46 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+/* 切换视图（进入 / 退出作品）时的整体过渡：轻微上浮 + 淡入。 */
+@keyframes inkwell-view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.inkwell-view-enter {
+  animation: inkwell-view-enter 0.28s ease-out;
+}
+
+/* 作品卡片进场：逐张轻微错峰（--inkwell-card-delay 由内联样式提供）。 */
+@keyframes inkwell-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.inkwell-card-enter {
+  animation: inkwell-card-enter 0.35s ease-out both;
+  animation-delay: var(--inkwell-card-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inkwell-view-enter,
+  .inkwell-card-enter {
+    animation: none;
   }
 }
 

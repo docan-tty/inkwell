@@ -3,8 +3,10 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import { useEffect, useCallback, useRef, useState } from "react";
+import { Bold, Italic, Heading1, Heading2, Heading3, List, ListOrdered, Minus, Pilcrow, Quote, Redo, Save, Undo } from "lucide-react";
 import { useAppStore } from "../store";
 import { Toolbar } from "./Toolbar";
+import { ContextMenu, type CtxMenuState } from "./ContextMenu";
 import { cn } from "../lib/utils";
 
 interface EditorProps {
@@ -30,10 +32,12 @@ export function Editor({
 }: EditorProps) {
   const { currentProject, focusMode, updateAppSettings, appSettings } = useAppStore();
   const typography = appSettings.editorTypography;
+  const editorFontFamily = appSettings.editorFontFamily || "";
   // 编辑区最大宽度：设置里可调，默认 880px。宽屏下给足阅读宽度。
   const editorMaxWidth = appSettings.editorMaxWidth || 880;
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -71,7 +75,13 @@ export function Editor({
     editorEl.style.setProperty("--inkwell-paragraph-spacing", `${typography.paragraphSpacing}em`);
     // 首行缩进开关（默认开）— 中文小说排版惯例两字符缩进。
     editorEl.style.setProperty("--inkwell-indent", appSettings.firstLineIndent === false ? "0" : "2em");
-  }, [editor, typography, appSettings.firstLineIndent]);
+    // 编辑区字体（设置里可换）；空时移除变量，回落到界面字体。
+    if (editorFontFamily) {
+      editorEl.style.setProperty("--inkwell-editor-font", editorFontFamily);
+    } else {
+      editorEl.style.removeProperty("--inkwell-editor-font");
+    }
+  }, [editor, typography, appSettings.firstLineIndent, editorFontFamily]);
 
   // Track the actual editing-pane width so the text column can adapt: use the
   // full configured max width, but never leave absurdly wide empty margins on
@@ -127,6 +137,42 @@ export function Editor({
     [editor, currentProject, typography, updateAppSettings],
   );
 
+  // 写作区右键菜单：常用排版与编辑操作，替换 webview 默认菜单。
+  // 在 capture 阶段拦截，保证 ProseMirror 内的右键也走这里。
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!editor || editor.isDestroyed) return;
+      e.preventDefault();
+      // 告诉 App 层的全局拦截：这里已经接管，别再 preventDefault 之外的默认行为。
+      (e.nativeEvent as unknown as Record<string, unknown>).__inkwellCtxHandled = true;
+      const mod = navigator.platform.includes("Mac") ? "⌘" : "Ctrl";
+      setCtxMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          { label: "撤销", icon: <Undo size={14} />, shortcut: `${mod}+Z`, disabled: !editor.can().undo(), onClick: () => editor.chain().focus().undo().run() },
+          { label: "重做", icon: <Redo size={14} />, shortcut: `${mod}+Y`, disabled: !editor.can().redo(), onClick: () => editor.chain().focus().redo().run() },
+          { divider: true, label: "" },
+          { label: "加粗", icon: <Bold size={14} />, shortcut: `${mod}+B`, onClick: () => editor.chain().focus().toggleBold().run() },
+          { label: "斜体", icon: <Italic size={14} />, shortcut: `${mod}+I`, onClick: () => editor.chain().focus().toggleItalic().run() },
+          { divider: true, label: "" },
+          { label: "标题 1", icon: <Heading1 size={14} />, shortcut: `${mod}+Alt+1`, onClick: () => editor.chain().focus().toggleHeading({ level: 1 }).run() },
+          { label: "标题 2", icon: <Heading2 size={14} />, shortcut: `${mod}+Alt+2`, onClick: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+          { label: "标题 3", icon: <Heading3 size={14} />, shortcut: `${mod}+Alt+3`, onClick: () => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+          { label: "正文", icon: <Pilcrow size={14} />, onClick: () => editor.chain().focus().setParagraph().run() },
+          { divider: true, label: "" },
+          { label: "引用", icon: <Quote size={14} />, onClick: () => editor.chain().focus().toggleBlockquote().run() },
+          { label: "无序列表", icon: <List size={14} />, onClick: () => editor.chain().focus().toggleBulletList().run() },
+          { label: "有序列表", icon: <ListOrdered size={14} />, onClick: () => editor.chain().focus().toggleOrderedList().run() },
+          { label: "分隔线", icon: <Minus size={14} />, onClick: () => editor.chain().focus().setHorizontalRule().run() },
+          { divider: true, label: "" },
+          { label: "保存", icon: <Save size={14} />, shortcut: `${mod}+S`, onClick: () => onSave?.() },
+        ],
+      });
+    },
+    [editor, onSave],
+  );
+
   return (
     <div
       className={cn(
@@ -174,6 +220,7 @@ export function Editor({
         style={{ padding: `0 ${appSettings.editorPadding}px` }}
         onKeyDown={handleKeyDown}
         onWheel={handleWheel}
+        onContextMenuCapture={handleContextMenu}
       >
         <div
           className="min-h-full py-12"
@@ -190,6 +237,7 @@ export function Editor({
           <EditorContent editor={editor} className="h-full" />
         </div>
       </div>
+      <ContextMenu menu={ctxMenu} onClose={() => setCtxMenu(null)} />
     </div>
   );
 }

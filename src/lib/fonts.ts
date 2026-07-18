@@ -1,1 +1,52 @@
-LyoKICog5a2X5L2T6aKE6K6+CiAqIC0tLS0tLS0tCiAqIOWFqOmDqOS9v+eUqOezu+e7n+W3suijheWtl+S9k++8jOmbtuS4i+i9veOAgembtue9kee7nOivt+axgu+8m+avj+S4quagiOacq+WwvuWbnuiQveWIsOmAmueUqOaXj++8jAogKiDnvLrlrZfkvZPml7boh6rliqjlj5bkuIvkuIDlgJnpgInjgIJsYWJlbCDnlKjkuo7orr7nva7pobXlsZXnpLrvvIxwcmV2aWV3IOaYr+WNoeeJh+S4iueahOagt+Wtl+OAggogKi8KCmV4cG9ydCBpbnRlcmZhY2UgRm9udFByZXNldCB7CiAgaWQ6IHN0cmluZzsKICBsYWJlbDogc3RyaW5nOwogIHByZXZpZXc6IHN0cmluZzsKICB2YWx1ZTogc3RyaW5nOwp9CgpleHBvcnQgY29uc3QgVUlfRk9OVF9QUkVTRVRTOiBGb250UHJlc2V0W10gPSBbCiAgewogICAgaWQ6ICJzZXJpZiIsCiAgICBsYWJlbDogIuaAnea6kOWui+S9kyIsCiAgICBwcmV2aWV3OiAi56yU5aKo57q456CaIiwKICAgIHZhbHVlOiAnIk5vdG8gU2VyaWYgU0MiLCAiU291cmNlIEhhbiBTZXJpZiBTQyIsICJQaW5nRmFuZyBTQyIsICJNaWNyb3NvZnQgWWFIZWkiLCBzZXJpZicsCiAgfSwKICB7CiAgICBpZDogInNhbnMiLAogICAgbGFiZWw6ICLpu5HkvZMiLAogICAgcHJldmlldzogIueslOWiqOe6uOegmiIsCiAgICB2YWx1ZTogJyJQaW5nRmFuZyBTQyIsICJNaWNyb3NvZnQgWWFIZWkiLCAiTm90byBTYW5zIFNDIiwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmJywKICB9LAogIHsKICAgIGlkOiAieWFoZWkiLAogICAgbGFiZWw6ICLlvq7ova/pm4Xpu5EiLAogICAgcHJldmlldzogIueslOWiqOe6uOegmiIsCiAgICB2YWx1ZTogJyJNaWNyb3NvZnQgWWFIZWkiLCAi5b6u6L2v6ZuF6buRIiwgIlBpbmdGYW5nIFNDIiwgIk5vdG8gU2FucyBTQyIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZicsCiAgfSwKICB7CiAgICBpZDogImthaSIsCiAgICBsYWJlbDogIualt+S9kyIsCiAgICBwcmV2aWV3OiAi56yU5aKo57q456CaIiwKICAgIHZhbHVlOiAnIkthaXRpIFNDIiwgIkthaVRpIiwgIlNUS2FpdGkiLCAi5qW35L2TIiwgc2VyaWYnLAogIH0sCiAgewogICAgaWQ6ICJmYW5nc29uZyIsCiAgICBsYWJlbDogIuS7v+WuiyIsCiAgICBwcmV2aWV3OiAi56yU5aKo57q456CaIiwKICAgIHZhbHVlOiAnIkZhbmdTb25nIiwgIlNURmFuZ3NvbmciLCAi5Lu/5a6LIiwgc2VyaWYnLAogIH0sCiAgewogICAgaWQ6ICJtb25vIiwKICAgIGxhYmVsOiAi562J5a69IiwKICAgIHByZXZpZXc6ICJJbmswMTIzIiwKICAgIHZhbHVlOiAnIkpldEJyYWlucyBNb25vIiwgIkNhc2NhZGlhIE1vbm8iLCBDb25zb2xhcywgIkNvdXJpZXIgTmV3IiwgbW9ub3NwYWNlJywKICB9LApdOwo=
+/*
+ * 字体预设
+ * --------
+ * 全部使用系统已装字体，零下载、零网络请求；每个栈末尾回落到通用族，
+ * 缺字体时自动取下一候选。label 用于设置页展示，preview 是卡片上的样字。
+ */
+
+export interface FontPreset {
+  id: string;
+  label: string;
+  preview: string;
+  value: string;
+}
+
+export const UI_FONT_PRESETS: FontPreset[] = [
+  {
+    id: "serif",
+    label: "思源宋体",
+    preview: "笔墨纸砚",
+    value: '"Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Microsoft YaHei", serif',
+  },
+  {
+    id: "sans",
+    label: "黑体",
+    preview: "笔墨纸砚",
+    value: '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif',
+  },
+  {
+    id: "yahei",
+    label: "微软雅黑",
+    preview: "笔墨纸砚",
+    value: '"Microsoft YaHei", "微软雅黑", "PingFang SC", "Noto Sans SC", system-ui, sans-serif',
+  },
+  {
+    id: "kai",
+    label: "楷体",
+    preview: "笔墨纸砚",
+    value: '"Kaiti SC", "KaiTi", "STKaiti", "楷体", serif',
+  },
+  {
+    id: "fangsong",
+    label: "仿宋",
+    preview: "笔墨纸砚",
+    value: '"FangSong", "STFangsong", "仿宋", serif',
+  },
+  {
+    id: "mono",
+    label: "等宽",
+    preview: "Ink0123",
+    value: '"JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace',
+  },
+];

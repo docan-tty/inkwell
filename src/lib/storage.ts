@@ -1,1 +1,796 @@
-aW1wb3J0IHR5cGUgeyBDaGFwdGVyLCBEaWN0RW50cnksIE5vdGUsIFByb2plY3QsIFZvbHVtZSB9IGZyb20gIi4uL3R5cGVzIjsNCmltcG9ydCB7IGludm9rZSB9IGZyb20gIkB0YXVyaS1hcHBzL2FwaS9jb3JlIjsNCmltcG9ydCB7IGFwcERhdGFEaXIsIGRpcm5hbWUsIGpvaW4gfSBmcm9tICJAdGF1cmktYXBwcy9hcGkvcGF0aCI7DQoNCmV4cG9ydCBpbnRlcmZhY2UgU3RvcmFnZUNvbmZpZyB7DQogIC8vIEN1c3RvbSBsb2NhdGlvbiBmb3IgdGhlIHVzZXIncyBub3ZlbCBjb250ZW50IChwcm9qZWN0IGZpbGVzICsgY2hhcHRlcnMpLg0KICAvLyBXaGVuIHVuc2V0LCBjb250ZW50IGZhbGxzIGJhY2sgdG8gdGhlIGRhdGEgZm9sZGVyLiBUaGUgZGF0YSBmb2xkZXINCiAgLy8gaXRzZWxmIGFsd2F5cyBob2xkcyB0aGUgcHJvamVjdCBpbmRleCBhbmQgc2V0dGluZ3Mg4oCUIGluZGVwZW5kZW50IG9mDQogIC8vIHRoaXMgc2V0dGluZy4NCiAgcHJvamVjdFNhdmVEaXJlY3Rvcnk/OiBzdHJpbmc7DQp9DQoNCmNvbnN0IEFQUF9EQVRBX0tFWSA9ICJpbmt3ZWxsLWFwcC1kYXRhIjsNCmNvbnN0IFBST0pFQ1RTX0tFWSA9ICJpbmt3ZWxsLXByb2plY3RzIjsNCmNvbnN0IFBST0pFQ1RfUFJFRklYID0gImlua3dlbGwtcHJvamVjdC0iOw0KY29uc3QgQ0hBUFRFUl9QUkVGSVggPSAiaW5rd2VsbC1jaGFwdGVyLSI7DQoNCmxldCB0YXVyaVBhdGg6IHR5cGVvZiBpbXBvcnQoIkB0YXVyaS1hcHBzL2FwaS9wYXRoIikgfCBudWxsID0gbnVsbDsNCg0KYXN5bmMgZnVuY3Rpb24gZ2V0UGF0aCgpIHsNCiAgaWYgKCF0YXVyaVBhdGggJiYgIl9fVEFVUklfSU5URVJOQUxTX18iIGluIHdpbmRvdykgew0KICAgIHRyeSB7DQogICAgICB0YXVyaVBhdGggPSBhd2FpdCBpbXBvcnQoIkB0YXVyaS1hcHBzL2FwaS9wYXRoIik7DQogICAgfSBjYXRjaCB7DQogICAgICB0YXVyaVBhdGggPSBudWxsOw0KICAgIH0NCiAgfQ0KICByZXR1cm4gdGF1cmlQYXRoOw0KfQ0KDQpleHBvcnQgZnVuY3Rpb24gaXNUYXVyaSgpOiBib29sZWFuIHsNCiAgcmV0dXJuICJfX1RBVVJJX0lOVEVSTkFMU19fIiBpbiB3aW5kb3c7DQp9DQoNCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBnZXRBcHBEYXRhRGlyKCk6IFByb21pc2U8c3RyaW5nPiB7DQogIGlmICghaXNUYXVyaSgpKSByZXR1cm4gQVBQX0RBVEFfS0VZOw0KICBjb25zdCBwYXRoTW9kID0gYXdhaXQgZ2V0UGF0aCgpOw0KICByZXR1cm4gcGF0aE1vZCA/IGF3YWl0IHBhdGhNb2QuYXBwRGF0YURpcigpIDogQVBQX0RBVEFfS0VZOw0KfQ0KDQphc3luYyBmdW5jdGlvbiBnZXRDb250ZW50QmFzZURpcihjb25maWc/OiBTdG9yYWdlQ29uZmlnKTogUHJvbWlzZTxzdHJpbmc+IHsNCiAgLy8gU2luZ2xlIGJhc2UgZGlyZWN0b3J5IGZvciB0aGUgdXNlcidzIG5vdmVsIGNvbnRlbnQgKGJvdGggcHJvamVjdCBmaWxlcw0KICAvLyBhbmQgY2hhcHRlciBgLm1kYCBmaWxlcykuIEZhbGxzIGJhY2sgdG8gdGhlIGRhdGEgZm9sZGVyIHdoZW4gdGhlIHVzZXINCiAgLy8gaGFzbid0IHNldCBhIGN1c3RvbSBsb2NhdGlvbi4NCiAgaWYgKGNvbmZpZz8ucHJvamVjdFNhdmVEaXJlY3RvcnkpIHJldHVybiBjb25maWcucHJvamVjdFNhdmVEaXJlY3Rvcnk7DQogIHJldHVybiBnZXRBcHBEYXRhRGlyKCk7DQp9DQoNCmFzeW5jIGZ1bmN0aW9uIGJ1aWxkUGF0aChwYXJ0czogc3RyaW5nW10pOiBQcm9taXNlPHN0cmluZz4gew0KICBjb25zdCBwYXRoTW9kID0gYXdhaXQgZ2V0UGF0aCgpOw0KICBpZiAocGF0aE1vZCkgew0KICAgIHJldHVybiBwYXRoTW9kLmpvaW4oLi4ucGFydHMpOw0KICB9DQogIHJldHVybiBwYXJ0cy5maWx0ZXIoQm9vbGVhbikuam9pbigiLyIpOw0KfQ0KDQpleHBvcnQgZnVuY3Rpb24gZ2V0UHJvamVjdFN0b3JhZ2VLZXkocHJvamVjdElkOiBzdHJpbmcpOiBzdHJpbmcgew0KICByZXR1cm4gYCR7UFJPSkVDVF9QUkVGSVh9JHtwcm9qZWN0SWR9YDsNCn0NCg0KZXhwb3J0IGZ1bmN0aW9uIGdldENoYXB0ZXJTdG9yYWdlS2V5KGNoYXB0ZXJJZDogc3RyaW5nKTogc3RyaW5nIHsNCiAgcmV0dXJuIGAke0NIQVBURVJfUFJFRklYfSR7Y2hhcHRlcklkfWA7DQp9DQoNCi8vIFRoZSBwcm9qZWN0IGluZGV4IChyZWdpc3RyeSkgaXMgcGFydCBvZiB0aGUgYXBwJ3MgZGF0YSDigJQgaXQgYWx3YXlzIGxpdmVzDQovLyBpbiB0aGUgZGF0YSBmb2xkZXIsIGluZGVwZW5kZW50IG9mIHRoZSB1c2VyJ3MgY3VzdG9tIGNvbnRlbnQgbG9jYXRpb24uDQphc3luYyBmdW5jdGlvbiBnZXRQcm9qZWN0UmVnaXN0cnlQYXRoKCk6IFByb21pc2U8c3RyaW5nPiB7DQogIHJldHVybiBidWlsZFBhdGgoW2F3YWl0IGdldEFwcERhdGFEaXIoKSwgInJlZ2lzdHJ5Lmpzb24iXSk7DQp9DQoNCmFzeW5jIGZ1bmN0aW9uIGdldFByb2plY3RGaWxlUGF0aChwcm9qZWN0SWQ6IHN0cmluZywgY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8c3RyaW5nPiB7DQogIGNvbnN0IGRpciA9IGF3YWl0IGdldENvbnRlbnRCYXNlRGlyKGNvbmZpZyk7DQogIHJldHVybiBidWlsZFBhdGgoW2RpciwgInByb2plY3RzIiwgYCR7cHJvamVjdElkfS5qc29uYF0pOw0KfQ0KDQphc3luYyBmdW5jdGlvbiBnZXRDaGFwdGVyRmlsZVBhdGgoY2hhcHRlcklkOiBzdHJpbmcsIGNvbmZpZz86IFN0b3JhZ2VDb25maWcpOiBQcm9taXNlPHN0cmluZz4gew0KICBjb25zdCBkaXIgPSBhd2FpdCBnZXRDb250ZW50QmFzZURpcihjb25maWcpOw0KICByZXR1cm4gYnVpbGRQYXRoKFtkaXIsICJjaGFwdGVycyIsIGAke2NoYXB0ZXJJZH0ubWRgXSk7DQp9DQoNCi8vIEFsbCBkaXNrIEkvTyBnb2VzIHRocm91Z2ggb3VyIG93biBUYXVyaSBjb21tYW5kcyAoc2VlIHNyYy10YXVyaS9zcmMvbGliLnJzKQ0KLy8gc28gd3JpdGVzIHRvIHVzZXItY2hvc2VuIGRpcmVjdG9yaWVzIGFyZSBuZXZlciBibG9ja2VkIGJ5IGEgc3RhdGljIGZzDQovLyBzY29wZS4gVGhlIFRhdXJpLXNpZGUgY29tbWFuZHMgYXV0by1jcmVhdGUgdGhlIHBhcmVudCBkaXJlY3RvcnkgZm9yDQovLyB3cml0ZXMsIHNvIGNhbGxlcnMgZG9uJ3QgbmVlZCBhIHNlcGFyYXRlIG1rZGlyIHN0ZXAuDQoNCmFzeW5jIGZ1bmN0aW9uIHJlYWRGaWxlT3JGYWxsYmFjayhwYXRoOiBzdHJpbmcsIGZhbGxiYWNrOiAoKSA9PiBzdHJpbmcgfCBudWxsKTogUHJvbWlzZTxzdHJpbmcgfCBudWxsPiB7DQogIGlmICghaXNUYXVyaSgpKSByZXR1cm4gZmFsbGJhY2soKTsNCiAgdHJ5IHsNCiAgICByZXR1cm4gYXdhaXQgaW52b2tlPHN0cmluZz4oInJlYWRfdGV4dF9maWxlIiwgeyBwYXRoIH0pOw0KICB9IGNhdGNoIHsNCiAgICByZXR1cm4gZmFsbGJhY2soKTsNCiAgfQ0KfQ0KDQovLyBUaGUgcHJvamVjdCBpbmRleCBpcyBwYXJ0IG9mIHRoZSBhcHAncyBkYXRhIGFuZCBpcyBhbHdheXMgc3RvcmVkIGluIHRoZQ0KLy8gZGF0YSBmb2xkZXIg4oCUIGluZGVwZW5kZW50IG9mIGFueSBjdXN0b20gY29udGVudCBsb2NhdGlvbi4gRm9yIGJhY2t3YXJkDQovLyBjb21wYXRpYmlsaXR5IHdpdGggZWFybGllciB2ZXJzaW9ucyB3aGVyZSB0aGUgaW5kZXggbGl2ZWQgbmV4dCB0byBwcm9qZWN0DQovLyBmaWxlcyB1bmRlciBgcHJvamVjdFNhdmVEaXJlY3RvcnlgLCB3ZSB0cmFuc3BhcmVudGx5IGZhbGwgYmFjayB0byByZWFkaW5nDQovLyBmcm9tIHRoYXQgbGVnYWN5IGxvY2F0aW9uIHdoZW4gdGhlIG5ldyBkYXRhLWZvbGRlciByZWdpc3RyeSBpcyBtaXNzaW5nLg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGdldExvY2FsUHJvamVjdFJlZ2lzdHJ5KA0KICBjb25maWc/OiBTdG9yYWdlQ29uZmlnLA0KKTogUHJvbWlzZTxQcm9qZWN0W10+IHsNCiAgY29uc3QgbG9jYWxTdG9yYWdlRmFsbGJhY2sgPSAoKSA9PiB7DQogICAgdHJ5IHsNCiAgICAgIGNvbnN0IHJhdyA9IGxvY2FsU3RvcmFnZS5nZXRJdGVtKFBST0pFQ1RTX0tFWSk7DQogICAgICByZXR1cm4gcmF3ID8/IG51bGw7DQogICAgfSBjYXRjaCB7DQogICAgICByZXR1cm4gbnVsbDsNCiAgICB9DQogIH07DQogIGNvbnN0IHByaW1hcnkgPSBhd2FpdCByZWFkRmlsZU9yRmFsbGJhY2soYXdhaXQgZ2V0UHJvamVjdFJlZ2lzdHJ5UGF0aCgpLCBsb2NhbFN0b3JhZ2VGYWxsYmFjayk7DQogIGlmIChwcmltYXJ5KSB7DQogICAgdHJ5IHsNCiAgICAgIHJldHVybiBKU09OLnBhcnNlKHByaW1hcnkpOw0KICAgIH0gY2F0Y2ggew0KICAgICAgcmV0dXJuIFtdOw0KICAgIH0NCiAgfQ0KICAvLyBMZWdhY3kgZmFsbGJhY2s6IHJlZ2lzdHJ5IHVuZGVyIHRoZSBjdXN0b20gY29udGVudCBkaXJlY3RvcnkuDQogIGNvbnN0IGxlZ2FjeURpciA9IGNvbmZpZz8ucHJvamVjdFNhdmVEaXJlY3Rvcnk7DQogIGlmIChsZWdhY3lEaXIpIHsNCiAgICBjb25zdCBsZWdhY3lQYXRoID0gYXdhaXQgYnVpbGRQYXRoKFtsZWdhY3lEaXIsICJyZWdpc3RyeS5qc29uIl0pOw0KICAgIGNvbnN0IGxlZ2FjeVJhdyA9IGF3YWl0IHJlYWRGaWxlT3JGYWxsYmFjayhsZWdhY3lQYXRoLCBsb2NhbFN0b3JhZ2VGYWxsYmFjayk7DQogICAgaWYgKGxlZ2FjeVJhdykgew0KICAgICAgdHJ5IHsNCiAgICAgICAgcmV0dXJuIEpTT04ucGFyc2UobGVnYWN5UmF3KTsNCiAgICAgIH0gY2F0Y2ggew0KICAgICAgICByZXR1cm4gW107DQogICAgICB9DQogICAgfQ0KICB9DQogIHJldHVybiBbXTsNCn0NCg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHNldExvY2FsUHJvamVjdFJlZ2lzdHJ5KHByb2plY3RzOiBQcm9qZWN0W10pOiBQcm9taXNlPHZvaWQ+IHsNCiAgY29uc3QgcmF3ID0gSlNPTi5zdHJpbmdpZnkocHJvamVjdHMpOw0KICBpZiAoIWlzVGF1cmkoKSkgew0KICAgIGxvY2FsU3RvcmFnZS5zZXRJdGVtKFBST0pFQ1RTX0tFWSwgcmF3KTsNCiAgICByZXR1cm47DQogIH0NCiAgYXdhaXQgaW52b2tlKCJ3cml0ZV90ZXh0X2ZpbGUiLCB7DQogICAgcGF0aDogYXdhaXQgZ2V0UHJvamVjdFJlZ2lzdHJ5UGF0aCgpLA0KICAgIGNvbnRlbnQ6IHJhdywNCiAgfSk7DQogIGxvY2FsU3RvcmFnZS5zZXRJdGVtKFBST0pFQ1RTX0tFWSwgcmF3KTsNCn0NCg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGxvYWRQcm9qZWN0RnJvbUxvY2FsKA0KICBwcm9qZWN0SWQ6IHN0cmluZywNCiAgY29uZmlnPzogU3RvcmFnZUNvbmZpZywNCik6IFByb21pc2U8eyBwcm9qZWN0OiBQcm9qZWN0OyBjaGFwdGVyczogQ2hhcHRlcltdOyB2b2x1bWVzOiBWb2x1bWVbXSB9IHwgbnVsbD4gew0KICBjb25zdCBmYWxsYmFjayA9ICgpID0+IGxvY2FsU3RvcmFnZS5nZXRJdGVtKGdldFByb2plY3RTdG9yYWdlS2V5KHByb2plY3RJZCkpOw0KICBjb25zdCByYXcgPSBhd2FpdCByZWFkRmlsZU9yRmFsbGJhY2soYXdhaXQgZ2V0UHJvamVjdEZpbGVQYXRoKHByb2plY3RJZCwgY29uZmlnKSwgZmFsbGJhY2spOw0KICBpZiAoIXJhdykgcmV0dXJuIG51bGw7DQogIHRyeSB7DQogICAgcmV0dXJuIEpTT04ucGFyc2UocmF3KTsNCiAgfSBjYXRjaCB7DQogICAgcmV0dXJuIG51bGw7DQogIH0NCn0NCg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHNhdmVQcm9qZWN0VG9Mb2NhbCgNCiAgcHJvamVjdDogUHJvamVjdCwNCiAgY2hhcHRlcnM6IENoYXB0ZXJbXSwNCiAgdm9sdW1lczogVm9sdW1lW10sDQogIGNvbmZpZz86IFN0b3JhZ2VDb25maWcsDQopOiBQcm9taXNlPHZvaWQ+IHsNCiAgY29uc3QgcmF3ID0gSlNPTi5zdHJpbmdpZnkoeyBwcm9qZWN0LCBjaGFwdGVycywgdm9sdW1lcyB9KTsNCiAgaWYgKCFpc1RhdXJpKCkpIHsNCiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShnZXRQcm9qZWN0U3RvcmFnZUtleShwcm9qZWN0LmlkKSwgcmF3KTsNCiAgICByZXR1cm47DQogIH0NCiAgYXdhaXQgaW52b2tlKCJ3cml0ZV90ZXh0X2ZpbGUiLCB7DQogICAgcGF0aDogYXdhaXQgZ2V0UHJvamVjdEZpbGVQYXRoKHByb2plY3QuaWQsIGNvbmZpZyksDQogICAgY29udGVudDogcmF3LA0KICB9KTsNCiAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oZ2V0UHJvamVjdFN0b3JhZ2VLZXkocHJvamVjdC5pZCksIHJhdyk7DQp9DQoNCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBsb2FkQ2hhcHRlckNvbnRlbnRGcm9tTG9jYWwoY2hhcHRlcklkOiBzdHJpbmcsIGNvbmZpZz86IFN0b3JhZ2VDb25maWcpOiBQcm9taXNlPHN0cmluZz4gew0KICBjb25zdCBmYWxsYmFjayA9ICgpID0+IGxvY2FsU3RvcmFnZS5nZXRJdGVtKGdldENoYXB0ZXJTdG9yYWdlS2V5KGNoYXB0ZXJJZCkpOw0KICBjb25zdCByYXcgPSBhd2FpdCByZWFkRmlsZU9yRmFsbGJhY2soYXdhaXQgZ2V0Q2hhcHRlckZpbGVQYXRoKGNoYXB0ZXJJZCwgY29uZmlnKSwgZmFsbGJhY2spOw0KICByZXR1cm4gcmF3ID8/ICIiOw0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gc2F2ZUNoYXB0ZXJDb250ZW50VG9Mb2NhbChjaGFwdGVySWQ6IHN0cmluZywgY29udGVudDogc3RyaW5nLCBjb25maWc/OiBTdG9yYWdlQ29uZmlnKTogUHJvbWlzZTx2b2lkPiB7DQogIGlmICghaXNUYXVyaSgpKSB7DQogICAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oZ2V0Q2hhcHRlclN0b3JhZ2VLZXkoY2hhcHRlcklkKSwgY29udGVudCk7DQogICAgcmV0dXJuOw0KICB9DQogIGF3YWl0IGludm9rZSgid3JpdGVfdGV4dF9maWxlIiwgew0KICAgIHBhdGg6IGF3YWl0IGdldENoYXB0ZXJGaWxlUGF0aChjaGFwdGVySWQsIGNvbmZpZyksDQogICAgY29udGVudCwNCiAgfSk7DQogIGxvY2FsU3RvcmFnZS5zZXRJdGVtKGdldENoYXB0ZXJTdG9yYWdlS2V5KGNoYXB0ZXJJZCksIGNvbnRlbnQpOw0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gcmVtb3ZlQ2hhcHRlckNvbnRlbnRGcm9tTG9jYWwoY2hhcHRlcklkOiBzdHJpbmcsIGNvbmZpZz86IFN0b3JhZ2VDb25maWcpOiBQcm9taXNlPHZvaWQ+IHsNCiAgaWYgKCFpc1RhdXJpKCkpIHsNCiAgICBsb2NhbFN0b3JhZ2UucmVtb3ZlSXRlbShnZXRDaGFwdGVyU3RvcmFnZUtleShjaGFwdGVySWQpKTsNCiAgICByZXR1cm47DQogIH0NCiAgdHJ5IHsNCiAgICBhd2FpdCBpbnZva2UoInJlbW92ZV9maWxlIiwgeyBwYXRoOiBhd2FpdCBnZXRDaGFwdGVyRmlsZVBhdGgoY2hhcHRlcklkLCBjb25maWcpIH0pOw0KICB9IGNhdGNoIHsNCiAgICAvLyBpZ25vcmUg4oCUIGZpbGUgbWF5IG5vdCBleGlzdA0KICB9DQogIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKGdldENoYXB0ZXJTdG9yYWdlS2V5KGNoYXB0ZXJJZCkpOw0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gcmVtb3ZlUHJvamVjdEZyb21Mb2NhbChwcm9qZWN0SWQ6IHN0cmluZywgY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8dm9pZD4gew0KICBpZiAoIWlzVGF1cmkoKSkgew0KICAgIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKGdldFByb2plY3RTdG9yYWdlS2V5KHByb2plY3RJZCkpOw0KICAgIHJldHVybjsNCiAgfQ0KICB0cnkgew0KICAgIGF3YWl0IGludm9rZSgicmVtb3ZlX2ZpbGUiLCB7IHBhdGg6IGF3YWl0IGdldFByb2plY3RGaWxlUGF0aChwcm9qZWN0SWQsIGNvbmZpZykgfSk7DQogIH0gY2F0Y2ggew0KICAgIC8vIGlnbm9yZSDigJQgcHJvamVjdCBmaWxlIG1heSBub3QgZXhpc3QNCiAgfQ0KICBsb2NhbFN0b3JhZ2UucmVtb3ZlSXRlbShnZXRQcm9qZWN0U3RvcmFnZUtleShwcm9qZWN0SWQpKTsNCn0NCg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGdldERlZmF1bHRFeHBvcnREaXJlY3RvcnkoY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8c3RyaW5nPiB7DQogIHJldHVybiBjb25maWc/LnByb2plY3RTYXZlRGlyZWN0b3J5IHx8IChhd2FpdCBnZXRBcHBEYXRhRGlyKCkpOw0KfQ0KDQovLyAtLS0gTm90ZXMgKOWGmeS9nOeslOiusCkgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCi8vIFBlci1wcm9qZWN0IHNjcmF0Y2ggbm90ZXMgKOS6uueJqeiuvuWumuOAgeeBteaEn+OAgeS8j+eslCkuIExpdmUgbmV4dCB0byB0aGUgcHJvamVjdA0KLy8gZmlsZSBzbyB0aGV5IG1pZ3JhdGUgd2l0aCB0aGUgcmVzdCBvZiB0aGUgY29udGVudC4gRGVib3VuY2VkIGF1dG9zYXZlIGluDQovLyB0aGUgVUkgY2FsbHMgc2F2ZU5vdGVzVG9Mb2NhbDsgcmVhZHMgZmFsbCBiYWNrIHRvIFtdIHdoZW4gYWJzZW50Lg0KYXN5bmMgZnVuY3Rpb24gZ2V0Tm90ZXNGaWxlUGF0aChwcm9qZWN0SWQ6IHN0cmluZywgY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8c3RyaW5nPiB7DQogIGNvbnN0IGRpciA9IGF3YWl0IGdldENvbnRlbnRCYXNlRGlyKGNvbmZpZyk7DQogIHJldHVybiBidWlsZFBhdGgoW2RpciwgIm5vdGVzIiwgYCR7cHJvamVjdElkfS5qc29uYF0pOw0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gbG9hZE5vdGVzRnJvbUxvY2FsKHByb2plY3RJZDogc3RyaW5nLCBjb25maWc/OiBTdG9yYWdlQ29uZmlnKTogUHJvbWlzZTxOb3RlW10+IHsNCiAgY29uc3QgZmFsbGJhY2sgPSAoKSA9PiBsb2NhbFN0b3JhZ2UuZ2V0SXRlbShgaW5rd2VsbC1ub3Rlcy0ke3Byb2plY3RJZH1gKTsNCiAgY29uc3QgcmF3ID0gYXdhaXQgcmVhZEZpbGVPckZhbGxiYWNrKGF3YWl0IGdldE5vdGVzRmlsZVBhdGgocHJvamVjdElkLCBjb25maWcpLCBmYWxsYmFjayk7DQogIGlmICghcmF3KSByZXR1cm4gW107DQogIHRyeSB7DQogICAgY29uc3QgcGFyc2VkID0gSlNPTi5wYXJzZShyYXcpOw0KICAgIHJldHVybiBBcnJheS5pc0FycmF5KHBhcnNlZCkgPyBwYXJzZWQgOiBbXTsNCiAgfSBjYXRjaCB7DQogICAgcmV0dXJuIFtdOw0KICB9DQp9DQoNCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBzYXZlTm90ZXNUb0xvY2FsKHByb2plY3RJZDogc3RyaW5nLCBub3RlczogTm90ZVtdLCBjb25maWc/OiBTdG9yYWdlQ29uZmlnKTogUHJvbWlzZTx2b2lkPiB7DQogIGNvbnN0IHJhdyA9IEpTT04uc3RyaW5naWZ5KG5vdGVzKTsNCiAgaWYgKCFpc1RhdXJpKCkpIHsNCiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShgaW5rd2VsbC1ub3Rlcy0ke3Byb2plY3RJZH1gLCByYXcpOw0KICAgIHJldHVybjsNCiAgfQ0KICBhd2FpdCBpbnZva2UoIndyaXRlX3RleHRfZmlsZSIsIHsNCiAgICBwYXRoOiBhd2FpdCBnZXROb3Rlc0ZpbGVQYXRoKHByb2plY3RJZCwgY29uZmlnKSwNCiAgICBjb250ZW50OiByYXcsDQogIH0pOw0KICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShgaW5rd2VsbC1ub3Rlcy0ke3Byb2plY3RJZH1gLCByYXcpOw0KfQ0KDQovLyAtLS0gRGljdGlvbmFyeSAo6K6+5a6a6K+N5YW4KSAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQovLyBQZXItcHJvamVjdCB3b3JsZGJ1aWxkaW5nIGVudHJpZXMgKOS6uueJqeWNoSAvIOWcsOeCuSAvIOWKv+WKmyDigKYpLiBTYW1lIHN0b3JhZ2UNCi8vIHBhdHRlcm4gYXMgbm90ZXM6IG9uZSBKU09OIGZpbGUgcGVyIHByb2plY3QgdW5kZXIgZGljdGlvbmFyeS88aWQ+Lmpzb24sDQovLyB3aXRoIGEgbG9jYWxTdG9yYWdlIGZhbGxiYWNrIGZvciB0aGUgYnJvd3NlciBkZXYgbW9kZS4NCmFzeW5jIGZ1bmN0aW9uIGdldERpY3RGaWxlUGF0aChwcm9qZWN0SWQ6IHN0cmluZywgY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8c3RyaW5nPiB7DQogIGNvbnN0IGRpciA9IGF3YWl0IGdldENvbnRlbnRCYXNlRGlyKGNvbmZpZyk7DQogIHJldHVybiBidWlsZFBhdGgoW2RpciwgImRpY3Rpb25hcnkiLCBgJHtwcm9qZWN0SWR9Lmpzb25gXSk7DQp9DQoNCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBsb2FkRGljdEZyb21Mb2NhbChwcm9qZWN0SWQ6IHN0cmluZywgY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8RGljdEVudHJ5W10+IHsNCiAgY29uc3QgZmFsbGJhY2sgPSAoKSA9PiBsb2NhbFN0b3JhZ2UuZ2V0SXRlbShgaW5rd2VsbC1kaWN0LSR7cHJvamVjdElkfWApOw0KICBjb25zdCByYXcgPSBhd2FpdCByZWFkRmlsZU9yRmFsbGJhY2soYXdhaXQgZ2V0RGljdEZpbGVQYXRoKHByb2plY3RJZCwgY29uZmlnKSwgZmFsbGJhY2spOw0KICBpZiAoIXJhdykgcmV0dXJuIFtdOw0KICB0cnkgew0KICAgIGNvbnN0IHBhcnNlZCA9IEpTT04ucGFyc2UocmF3KTsNCiAgICByZXR1cm4gQXJyYXkuaXNBcnJheShwYXJzZWQpID8gcGFyc2VkIDogW107DQogIH0gY2F0Y2ggew0KICAgIHJldHVybiBbXTsNCiAgfQ0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gc2F2ZURpY3RUb0xvY2FsKHByb2plY3RJZDogc3RyaW5nLCBlbnRyaWVzOiBEaWN0RW50cnlbXSwgY29uZmlnPzogU3RvcmFnZUNvbmZpZyk6IFByb21pc2U8dm9pZD4gew0KICBjb25zdCByYXcgPSBKU09OLnN0cmluZ2lmeShlbnRyaWVzKTsNCiAgaWYgKCFpc1RhdXJpKCkpIHsNCiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShgaW5rd2VsbC1kaWN0LSR7cHJvamVjdElkfWAsIHJhdyk7DQogICAgcmV0dXJuOw0KICB9DQogIGF3YWl0IGludm9rZSgid3JpdGVfdGV4dF9maWxlIiwgew0KICAgIHBhdGg6IGF3YWl0IGdldERpY3RGaWxlUGF0aChwcm9qZWN0SWQsIGNvbmZpZyksDQogICAgY29udGVudDogcmF3LA0KICB9KTsNCiAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oYGlua3dlbGwtZGljdC0ke3Byb2plY3RJZH1gLCByYXcpOw0KfQ0KDQovLyBPcGVucyB0aGUgZ2l2ZW4gZm9sZGVyIGluIHRoZSBPUyBmaWxlIGV4cGxvcmVyIChXaW5kb3dzIEV4cGxvcmVyIC8gbWFjT1MNCi8vIEZpbmRlciAvIExpbnV4IGZpbGUgbWFuYWdlcikuIFJldHVybnMgdGhlIGVycm9yIG1lc3NhZ2Ugb24gZmFpbHVyZSAoZS5nLg0KLy8gcGF0aCBkb2VzIG5vdCBleGlzdCkgc28gdGhlIFVJIGNhbiBzdXJmYWNlIGl0OyByZXR1cm5zIG51bGwgb24gc3VjY2Vzcy4NCi8vIOa1j+iniOWZqOmihOiniOaooeW8j+S4i+aXoOazleiwg+i1t+ezu+e7n+aWh+S7tueuoeeQhuWZqO+8jOi/lOWbnuS4gOadoeWPr+ivu+aPkOekuuiAjOS4jeaYr+mdmem7mOWksei0peOAgg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHJldmVhbEluRm9sZGVyKHBhdGg6IHN0cmluZyk6IFByb21pc2U8c3RyaW5nIHwgbnVsbD4gew0KICBpZiAoIXBhdGgpIHJldHVybiAi6Lev5b6E5Li656m6IjsNCiAgaWYgKCFpc1RhdXJpKCkpIHJldHVybiAi5rWP6KeI5Zmo6aKE6KeI5qih5byP5peg5rOV5omT5byA57O757uf5paH5Lu25aS577yM6K+35Zyo5qGM6Z2i5bqU55So5Lit5L2/55So5q2k5Yqf6IO9IjsNCiAgdHJ5IHsNCiAgICBhd2FpdCBpbnZva2UoIm9wZW5fcGF0aCIsIHsgcGF0aCB9KTsNCiAgICByZXR1cm4gbnVsbDsNCiAgfSBjYXRjaCAoZSkgew0KICAgIHJldHVybiBlIGluc3RhbmNlb2YgRXJyb3IgPyBlLm1lc3NhZ2UgOiBTdHJpbmcoZSk7DQogIH0NCn0NCg0KLy8gR2VuZXJhbC1wdXJwb3NlIGZpbGUgb3BlcmF0aW9ucyB1c2VkIGJ5IHRoZSBleHBvcnQgZmxvdy4gSW4gbm9uLVRhdXJpDQovLyAoYnJvd3Nlci9kZXYpIGZhbGxiYWNrIG1vZGUgdGhlc2UgYmFjayBvbnRvIGEgbmFtZXNwYWNlZCBsb2NhbFN0b3JhZ2UNCi8vIGVudHJ5LCBzbyB0aGV5IGNhbiBuZXZlciBjb2xsaWRlIHdpdGggdGhlIGBpbmt3ZWxsLXByb2plY3RzYCAvDQovLyBgaW5rd2VsbC1jaGFwdGVyLSpgIC8gYGlua3dlbGwtc2V0dGluZ3NgIGtleXMuDQpjb25zdCBGU19GQUxMQkFDS19QUkVGSVggPSAiaW5rd2VsbC1mczoiOw0KY29uc3QgZnNLZXkgPSAocGF0aDogc3RyaW5nKSA9PiBgJHtGU19GQUxMQkFDS19QUkVGSVh9JHtwYXRofWA7DQoNCmV4cG9ydCBhc3luYyBmdW5jdGlvbiB3cml0ZVRleHRGaWxlKHBhdGg6IHN0cmluZywgY29udGVudDogc3RyaW5nKTogUHJvbWlzZTx2b2lkPiB7DQogIGlmIChpc1RhdXJpKCkpIHsNCiAgICBhd2FpdCBpbnZva2UoIndyaXRlX3RleHRfZmlsZSIsIHsgcGF0aCwgY29udGVudCB9KTsNCiAgICByZXR1cm47DQogIH0NCiAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oZnNLZXkocGF0aCksIGNvbnRlbnQpOw0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gcmVhZFRleHRGaWxlKHBhdGg6IHN0cmluZyk6IFByb21pc2U8c3RyaW5nPiB7DQogIGlmIChpc1RhdXJpKCkpIHsNCiAgICByZXR1cm4gYXdhaXQgaW52b2tlPHN0cmluZz4oInJlYWRfdGV4dF9maWxlIiwgeyBwYXRoIH0pOw0KICB9DQogIGNvbnN0IHZhbHVlID0gbG9jYWxTdG9yYWdlLmdldEl0ZW0oZnNLZXkocGF0aCkpOw0KICBpZiAodmFsdWUgPT09IG51bGwpIHRocm93IG5ldyBFcnJvcihgRmlsZSBub3QgZm91bmQ6ICR7cGF0aH1gKTsNCiAgcmV0dXJuIHZhbHVlOw0KfQ0KDQpleHBvcnQgYXN5bmMgZnVuY3Rpb24gZXhpc3RzKHBhdGg6IHN0cmluZyk6IFByb21pc2U8Ym9vbGVhbj4gew0KICBpZiAoaXNUYXVyaSgpKSB7DQogICAgcmV0dXJuIGF3YWl0IGludm9rZTxib29sZWFuPigiZmlsZV9leGlzdHMiLCB7IHBhdGggfSk7DQogIH0NCiAgcmV0dXJuIGxvY2FsU3RvcmFnZS5nZXRJdGVtKGZzS2V5KHBhdGgpKSAhPT0gbnVsbDsNCn0NCg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHJlbW92ZUZpbGUocGF0aDogc3RyaW5nKTogUHJvbWlzZTx2b2lkPiB7DQogIGlmIChpc1RhdXJpKCkpIHsNCiAgICBhd2FpdCBpbnZva2UoInJlbW92ZV9maWxlIiwgeyBwYXRoIH0pOw0KICAgIHJldHVybjsNCiAgfQ0KICBsb2NhbFN0b3JhZ2UucmVtb3ZlSXRlbShmc0tleShwYXRoKSk7DQp9DQoNCi8vIExpc3RzIGZpbGUgbmFtZXMgZGlyZWN0bHkgaW5zaWRlIGBkaXJgIChub24tcmVjdXJzaXZlKS4gTWlzc2luZyBkaXJlY3RvcnkNCi8vIHlpZWxkcyBbXS4gSW4gZmFsbGJhY2sgbW9kZSwgbGlzdHMgbmFtZXNwYWNlZCBsb2NhbFN0b3JhZ2Uga2V5cy4NCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBsaXN0RmlsZXMoZGlyOiBzdHJpbmcpOiBQcm9taXNlPHN0cmluZ1tdPiB7DQogIGlmIChpc1RhdXJpKCkpIHsNCiAgICByZXR1cm4gYXdhaXQgaW52b2tlPHN0cmluZ1tdPigibGlzdF9maWxlcyIsIHsgZGlyIH0pOw0KICB9DQogIGNvbnN0IHByZWZpeCA9IGZzS2V5KGRpcikucmVwbGFjZSgvXC8rJC8sICIiKSArICIvIjsNCiAgY29uc3QgbmFtZXM6IHN0cmluZ1tdID0gW107DQogIGZvciAobGV0IGkgPSAwOyBpIDwgbG9jYWxTdG9yYWdlLmxlbmd0aDsgaSsrKSB7DQogICAgY29uc3Qga2V5ID0gbG9jYWxTdG9yYWdlLmtleShpKTsNCiAgICBpZiAoa2V5ICYmIGtleS5zdGFydHNXaXRoKHByZWZpeCkpIHsNCiAgICAgIGNvbnN0IHJlc3QgPSBrZXkuc2xpY2UocHJlZml4Lmxlbmd0aCk7DQogICAgICBpZiAocmVzdCAmJiAhcmVzdC5pbmNsdWRlcygiLyIpKSBuYW1lcy5wdXNoKHJlc3QpOw0KICAgIH0NCiAgfQ0KICByZXR1cm4gbmFtZXM7DQp9DQoNCi8vIENvcGllcyBhIHNpbmdsZSBmaWxlLCBjcmVhdGluZyB0aGUgZGVzdGluYXRpb24gcGFyZW50IGRpcmVjdG9yeS4NCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBjb3B5RmlsZShzcmM6IHN0cmluZywgZGVzdDogc3RyaW5nKTogUHJvbWlzZTx2b2lkPiB7DQogIGlmIChpc1RhdXJpKCkpIHsNCiAgICBhd2FpdCBpbnZva2UoImNvcHlfZmlsZSIsIHsgc3JjLCBkZXN0IH0pOw0KICAgIHJldHVybjsNCiAgfQ0KICBjb25zdCB2YWx1ZSA9IGxvY2FsU3RvcmFnZS5nZXRJdGVtKGZzS2V5KHNyYykpOw0KICBpZiAodmFsdWUgIT09IG51bGwpIGxvY2FsU3RvcmFnZS5zZXRJdGVtKGZzS2V5KGRlc3QpLCB2YWx1ZSk7DQp9DQoNCi8vIFJlY3Vyc2l2ZWx5IGNvcGllcyBhIGRpcmVjdG9yeSB0cmVlICh1c2VkIGZvciBzdG9yYWdlLWxvY2F0aW9uIG1pZ3JhdGlvbikuDQovLyBSZXR1cm5zIHRoZSBudW1iZXIgb2YgZmlsZXMgY29waWVkLg0KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGNvcHlEaXJSZWN1cnNpdmUoc3JjOiBzdHJpbmcsIGRlc3Q6IHN0cmluZyk6IFByb21pc2U8bnVtYmVyPiB7DQogIGlmIChpc1RhdXJpKCkpIHsNCiAgICByZXR1cm4gYXdhaXQgaW52b2tlPG51bWJlcj4oImNvcHlfZGlyX3JlY3Vyc2l2ZSIsIHsgc3JjLCBkZXN0IH0pOw0KICB9DQogIGNvbnN0IHNyY1ByZWZpeCA9IGZzS2V5KHNyYykucmVwbGFjZSgvXC8rJC8sICIiKSArICIvIjsNCiAgY29uc3QgZGVzdFByZWZpeCA9IGZzS2V5KGRlc3QpLnJlcGxhY2UoL1wvKyQvLCAiIikgKyAiLyI7DQogIGNvbnN0IG1vdmVzOiBbc3RyaW5nLCBzdHJpbmddW10gPSBbXTsNCiAgZm9yIChsZXQgaSA9IDA7IGkgPCBsb2NhbFN0b3JhZ2UubGVuZ3RoOyBpKyspIHsNCiAgICBjb25zdCBrZXkgPSBsb2NhbFN0b3JhZ2Uua2V5KGkpOw0KICAgIGlmIChrZXkgJiYga2V5LnN0YXJ0c1dpdGgoc3JjUHJlZml4KSkgew0KICAgICAgbW92ZXMucHVzaChba2V5LCBkZXN0UHJlZml4ICsga2V5LnNsaWNlKHNyY1ByZWZpeC5sZW5ndGgpXSk7DQogICAgfQ0KICB9DQogIGZvciAoY29uc3QgW2Zyb20sIHRvXSBvZiBtb3Zlcykgew0KICAgIGNvbnN0IHZhbHVlID0gbG9jYWxTdG9yYWdlLmdldEl0ZW0oZnJvbSk7DQogICAgaWYgKHZhbHVlICE9PSBudWxsKSBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSh0bywgdmFsdWUpOw0KICB9DQogIHJldHVybiBtb3Zlcy5sZW5ndGg7DQp9DQoNCi8vIFJlLWV4cG9ydCB0aGUgVGF1cmkgcGF0aCBoZWxwZXJzIGZvciBjYWxsZXJzIHRoYXQgYnVpbGQgcGF0aHMuDQpleHBvcnQgeyBhcHBEYXRhRGlyLCBkaXJuYW1lLCBqb2luIH07DQo=
+import type { Chapter, DictEntry, Note, Project, Volume } from "../types";
+import { invoke } from "@tauri-apps/api/core";
+import { appDataDir, dirname, join } from "@tauri-apps/api/path";
+import { atomicWriteTextFile, bridgeReadTextFile, isNotFoundError } from "./atomic";
+import { sanitizeFileName } from "./utils";
+
+export interface StorageConfig {
+  // Custom location for the user's novel content (project files + chapters).
+  // When unset, content falls back to the data folder. The data folder
+  // itself always holds the project index and settings — independent of
+  // this setting.
+  projectSaveDirectory?: string;
+}
+
+const APP_DATA_KEY = "inkwell-app-data";
+const PROJECTS_KEY = "inkwell-projects";
+const PROJECT_PREFIX = "inkwell-project-";
+const CHAPTER_PREFIX = "inkwell-chapter-";
+
+// Project/chapter/note IDs end up inside file paths. They come from
+// generateId() today, but the registry JSON is a user-editable file on disk —
+// an id like "../../x" would traverse out of the content directory. Reject
+// anything but simple slug characters at the storage boundary.
+const SAFE_ID = /^[a-z0-9-]+$/i;
+
+export function assertSafeId(id: string, kind: string): void {
+  if (!SAFE_ID.test(id)) {
+    throw new Error(`${kind} ID 包含非法字符: ${id}`);
+  }
+}
+
+// A project folder name must never collide with the flat top-level content
+// directories (chapters/ notes/ dictionary/ projects/ hold legacy or
+// cross-project data). The id suffix usually prevents this, but a work
+// literally named "chapters" would still land on "chapters-<id>" — guard
+// anyway so the invariant is local and obvious.
+const TOP_LEVEL_DIRS = new Set(["projects", "chapters", "notes", "dictionary", "registry.json"]);
+
+export function isTauri(): boolean {
+  return "__TAURI_INTERNALS__" in window;
+}
+
+export async function getAppDataDir(): Promise<string> {
+  if (!isTauri()) return APP_DATA_KEY;
+  try {
+    return await appDataDir();
+  } catch {
+    return APP_DATA_KEY;
+  }
+}
+
+// Register a content root with the Rust-side path whitelist (no-op in
+// browser mode and best-effort everywhere — a failed registration must not
+// block startup; reads/writes will surface their own error if rejected).
+export async function registerContentRoot(path: string): Promise<void> {
+  if (!isTauri() || !path) return;
+  try {
+    await invoke("register_content_root", { path });
+  } catch {
+    // best-effort
+  }
+}
+
+async function getContentBaseDir(config?: StorageConfig): Promise<string> {
+  // Single base directory for the user's novel content (both project files
+  // and chapter `.md` files). Falls back to the data folder when the user
+  // hasn't set a custom location.
+  if (config?.projectSaveDirectory) return config.projectSaveDirectory;
+  return getAppDataDir();
+}
+
+async function buildPath(parts: string[]): Promise<string> {
+  if (isTauri()) {
+    try {
+      return await join(...parts);
+    } catch {
+      // Tests install a bare __TAURI_INTERNALS__ flag — fall through to
+      // plain joining when the real path bridge is unavailable.
+    }
+  }
+  return parts.filter(Boolean).join("/");
+}
+
+export function getProjectStorageKey(projectId: string): string {
+  return `${PROJECT_PREFIX}${projectId}`;
+}
+
+export function getChapterStorageKey(chapterId: string): string {
+  return `${CHAPTER_PREFIX}${chapterId}`;
+}
+
+// The project index (registry) is part of the app's data — it always lives
+// in the data folder, independent of the user's custom content location.
+async function getProjectRegistryPath(): Promise<string> {
+  return buildPath([await getAppDataDir(), "registry.json"]);
+}
+
+// --- Per-project folder layout ---------------------------------------------
+// Every work lives in its own folder under the content base dir:
+//   {base}/{安全作品名}-{id}/project.json      (structure: volumes + chapters)
+//   {base}/{安全作品名}-{id}/notes.json        (写作笔记)
+//   {base}/{安全作品名}-{id}/dict.json         (设定词典)
+//   {base}/{安全作品名}-{id}/chapters/{chapterId}.md
+//   {base}/{安全作品名}-{id}/chapters/{chapterId}.snapshots/{ts}.html
+// The folder name embeds the work's display name so the user can find their
+// novel in the file manager, plus the id so renames and same-name works
+// stay unique. Renaming a work moves the folder (see renameProjectFolder).
+
+/** Stable folder name for a work: `{sanitizeFileName(name)}-{id}`. */
+export function projectFolderName(name: string, id: string): string {
+  assertSafeId(id, "作品");
+  let base = sanitizeFileName(name);
+  if (TOP_LEVEL_DIRS.has(base.toLowerCase())) base = `work-${base}`;
+  return `${base}-${id}`;
+}
+
+// Enumerates on-disk project folders ({name}-{id}) under the content base
+// dir. Used to find a project's folder when the in-memory name hint is
+// unavailable (e.g. notes/dict reads before the project file was parsed).
+async function findProjectFolderOnDisk(projectId: string, config?: StorageConfig): Promise<string | null> {
+  if (!isTauri()) return null;
+  try {
+    const base = await getContentBaseDir(config);
+    const suffix = `-${projectId}`;
+    const names = await invoke<string[]>("list_files", { dir: base });
+    for (const name of names) {
+      if (name.endsWith(suffix) && name.length > suffix.length) {
+        return buildPath([base, name]);
+      }
+    }
+  } catch {
+    // best-effort
+  }
+  return null;
+}
+
+// Resolves the project folder for reads: name hint when known, otherwise a
+// disk scan for the "*-{id}" folder.
+async function resolveProjectDirForRead(projectId: string, config?: StorageConfig): Promise<string> {
+  const hint = projectNameMap.get(projectId);
+  if (hint) return getProjectDir(projectId, hint, config);
+  return (await findProjectFolderOnDisk(projectId, config)) ?? (await getProjectDir(projectId, undefined, config));
+}
+
+async function getProjectDir(projectId: string, nameHint: string | undefined, config?: StorageConfig): Promise<string> {
+  assertSafeId(projectId, "作品");
+  const base = await getContentBaseDir(config);
+  return buildPath([base, projectFolderName(nameHint || "work", projectId)]);
+}
+
+// Chapter/snapshot paths only know the chapter id — not the owning project.
+// The store tracks the chapter→project mapping of the open project and
+// registers it here at module scope (storage must stay decoupled from the
+// store to avoid an import cycle). Entries for deleted chapters are kept in
+// a short grace window so delete-time cleanup (snapshot removal) still
+// resolves the right project folder.
+const chapterOwnerMap = new Map<string, string>();
+const projectNameMap = new Map<string, string>();
+const orphanChapterOwners = new Map<string, { projectId: string; at: number }>();
+const ORPHAN_GRACE_MS = 60_000;
+
+/** Called by the store whenever the open project's data changes. */
+export function registerChapterOwners(chapterIds: string[], projectId: string, projectName?: string): void {
+  for (const id of chapterIds) {
+    chapterOwnerMap.set(id, projectId);
+    orphanChapterOwners.delete(id);
+  }
+  if (projectName) projectNameMap.set(projectId, projectName);
+}
+
+/** Called by the store when chapters are deleted. */
+export function unregisterChapterOwners(chapterIds: string[]): void {
+  const now = Date.now();
+  for (const id of chapterIds) {
+    const owner = chapterOwnerMap.get(id);
+    chapterOwnerMap.delete(id);
+    if (owner) orphanChapterOwners.set(id, { projectId: owner, at: now });
+  }
+}
+
+/** Look up a project name hint for folder naming (undefined → "work"). */
+export function getProjectNameHint(projectId: string): string | undefined {
+  return projectNameMap.get(projectId);
+}
+
+/** Resolves the owning project of a chapter (live registry first, then the
+ *  post-delete grace window). Used by chapter content and snapshot paths. */
+export function resolveChapterOwner(chapterId: string): { projectId: string; projectName?: string } | null {
+  const live = chapterOwnerMap.get(chapterId);
+  if (live) return { projectId: live, projectName: projectNameMap.get(live) };
+  const orphan = orphanChapterOwners.get(chapterId);
+  if (orphan && Date.now() - orphan.at < ORPHAN_GRACE_MS) {
+    return { projectId: orphan.projectId, projectName: projectNameMap.get(orphan.projectId) };
+  }
+  return null;
+}
+
+// Reads a JSON-or-text file without assuming its location: tries each
+// candidate path in order; only a NotFound advances to the next candidate
+// (other errors propagate). Returns { raw, path } of the first hit.
+async function readFirstExisting(
+  paths: string[],
+  lenient: boolean,
+): Promise<{ raw: string; path: string } | null> {
+  for (const path of paths) {
+    try {
+      return { raw: await bridgeReadTextFile(path), path };
+    } catch (err) {
+      if (isNotFoundError(err)) continue;
+      if (lenient) return null;
+      throw err;
+    }
+  }
+  return null;
+}
+
+async function getLegacyProjectFilePath(projectId: string, config?: StorageConfig): Promise<string> {
+  assertSafeId(projectId, "作品");
+  const dir = await getContentBaseDir(config);
+  return buildPath([dir, "projects", `${projectId}.json`]);
+}
+
+async function getLegacyChapterFilePath(chapterId: string, config?: StorageConfig): Promise<string> {
+  assertSafeId(chapterId, "章节");
+  const dir = await getContentBaseDir(config);
+  return buildPath([dir, "chapters", `${chapterId}.md`]);
+}
+
+async function getLegacyNotesFilePath(projectId: string, config?: StorageConfig): Promise<string> {
+  assertSafeId(projectId, "作品");
+  const dir = await getContentBaseDir(config);
+  return buildPath([dir, "notes", `${projectId}.json`]);
+}
+
+async function getLegacyDictFilePath(projectId: string, config?: StorageConfig): Promise<string> {
+  assertSafeId(projectId, "作品");
+  const dir = await getContentBaseDir(config);
+  return buildPath([dir, "dictionary", `${projectId}.json`]);
+}
+
+// Moves a file to a new location, then removes the source. Best-effort: a
+// failed migration leaves the legacy file in place (reads still find it).
+async function moveFile(src: string, dest: string): Promise<void> {
+  if (!isTauri() || src === dest) return;
+  try {
+    const content = await bridgeReadTextFile(src);
+    await atomicWriteTextFile(dest, content);
+    await invoke("remove_file", { path: src }).catch(() => {});
+  } catch {
+    // best-effort — legacy path remains as fallback
+  }
+}
+
+/** Renames (moves) a project's folder. Returns the new folder path, or null
+ *  when the move was not possible/pointed at the same place. */
+export async function renameProjectFolder(
+  oldName: string,
+  projectId: string,
+  newName: string,
+  config?: StorageConfig,
+): Promise<string | null> {
+  const oldDir = await getProjectDir(projectId, oldName, config);
+  const newDir = await getProjectDir(projectId, newName, config);
+  if (oldDir === newDir) return null;
+  projectNameMap.set(projectId, newName);
+  if (!isTauri()) return null;
+  try {
+    await invoke("move_path", { src: oldDir, dest: newDir });
+    return newDir;
+  } catch {
+    // Folder missing or move failed — the next save recreates the layout
+    // under the new name; legacy fallbacks keep old data reachable.
+    return null;
+  }
+}
+
+/** Deletes a project's whole folder (project.json + chapters + notes + dict
+ *  + snapshots) in one step. */
+export async function removeProjectFolder(projectId: string, nameHint: string | undefined, config?: StorageConfig): Promise<void> {
+  if (!isTauri()) return;
+  try {
+    await invoke("remove_project_dir", { path: await getProjectDir(projectId, nameHint, config) });
+  } catch {
+    // ignore — folder may not exist (legacy layout / browser-only project)
+  }
+}
+
+// The localStorage mirror is a *secondary* copy kept for crash tolerance and
+// browser dev mode. Its writes are best-effort: a QuotaExceededError here
+// must never bubble up as a save failure when the disk write already
+// succeeded (the data is safe).
+function writeMirror(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // mirror is best-effort
+  }
+}
+
+function readMirror(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+// All disk I/O goes through our own Tauri commands (see src-tauri/src/lib.rs)
+// so writes to user-chosen directories are never blocked by a static fs
+// scope. The Tauri-side commands auto-create the parent directory for
+// writes, so callers don't need a separate mkdir step.
+
+// The project index is part of the app's data and is always stored in the
+// data folder — independent of any custom content location. For backward
+// compatibility with earlier versions where the index lived next to project
+// files under `projectSaveDirectory`, we transparently fall back to reading
+// from that legacy location when the new data-folder registry is missing.
+//
+// A corrupt registry is NOT hidden as an empty list: we throw so the caller
+// can surface it instead of the user seeing all their works "disappear".
+export async function getLocalProjectRegistry(
+  config?: StorageConfig,
+): Promise<Project[]> {
+  const localStorageFallback = () => readMirror(PROJECTS_KEY);
+  const parseRegistry = (raw: string, hint: string): Project[] => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      throw new Error(`作品索引文件损坏，无法读取。请检查${hint}（可尝试用 registry.json.tmp 恢复）。`);
+    }
+  };
+  // Lenient read: any failure (missing or unreadable) falls back to the
+  // localStorage mirror — a stale list is better than a broken library.
+  let primary: string | null = null;
+  if (isTauri()) {
+    primary = await bridgeReadTextFile(await getProjectRegistryPath()).catch(() => localStorageFallback());
+  } else {
+    primary = localStorageFallback();
+  }
+  if (primary) {
+    const projects = parseRegistry(primary, "数据文件夹中的 registry.json");
+    for (const p of projects) projectNameMap.set(p.id, p.name);
+    return projects;
+  }
+  // Legacy fallback: registry under the custom content directory.
+  const legacyDir = config?.projectSaveDirectory;
+  if (legacyDir) {
+    const legacyPath = await buildPath([legacyDir, "registry.json"]);
+    const legacyRaw = isTauri()
+      ? await bridgeReadTextFile(legacyPath).catch(() => localStorageFallback())
+      : localStorageFallback();
+    if (legacyRaw) {
+      const projects = parseRegistry(legacyRaw, "作品内容位置中的 registry.json");
+      for (const p of projects) projectNameMap.set(p.id, p.name);
+      return projects;
+    }
+  }
+  return [];
+}
+
+export async function setLocalProjectRegistry(projects: Project[]): Promise<void> {
+  const raw = JSON.stringify(projects);
+  if (!isTauri()) {
+    writeMirror(PROJECTS_KEY, raw);
+    return;
+  }
+  await atomicWriteTextFile(await getProjectRegistryPath(), raw);
+  writeMirror(PROJECTS_KEY, raw);
+}
+
+// Possible states of a project's on-disk file, so the UI can tell a missing
+// project (safe to treat as new) from a corrupt one (must never be silently
+// replaced — the chapter .md files are still on disk).
+export type ProjectFileState =
+  | { kind: "ok"; project: Project; chapters: Chapter[]; volumes: Volume[] }
+  | { kind: "missing" }
+  | { kind: "corrupt"; error: string };
+
+function parseProjectFile(raw: string): { project: Project; chapters: Chapter[]; volumes: Volume[] } | null {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.project) return null;
+    return { project: parsed.project, chapters: parsed.chapters || [], volumes: parsed.volumes || [] };
+  } catch {
+    return null;
+  }
+}
+
+// Reads the project file from the per-project folder, falling back to the
+// legacy flat location (projects/{id}.json) and then the localStorage mirror.
+// On a legacy hit the file is migrated into the project folder.
+async function readProjectFileRaw(
+  projectId: string,
+  config?: StorageConfig,
+): Promise<{ raw: string; projectName: string | undefined } | null> {
+  const dir = await resolveProjectDirForRead(projectId, config);
+  const candidates = [
+    await buildPath([dir, "project.json"]),
+    await getLegacyProjectFilePath(projectId, config),
+  ];
+  const hit = await readFirstExisting(candidates, false);
+  const nameHint = projectNameMap.get(projectId);
+  if (hit) {
+    if (hit.path === candidates[1]) {
+      // Legacy location — adopt the name from the payload and migrate.
+      const parsed = parseProjectFile(hit.raw);
+      if (parsed) {
+        const target = await buildPath([await getProjectDir(projectId, parsed.project.name, config), "project.json"]);
+        moveFile(hit.path, target).catch(() => {});
+      }
+    }
+    return { raw: hit.raw, projectName: parseProjectFile(hit.raw)?.project.name ?? nameHint };
+  }
+  const mirror = readMirror(getProjectStorageKey(projectId));
+  if (!mirror) return null;
+  return { raw: mirror, projectName: nameHint };
+}
+
+export async function inspectProjectFile(
+  projectId: string,
+  config?: StorageConfig,
+): Promise<ProjectFileState> {
+  let result: { raw: string; projectName: string | undefined } | null;
+  if (isTauri()) {
+    try {
+      result = await readProjectFileRaw(projectId, config);
+    } catch (err) {
+      return { kind: "corrupt", error: String(err) };
+    }
+  } else {
+    const mirror = readMirror(getProjectStorageKey(projectId));
+    result = mirror ? { raw: mirror, projectName: undefined } : null;
+  }
+  if (!result) return { kind: "missing" };
+
+  const parsed = parseProjectFile(result.raw);
+  if (parsed) {
+    // Register chapter → project ownership so chapter/snapshot paths resolve
+    // into this project's folder.
+    registerChapterOwners(parsed.chapters.map((c) => c.id), parsed.project.id, parsed.project.name);
+    return { kind: "ok", ...parsed };
+  }
+
+  // Last resort before declaring corruption: the .tmp sibling left behind
+  // by an interrupted atomic write may hold the complete previous content.
+  if (isTauri()) {
+    const dir = await getProjectDir(projectId, result.projectName, config);
+    const tmpCandidates = [
+      `${await buildPath([dir, "project.json"])}.tmp`,
+      `${await getLegacyProjectFilePath(projectId, config)}.tmp`,
+    ];
+    const tmpHit = await readFirstExisting(tmpCandidates, false).catch(() => null);
+    const tmpParsed = tmpHit ? parseProjectFile(tmpHit.raw) : null;
+    if (tmpParsed) {
+      registerChapterOwners(tmpParsed.chapters.map((c) => c.id), tmpParsed.project.id, tmpParsed.project.name);
+      return { kind: "ok", ...tmpParsed };
+    }
+  }
+  return {
+    kind: "corrupt",
+    error: `作品文件损坏（${projectFolderName(result.projectName || "work", projectId)}/project.json）。章节正文仍保存在该文件夹的 chapters/ 目录中，请勿删除该文件夹，可先备份后尝试修复。`,
+  };
+}
+
+export async function loadProjectFromLocal(
+  projectId: string,
+  config?: StorageConfig,
+): Promise<{ project: Project; chapters: Chapter[]; volumes: Volume[] } | null> {
+  const state = await inspectProjectFile(projectId, config);
+  if (state.kind === "ok") {
+    return { project: state.project, chapters: state.chapters, volumes: state.volumes };
+  }
+  if (state.kind === "corrupt") {
+    throw new Error(state.error);
+  }
+  return null;
+}
+
+export async function saveProjectToLocal(
+  project: Project,
+  chapters: Chapter[],
+  volumes: Volume[],
+  config?: StorageConfig,
+): Promise<void> {
+  const raw = JSON.stringify({ project, chapters, volumes });
+  registerChapterOwners(chapters.map((c) => c.id), project.id, project.name);
+  if (!isTauri()) {
+    writeMirror(getProjectStorageKey(project.id), raw);
+    return;
+  }
+  const dir = await getProjectDir(project.id, project.name, config);
+  await atomicWriteTextFile(await buildPath([dir, "project.json"]), raw);
+  writeMirror(getProjectStorageKey(project.id), raw);
+}
+
+// Resolves the chapter file path: inside the owning project's folder when
+// the owner is known, plus the legacy flat path as read fallback.
+async function chapterPathCandidates(chapterId: string, config?: StorageConfig): Promise<{ primary: string; legacy: string }> {
+  assertSafeId(chapterId, "章节");
+  const owner = resolveChapterOwner(chapterId);
+  const legacy = await getLegacyChapterFilePath(chapterId, config);
+  if (!owner) return { primary: legacy, legacy };
+  const dir = await getProjectDir(owner.projectId, owner.projectName ?? projectNameMap.get(owner.projectId), config);
+  return { primary: await buildPath([dir, "chapters", `${chapterId}.md`]), legacy };
+}
+
+export async function loadChapterContentFromLocal(chapterId: string, config?: StorageConfig): Promise<string> {
+  // Strict read: only a genuinely missing file falls back to the mirror.
+  // A transient read failure must propagate — silently serving an old mirror
+  // here would later be saved back over the real (newer) file.
+  if (!isTauri()) {
+    return readMirror(getChapterStorageKey(chapterId)) ?? "";
+  }
+  const { primary, legacy } = await chapterPathCandidates(chapterId, config);
+  const hit = await readFirstExisting([primary, legacy], false);
+  if (hit) {
+    if (hit.path === legacy && legacy !== primary) {
+      moveFile(legacy, primary).catch(() => {});
+    }
+    return hit.raw;
+  }
+  return readMirror(getChapterStorageKey(chapterId)) ?? "";
+}
+
+export async function saveChapterContentToLocal(chapterId: string, content: string, config?: StorageConfig): Promise<void> {
+  if (!isTauri()) {
+    writeMirror(getChapterStorageKey(chapterId), content);
+    return;
+  }
+  const { primary } = await chapterPathCandidates(chapterId, config);
+  await atomicWriteTextFile(primary, content);
+  writeMirror(getChapterStorageKey(chapterId), content);
+}
+
+export async function removeChapterContentFromLocal(chapterId: string, config?: StorageConfig): Promise<void> {
+  const { primary, legacy } = isTauri()
+    ? await chapterPathCandidates(chapterId, config)
+    : { primary: "", legacy: "" };
+  unregisterChapterOwners([chapterId]);
+  if (isTauri()) {
+    for (const path of new Set([primary, legacy])) {
+      try {
+        await invoke("remove_file", { path });
+      } catch {
+        // ignore — file may not exist
+      }
+    }
+  }
+  try {
+    localStorage.removeItem(getChapterStorageKey(chapterId));
+  } catch {
+    // ignore
+  }
+}
+
+export async function removeProjectFromLocal(projectId: string, config?: StorageConfig): Promise<void> {
+  if (isTauri()) {
+    // Whole-folder delete covers the new layout; also clean any stragglers
+    // left in the legacy flat locations. The folder is located by name hint
+    // or by scanning for the "*-{id}" directory.
+    await removeProjectFolder(projectId, projectNameMap.get(projectId), config);
+    if (!projectNameMap.get(projectId)) {
+      const found = await findProjectFolderOnDisk(projectId, config);
+      if (found) {
+        try {
+          await invoke("remove_project_dir", { path: found });
+        } catch {
+          // ignore
+        }
+      }
+    }
+    for (const path of [
+      await getLegacyProjectFilePath(projectId, config),
+      await getLegacyNotesFilePath(projectId, config),
+      await getLegacyDictFilePath(projectId, config),
+    ]) {
+      try {
+        await invoke("remove_file", { path });
+      } catch {
+        // ignore — file may not exist
+      }
+    }
+  }
+  try {
+    localStorage.removeItem(getProjectStorageKey(projectId));
+  } catch {
+    // ignore
+  }
+}
+
+export async function getDefaultExportDirectory(config?: StorageConfig): Promise<string> {
+  return config?.projectSaveDirectory || (await getAppDataDir());
+}
+
+// --- Notes (写作笔记) -----------------------------------------------------
+// Per-project scratch notes (人物设定、灵感、伏笔). Live inside the project
+// folder (notes.json) so they travel with the work; legacy notes/{id}.json
+// files are migrated on first read. Debounced autosave in the UI calls
+// saveNotesToLocal; reads fall back to [] when absent.
+export async function loadNotesFromLocal(projectId: string, config?: StorageConfig): Promise<Note[]> {
+  const mirrorKey = `inkwell-notes-${projectId}`;
+  let raw: string | null;
+  if (!isTauri()) {
+    raw = readMirror(mirrorKey);
+  } else {
+    const dir = await resolveProjectDirForRead(projectId, config);
+    const primary = await buildPath([dir, "notes.json"]);
+    const legacy = await getLegacyNotesFilePath(projectId, config);
+    const hit = await readFirstExisting([primary, legacy], true);
+    if (hit) {
+      if (hit.path === legacy) moveFile(legacy, primary).catch(() => {});
+      raw = hit.raw;
+    } else {
+      raw = readMirror(mirrorKey);
+    }
+  }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveNotesToLocal(projectId: string, notes: Note[], config?: StorageConfig): Promise<void> {
+  const raw = JSON.stringify(notes);
+  if (!isTauri()) {
+    writeMirror(`inkwell-notes-${projectId}`, raw);
+    return;
+  }
+  const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
+  await atomicWriteTextFile(await buildPath([dir, "notes.json"]), raw);
+  writeMirror(`inkwell-notes-${projectId}`, raw);
+}
+
+// --- Dictionary (设定词典) -------------------------------------------------
+// Per-project worldbuilding entries (人物卡 / 地点 / 势力 …). Same storage
+// pattern as notes: dict.json inside the project folder, legacy
+// dictionary/<id>.json migrated on first read, localStorage mirror for the
+// browser dev mode.
+export async function loadDictFromLocal(projectId: string, config?: StorageConfig): Promise<DictEntry[]> {
+  const mirrorKey = `inkwell-dict-${projectId}`;
+  let raw: string | null;
+  if (!isTauri()) {
+    raw = readMirror(mirrorKey);
+  } else {
+    const dir = await resolveProjectDirForRead(projectId, config);
+    const primary = await buildPath([dir, "dict.json"]);
+    const legacy = await getLegacyDictFilePath(projectId, config);
+    const hit = await readFirstExisting([primary, legacy], true);
+    if (hit) {
+      if (hit.path === legacy) moveFile(legacy, primary).catch(() => {});
+      raw = hit.raw;
+    } else {
+      raw = readMirror(mirrorKey);
+    }
+  }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveDictToLocal(projectId: string, entries: DictEntry[], config?: StorageConfig): Promise<void> {
+  const raw = JSON.stringify(entries);
+  if (!isTauri()) {
+    writeMirror(`inkwell-dict-${projectId}`, raw);
+    return;
+  }
+  const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
+  await atomicWriteTextFile(await buildPath([dir, "dict.json"]), raw);
+  writeMirror(`inkwell-dict-${projectId}`, raw);
+}
+
+// Opens the given folder in the OS file explorer (Windows Explorer / macOS
+// Finder / Linux file manager). Returns the error message on failure (e.g.
+// path does not exist) so the UI can surface it; returns null on success.
+// 浏览器预览模式下无法调起系统文件管理器，返回一条可读提示而不是静默失败。
+export async function revealInFolder(path: string): Promise<string | null> {
+  if (!path) return "路径为空";
+  if (!isTauri()) return "浏览器预览模式无法打开系统文件夹，请在桌面应用中使用此功能";
+  try {
+    await invoke("open_path", { path });
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+// General-purpose file operations used by the export flow. In non-Tauri
+// (browser/dev) fallback mode these back onto a namespaced localStorage
+// entry, so they can never collide with the `inkwell-projects` /
+// `inkwell-chapter-*` / `inkwell-settings` keys.
+const FS_FALLBACK_PREFIX = "inkwell-fs:";
+const fsKey = (path: string) => `${FS_FALLBACK_PREFIX}${path}`;
+
+export async function writeTextFile(path: string, content: string): Promise<void> {
+  if (isTauri()) {
+    await invoke("write_text_file", { path, content });
+    return;
+  }
+  writeMirror(fsKey(path), content);
+}
+
+export async function readTextFile(path: string): Promise<string> {
+  if (isTauri()) {
+    return await invoke<string>("read_text_file", { path });
+  }
+  const value = readMirror(fsKey(path));
+  if (value === null) throw new Error(`File not found: ${path}`);
+  return value;
+}
+
+export async function exists(path: string): Promise<boolean> {
+  if (isTauri()) {
+    return await invoke<boolean>("file_exists", { path });
+  }
+  return readMirror(fsKey(path)) !== null;
+}
+
+export async function removeFile(path: string): Promise<void> {
+  if (isTauri()) {
+    await invoke("remove_file", { path });
+    return;
+  }
+  try {
+    localStorage.removeItem(fsKey(path));
+  } catch {
+    // ignore
+  }
+}
+
+// Lists file names directly inside `dir` (non-recursive). Missing directory
+// yields []. In fallback mode, lists namespaced localStorage keys.
+export async function listFiles(dir: string): Promise<string[]> {
+  if (isTauri()) {
+    return await invoke<string[]>("list_files", { dir });
+  }
+  const prefix = fsKey(dir).replace(/\/+$/, "") + "/";
+  const names: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        const rest = key.slice(prefix.length);
+        if (rest && !rest.includes("/")) names.push(rest);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return names;
+}
+
+// Copies a single file, creating the destination parent directory.
+export async function copyFile(src: string, dest: string): Promise<void> {
+  if (isTauri()) {
+    await invoke("copy_file", { src, dest });
+    return;
+  }
+  const value = readMirror(fsKey(src));
+  if (value !== null) writeMirror(fsKey(dest), value);
+}
+
+// Recursively copies a directory tree (used for storage-location migration).
+// Returns the number of files copied.
+export async function copyDirRecursive(src: string, dest: string): Promise<number> {
+  if (isTauri()) {
+    return await invoke<number>("copy_dir_recursive", { src, dest });
+  }
+  const srcPrefix = fsKey(src).replace(/\/+$/, "") + "/";
+  const destPrefix = fsKey(dest).replace(/\/+$/, "") + "/";
+  const moves: [string, string][] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(srcPrefix)) {
+        moves.push([key, destPrefix + key.slice(srcPrefix.length)]);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  for (const [from, to] of moves) {
+    const value = readMirror(from);
+    if (value !== null) writeMirror(to, value);
+  }
+  return moves.length;
+}
+
+// Re-export the Tauri path helpers for callers that build paths.
+export { appDataDir, dirname, join };

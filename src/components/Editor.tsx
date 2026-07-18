@@ -1,1 +1,315 @@
-aW1wb3J0IHsgdXNlRWRpdG9yLCBFZGl0b3JDb250ZW50IH0gZnJvbSAiQHRpcHRhcC9yZWFjdCI7DQppbXBvcnQgU3RhcnRlcktpdCBmcm9tICJAdGlwdGFwL3N0YXJ0ZXIta2l0IjsNCmltcG9ydCBQbGFjZWhvbGRlciBmcm9tICJAdGlwdGFwL2V4dGVuc2lvbi1wbGFjZWhvbGRlciI7DQppbXBvcnQgVHlwb2dyYXBoeSBmcm9tICJAdGlwdGFwL2V4dGVuc2lvbi10eXBvZ3JhcGh5IjsNCmltcG9ydCB7IHVzZUVmZmVjdCwgdXNlQ2FsbGJhY2ssIHVzZVJlZiwgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7DQppbXBvcnQgeyBCb2xkLCBDbGlwYm9hcmRQYXN0ZSwgQ29weSwgSXRhbGljLCBNaW51cywgUmVkbywgU2F2ZSwgU2Npc3NvcnMsIFVuZG8sIFR5cGUsIFdhbmRTcGFya2xlcyB9IGZyb20gImx1Y2lkZS1yZWFjdCI7DQppbXBvcnQgeyB1c2VBcHBTdG9yZSB9IGZyb20gIi4uL3N0b3JlIjsNCmltcG9ydCB7IFRvb2xiYXIgfSBmcm9tICIuL1Rvb2xiYXIiOw0KaW1wb3J0IHsgQ29udGV4dE1lbnUsIHR5cGUgQ3R4TWVudVN0YXRlIH0gZnJvbSAiLi9Db250ZXh0TWVudSI7DQppbXBvcnQgeyBjbiB9IGZyb20gIi4uL2xpYi91dGlscyI7DQoNCmludGVyZmFjZSBFZGl0b3JQcm9wcyB7DQogIGNvbnRlbnQ6IHN0cmluZzsNCiAgb25DaGFuZ2U6IChjb250ZW50OiBzdHJpbmcpID0+IHZvaWQ7DQogIG9uU2F2ZT86ICgpID0+IHZvaWQ7DQogIG9uQXV0b0Zvcm1hdD86ICgpID0+IHZvaWQ7DQogIC8qKiDlvLrliLblkIzmraXpgJrpgZPvvJrmjILovb3lkI7lj6/nlKggY2Fub25pY2FsIEhUTUwg55u05o6l6YeN5YaZ57yW6L6R5Zmo5YaF5a6577yI6Lez6L+H5q+U5a+577yJ44CCICovDQogIHN5bmNSZWY/OiBSZWFjdC5NdXRhYmxlUmVmT2JqZWN0PCgoY2Fub25pY2FsOiBzdHJpbmcpID0+IHZvaWQpIHwgbnVsbD47DQogIGlzRnVsbHNjcmVlbj86IGJvb2xlYW47DQogIG9uVG9nZ2xlRnVsbHNjcmVlbj86ICgpID0+IHZvaWQ7DQogIHNob3dUb29sYmFyPzogYm9vbGVhbjsNCiAgb25Ub29sYmFyRW50ZXI/OiAoKSA9PiB2b2lkOw0KICBvblRvb2xiYXJMZWF2ZT86ICgpID0+IHZvaWQ7DQp9DQoNCmV4cG9ydCBmdW5jdGlvbiBFZGl0b3Ioew0KICBjb250ZW50LA0KICBvbkNoYW5nZSwNCiAgb25TYXZlLA0KICBvbkF1dG9Gb3JtYXQsDQogIHN5bmNSZWYsDQogIGlzRnVsbHNjcmVlbiA9IGZhbHNlLA0KICBvblRvZ2dsZUZ1bGxzY3JlZW4sDQogIHNob3dUb29sYmFyID0gZmFsc2UsDQogIG9uVG9vbGJhckVudGVyLA0KICBvblRvb2xiYXJMZWF2ZSwNCn06IEVkaXRvclByb3BzKSB7DQogIGNvbnN0IHsgY3VycmVudFByb2plY3QsIGZvY3VzTW9kZSwgdXBkYXRlQXBwU2V0dGluZ3MsIGFwcFNldHRpbmdzIH0gPSB1c2VBcHBTdG9yZSgpOw0KICBjb25zdCB0eXBvZ3JhcGh5ID0gYXBwU2V0dGluZ3MuZWRpdG9yVHlwb2dyYXBoeTsNCiAgY29uc3QgZWRpdG9yRm9udEZhbWlseSA9IGFwcFNldHRpbmdzLmVkaXRvckZvbnRGYW1pbHkgfHwgIiI7DQogIC8vIOe8lui+keWMuuacgOWkp+WuveW6pu+8muiuvue9rumHjOWPr+iwg++8jOm7mOiupCA4ODBweOOAguWuveWxj+S4i+e7mei2s+mYheivu+WuveW6puOAgg0KICBjb25zdCBlZGl0b3JNYXhXaWR0aCA9IGFwcFNldHRpbmdzLmVkaXRvck1heFdpZHRoIHx8IDg4MDsNCiAgY29uc3QgY29udGFpbmVyUmVmID0gdXNlUmVmPEhUTUxEaXZFbGVtZW50PihudWxsKTsNCiAgY29uc3QgW2NvbnRhaW5lcldpZHRoLCBzZXRDb250YWluZXJXaWR0aF0gPSB1c2VTdGF0ZSgwKTsNCiAgY29uc3QgW2N0eE1lbnUsIHNldEN0eE1lbnVdID0gdXNlU3RhdGU8Q3R4TWVudVN0YXRlIHwgbnVsbD4obnVsbCk7DQoNCiAgY29uc3QgZWRpdG9yID0gdXNlRWRpdG9yKHsNCiAgICBleHRlbnNpb25zOiBbDQogICAgICBTdGFydGVyS2l0LmNvbmZpZ3VyZSh7DQogICAgICAgIGhlYWRpbmc6IHsgbGV2ZWxzOiBbMSwgMiwgM10gfSwNCiAgICAgIH0pLA0KICAgICAgUGxhY2Vob2xkZXIuY29uZmlndXJlKHsNCiAgICAgICAgcGxhY2Vob2xkZXI6ICLku47ov5nph4zlvIDlp4vkvaDnmoTmlYXkuovigKbigKYiLA0KICAgICAgfSksDQogICAgICBUeXBvZ3JhcGh5LA0KICAgIF0sDQogICAgY29udGVudCwNCiAgICBvblVwZGF0ZTogKHsgZWRpdG9yIH0pID0+IHsNCiAgICAgIC8vIOagh+iusOOAjOe8lui+keWZqOiHquW3seWPkeWHuueahOabtOaWsOOAje+8jOWQjOatpSBlZmZlY3Qg5o2u5q2k6Lez6L+HIGNhbm9uaWNhbCDlm57lhpnjgIINCiAgICAgIGFwcGx5aW5nRXh0ZXJuYWwuY3VycmVudCA9IHRydWU7DQogICAgICBjb25zdCBodG1sID0gZWRpdG9yLmdldEhUTUwoKTsNCiAgICAgIG9uQ2hhbmdlKGh0bWwpOw0KICAgIH0sDQogICAgZWRpdG9yUHJvcHM6IHsNCiAgICAgIGF0dHJpYnV0ZXM6IHsNCiAgICAgICAgY2xhc3M6ICJwcm9zZSBwcm9zZS1zdG9uZSBkYXJrOnByb3NlLWludmVydCBtYXgtdy1ub25lIG91dGxpbmUtbm9uZSIsDQogICAgICB9LA0KICAgIH0sDQogIH0pOw0KDQogIC8vIOWklumDqOWGheWuueWQjOatpe+8mui3s+i/h+OAjOe8lui+keWZqOiHquW3seWImuWPkeWHuueahOabtOaWsOOAje+8jOWQpuWImSBjYW5vbmljYWwg5YyW5ZCO55qEDQogIC8vIOWbnuWGmeS8muinpuWPkeesrOS6jOasoSBvblVwZGF0Ze+8jOaKiuiHquWKqOaVtOeQhui/meexuyBET00g57qn5L+u5pS56KaG55uW5Zue5Y6744CCDQogIGNvbnN0IGFwcGx5aW5nRXh0ZXJuYWwgPSB1c2VSZWYoZmFsc2UpOw0KICB1c2VFZmZlY3QoKCkgPT4gew0KICAgIGlmIChlZGl0b3IgJiYgIWFwcGx5aW5nRXh0ZXJuYWwuY3VycmVudCAmJiBlZGl0b3IuZ2V0SFRNTCgpICE9PSBjb250ZW50KSB7DQogICAgICBlZGl0b3IuY29tbWFuZHMuc2V0Q29udGVudChjb250ZW50KTsNCiAgICB9DQogICAgYXBwbHlpbmdFeHRlcm5hbC5jdXJyZW50ID0gZmFsc2U7DQogIH0sIFtjb250ZW50LCBlZGl0b3JdKTsNCg0KICAvLyDms6jlhozlvLrliLblkIzmraXpgJrpgZPvvJpjYW5vbmljYWwgSFRNTCDihpIgc2V0Q29udGVudO+8iGVtaXRVcGRhdGU9ZmFsc2XvvInihpINCiAgLy8g55u05o6l5LiK5oql77yM57uV6L+HIG9uVXBkYXRlIOavlOWvue+8jOS/neivgeaVtOeQhue7k+aenOS4jeiiq+WQjOatpSBlZmZlY3Qg5Zue5rua44CCDQogIHVzZUVmZmVjdCgoKSA9PiB7DQogICAgaWYgKCFlZGl0b3IgfHwgIXN5bmNSZWYpIHJldHVybjsNCiAgICBzeW5jUmVmLmN1cnJlbnQgPSAoY2Fub25pY2FsOiBzdHJpbmcpID0+IHsNCiAgICAgIGlmIChlZGl0b3IuaXNEZXN0cm95ZWQpIHJldHVybjsNCiAgICAgIGVkaXRvci5jb21tYW5kcy5zZXRDb250ZW50KGNhbm9uaWNhbCwgeyBlbWl0VXBkYXRlOiBmYWxzZSB9KTsNCiAgICAgIC8vIOeBjOWFpeWQjueahCBnZXRIVE1MKCkg5Y2zIGNhbm9uaWNhbCDlvaLmgIHvvIznm7TmjqXkuIrmiqXvvJvlhoXlrrnlv4XnhLbkuI7kvKDlhaUNCiAgICAgIC8vIGNvbnRlbnQg5LiN5ZCM77yI5ZCm5YiZ6LCD55So5pa55LiN5Lya6LWw5by65Yi26YCa6YGT77yJ77yM5peg6ZyA5oqR5Yi25ZCM5q2lIGVmZmVjdOOAgg0KICAgICAgb25DaGFuZ2UoZWRpdG9yLmdldEhUTUwoKSk7DQogICAgfTsNCiAgICByZXR1cm4gKCkgPT4gew0KICAgICAgc3luY1JlZi5jdXJyZW50ID0gbnVsbDsNCiAgICB9Ow0KICB9LCBbZWRpdG9yLCBzeW5jUmVmLCBvbkNoYW5nZV0pOw0KDQogIHVzZUVmZmVjdCgoKSA9PiB7DQogICAgaWYgKCFlZGl0b3IpIHJldHVybjsNCiAgICBjb25zdCBlZGl0b3JFbCA9IGVkaXRvci52aWV3LmRvbSBhcyBIVE1MRWxlbWVudDsNCiAgICBlZGl0b3JFbC5zdHlsZS5zZXRQcm9wZXJ0eSgiLS1pbmt3ZWxsLWZvbnQtc2l6ZSIsIGAke3R5cG9ncmFwaHkuZm9udFNpemV9cHhgKTsNCiAgICBlZGl0b3JFbC5zdHlsZS5zZXRQcm9wZXJ0eSgiLS1pbmt3ZWxsLWxpbmUtaGVpZ2h0IiwgYCR7dHlwb2dyYXBoeS5saW5lSGVpZ2h0fWApOw0KICAgIGVkaXRvckVsLnN0eWxlLnNldFByb3BlcnR5KCItLWlua3dlbGwtcGFyYWdyYXBoLXNwYWNpbmciLCBgJHt0eXBvZ3JhcGh5LnBhcmFncmFwaFNwYWNpbmd9ZW1gKTsNCiAgICAvLyDpppbooYznvKnov5vlvIDlhbPvvIjpu5jorqTlvIDvvInigJQg5Lit5paH5bCP6K+05o6S54mI5oOv5L6L5Lik5a2X56ym57yp6L+b44CCDQogICAgZWRpdG9yRWwuc3R5bGUuc2V0UHJvcGVydHkoIi0taW5rd2VsbC1pbmRlbnQiLCBhcHBTZXR0aW5ncy5maXJzdExpbmVJbmRlbnQgPT09IGZhbHNlID8gIjAiIDogIjJlbSIpOw0KICAgIC8vIOe8lui+keWMuuWtl+S9k++8iOiuvue9rumHjOWPr+aNou+8ie+8m+epuuaXtuenu+mZpOWPmOmHj++8jOWbnuiQveWIsOeVjOmdouWtl+S9k+OAgg0KICAgIGlmIChlZGl0b3JGb250RmFtaWx5KSB7DQogICAgICBlZGl0b3JFbC5zdHlsZS5zZXRQcm9wZXJ0eSgiLS1pbmt3ZWxsLWVkaXRvci1mb250IiwgZWRpdG9yRm9udEZhbWlseSk7DQogICAgfSBlbHNlIHsNCiAgICAgIGVkaXRvckVsLnN0eWxlLnJlbW92ZVByb3BlcnR5KCItLWlua3dlbGwtZWRpdG9yLWZvbnQiKTsNCiAgICB9DQogIH0sIFtlZGl0b3IsIHR5cG9ncmFwaHksIGFwcFNldHRpbmdzLmZpcnN0TGluZUluZGVudCwgZWRpdG9yRm9udEZhbWlseV0pOw0KDQogIC8vIFRyYWNrIHRoZSBhY3R1YWwgZWRpdGluZy1wYW5lIHdpZHRoIHNvIHRoZSB0ZXh0IGNvbHVtbiBjYW4gYWRhcHQ6IHVzZSB0aGUNCiAgLy8gZnVsbCBjb25maWd1cmVkIG1heCB3aWR0aCwgYnV0IG5ldmVyIGxlYXZlIGFic3VyZGx5IHdpZGUgZW1wdHkgbWFyZ2lucyBvbg0KICAvLyB2ZXJ5IHdpZGUgc2NyZWVucywgbm9yIG92ZXJmbG93IG9uIG5hcnJvdyBvbmVzLg0KICB1c2VFZmZlY3QoKCkgPT4gew0KICAgIGNvbnN0IGVsID0gY29udGFpbmVyUmVmLmN1cnJlbnQ7DQogICAgaWYgKCFlbCkgcmV0dXJuOw0KICAgIGNvbnN0IHJvID0gbmV3IFJlc2l6ZU9ic2VydmVyKChlbnRyaWVzKSA9PiB7DQogICAgICBmb3IgKGNvbnN0IGVudHJ5IG9mIGVudHJpZXMpIHNldENvbnRhaW5lcldpZHRoKGVudHJ5LmNvbnRlbnRSZWN0LndpZHRoKTsNCiAgICB9KTsNCiAgICByby5vYnNlcnZlKGVsKTsNCiAgICBzZXRDb250YWluZXJXaWR0aChlbC5jbGllbnRXaWR0aCk7DQogICAgcmV0dXJuICgpID0+IHJvLmRpc2Nvbm5lY3QoKTsNCiAgfSwgW10pOw0KDQogIHVzZUVmZmVjdCgoKSA9PiB7DQogICAgY29uc3QgaGFuZGxlS2V5RG93biA9IChlOiBLZXlib2FyZEV2ZW50KSA9PiB7DQogICAgICBpZiAoZS5rZXkgPT09ICJFc2NhcGUiICYmIGlzRnVsbHNjcmVlbiAmJiBvblRvZ2dsZUZ1bGxzY3JlZW4pIHsNCiAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpOw0KICAgICAgICBvblRvZ2dsZUZ1bGxzY3JlZW4oKTsNCiAgICAgIH0NCiAgICB9Ow0KICAgIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCJrZXlkb3duIiwgaGFuZGxlS2V5RG93bik7DQogICAgcmV0dXJuICgpID0+IHdpbmRvdy5yZW1vdmVFdmVudExpc3RlbmVyKCJrZXlkb3duIiwgaGFuZGxlS2V5RG93bik7DQogIH0sIFtpc0Z1bGxzY3JlZW4sIG9uVG9nZ2xlRnVsbHNjcmVlbl0pOw0KDQogIGNvbnN0IGhhbmRsZUtleURvd24gPSB1c2VDYWxsYmFjaygNCiAgICAoZTogUmVhY3QuS2V5Ym9hcmRFdmVudCkgPT4gew0KICAgICAgaWYgKChlLm1ldGFLZXkgfHwgZS5jdHJsS2V5KSAmJiBlLmtleSA9PT0gInMiKSB7DQogICAgICAgIGUucHJldmVudERlZmF1bHQoKTsNCiAgICAgICAgLy8gbG9jYWxDb250ZW50IGlzIGFscmVhZHkga2VwdCBpbiBzeW5jIGJ5IG9uVXBkYXRlIC0+IG9uQ2hhbmdlIG9uIGV2ZXJ5DQogICAgICAgIC8vIGtleXN0cm9rZSwgc28gb25TYXZlIChoYW5kbGVNYW51YWxTYXZlKSByZWFkcyB0aGUgbGF0ZXN0IGNvbnRlbnQuDQogICAgICAgIG9uU2F2ZT8uKCk7DQogICAgICB9DQogICAgfSwNCiAgICBbb25TYXZlXSwNCiAgKTsNCg0KICBjb25zdCBoYW5kbGVXaGVlbCA9IHVzZUNhbGxiYWNrKA0KICAgIChlOiBSZWFjdC5XaGVlbEV2ZW50KSA9PiB7DQogICAgICBpZiAoIWVkaXRvciB8fCAhY3VycmVudFByb2plY3QpIHJldHVybjsNCiAgICAgIGlmIChlLmN0cmxLZXkgfHwgZS5tZXRhS2V5KSB7DQogICAgICAgIGUucHJldmVudERlZmF1bHQoKTsNCiAgICAgICAgY29uc3QgZGVsdGEgPSBlLmRlbHRhWSA+IDAgPyAtMSA6IDE7DQogICAgICAgIGNvbnN0IG5ld1NpemUgPSBNYXRoLm1pbigzMiwgTWF0aC5tYXgoMTIsIHR5cG9ncmFwaHkuZm9udFNpemUgKyBkZWx0YSkpOw0KICAgICAgICBpZiAobmV3U2l6ZSAhPT0gdHlwb2dyYXBoeS5mb250U2l6ZSkgew0KICAgICAgICAgIHVwZGF0ZUFwcFNldHRpbmdzKHsNCiAgICAgICAgICAgIGVkaXRvclR5cG9ncmFwaHk6IHsgLi4udHlwb2dyYXBoeSwgZm9udFNpemU6IG5ld1NpemUgfSwNCiAgICAgICAgICB9KTsNCiAgICAgICAgfQ0KICAgICAgfQ0KICAgIH0sDQogICAgW2VkaXRvciwgY3VycmVudFByb2plY3QsIHR5cG9ncmFwaHksIHVwZGF0ZUFwcFNldHRpbmdzXSwNCiAgKTsNCg0KICAvLyDlhpnkvZzljLrlj7PplK7oj5zljZXvvJrluLjnlKjmjpLniYjkuI7nvJbovpHmk43kvZzvvIzmm7/mjaIgd2VidmlldyDpu5jorqToj5zljZXjgIINCiAgLy8g5ZyoIGNhcHR1cmUg6Zi25q615oum5oiq77yM5L+d6K+BIFByb3NlTWlycm9yIOWGheeahOWPs+mUruS5n+i1sOi/memHjOOAgg0KICAvLyDlnZfnuqfmoLzlvI/vvIjmraPmlocv5qCH6aKYL+W8leeUqC/liJfooajvvInku6XlpI3pgInmoYbmqKHlvI/mmL7npLrlvZPliY3mv4DmtLvmgIHjgIINCiAgY29uc3QgaGFuZGxlQ29udGV4dE1lbnUgPSB1c2VDYWxsYmFjaygNCiAgICAoZTogUmVhY3QuTW91c2VFdmVudCkgPT4gew0KICAgICAgaWYgKCFlZGl0b3IgfHwgZWRpdG9yLmlzRGVzdHJveWVkKSByZXR1cm47DQogICAgICBlLnByZXZlbnREZWZhdWx0KCk7DQogICAgICAvLyDlkYror4kgQXBwIOWxgueahOWFqOWxgOaLpuaIqu+8mui/memHjOW3sue7j+aOpeeuoe+8jOWIq+WGjSBwcmV2ZW50RGVmYXVsdCDkuYvlpJbnmoTpu5jorqTooYzkuLrjgIINCiAgICAgIChlLm5hdGl2ZUV2ZW50IGFzIHVua25vd24gYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj4pLl9faW5rd2VsbEN0eEhhbmRsZWQgPSB0cnVlOw0KICAgICAgY29uc3QgbW9kID0gbmF2aWdhdG9yLnBsYXRmb3JtLmluY2x1ZGVzKCJNYWMiKSA/ICLijJgiIDogIkN0cmwiOw0KICAgICAgY29uc3QgeyBmcm9tLCB0bywgZW1wdHkgfSA9IGVkaXRvci5zdGF0ZS5zZWxlY3Rpb247DQogICAgICBjb25zdCBzZWxlY3RlZFRleHQgPSBlbXB0eSA/ICIiIDogZWRpdG9yLnN0YXRlLmRvYy50ZXh0QmV0d2Vlbihmcm9tLCB0bywgIiAiKTsNCiAgICAgIGNvbnN0IGhhc1NlbGVjdGlvbiA9IHNlbGVjdGVkVGV4dC5sZW5ndGggPiAwOw0KICAgICAgY29uc3QgY29weVNlbGVjdGlvbiA9IGFzeW5jICgpID0+IHsNCiAgICAgICAgdHJ5IHsNCiAgICAgICAgICBhd2FpdCBuYXZpZ2F0b3IuY2xpcGJvYXJkLndyaXRlVGV4dChzZWxlY3RlZFRleHQpOw0KICAgICAgICB9IGNhdGNoIHsNCiAgICAgICAgICAvLyDliarotLTmnb/mnYPpmZDooqvmi5Lml7bpnZnpu5jlpLHotKXvvIjplK7nm5jlv6vmjbfplK7ku43lj6/nlKjvvIkNCiAgICAgICAgfQ0KICAgICAgfTsNCiAgICAgIGNvbnN0IHBhc3RlVGV4dCA9IGFzeW5jICgpID0+IHsNCiAgICAgICAgdHJ5IHsNCiAgICAgICAgICBjb25zdCB0ZXh0ID0gYXdhaXQgbmF2aWdhdG9yLmNsaXBib2FyZC5yZWFkVGV4dCgpOw0KICAgICAgICAgIGlmICh0ZXh0KSBlZGl0b3IuY2hhaW4oKS5mb2N1cygpLmluc2VydENvbnRlbnQodGV4dCkucnVuKCk7DQogICAgICAgIH0gY2F0Y2ggew0KICAgICAgICAgIC8vIOWJqui0tOadv+adg+mZkOiiq+aLkuaXtumdmem7mOWksei0pQ0KICAgICAgICB9DQogICAgICB9Ow0KICAgICAgY29uc3QgYmxvY2tDaGVja2VkID0gew0KICAgICAgICBwYXJhZ3JhcGg6IGVkaXRvci5pc0FjdGl2ZSgicGFyYWdyYXBoIikgJiYgIVsxLCAyLCAzXS5zb21lKChsKSA9PiBlZGl0b3IuaXNBY3RpdmUoImhlYWRpbmciLCB7IGxldmVsOiBsIH0pKSAmJiAhZWRpdG9yLmlzQWN0aXZlKCJibG9ja3F1b3RlIikgJiYgIWVkaXRvci5pc0FjdGl2ZSgiYnVsbGV0TGlzdCIpICYmICFlZGl0b3IuaXNBY3RpdmUoIm9yZGVyZWRMaXN0IiksDQogICAgICAgIGgxOiBlZGl0b3IuaXNBY3RpdmUoImhlYWRpbmciLCB7IGxldmVsOiAxIH0pLA0KICAgICAgICBoMjogZWRpdG9yLmlzQWN0aXZlKCJoZWFkaW5nIiwgeyBsZXZlbDogMiB9KSwNCiAgICAgICAgaDM6IGVkaXRvci5pc0FjdGl2ZSgiaGVhZGluZyIsIHsgbGV2ZWw6IDMgfSksDQogICAgICAgIHF1b3RlOiBlZGl0b3IuaXNBY3RpdmUoImJsb2NrcXVvdGUiKSwNCiAgICAgICAgYnVsbGV0OiBlZGl0b3IuaXNBY3RpdmUoImJ1bGxldExpc3QiKSwNCiAgICAgICAgb3JkZXJlZDogZWRpdG9yLmlzQWN0aXZlKCJvcmRlcmVkTGlzdCIpLA0KICAgICAgfTsNCiAgICAgIHNldEN0eE1lbnUoew0KICAgICAgICB4OiBlLmNsaWVudFgsDQogICAgICAgIHk6IGUuY2xpZW50WSwNCiAgICAgICAgaXRlbXM6IFsNCiAgICAgICAgICB7IGxhYmVsOiAi5pKk6ZSAIiwgaWNvbjogPFVuZG8gc2l6ZT17MTR9IC8+LCBzaG9ydGN1dDogYCR7bW9kfStaYCwgZGlzYWJsZWQ6ICFlZGl0b3IuY2FuKCkudW5kbygpLCBvbkNsaWNrOiAoKSA9PiBlZGl0b3IuY2hhaW4oKS5mb2N1cygpLnVuZG8oKS5ydW4oKSB9LA0KICAgICAgICAgIHsgbGFiZWw6ICLph43lgZoiLCBpY29uOiA8UmVkbyBzaXplPXsxNH0gLz4sIHNob3J0Y3V0OiBgJHttb2R9K1lgLCBkaXNhYmxlZDogIWVkaXRvci5jYW4oKS5yZWRvKCksIG9uQ2xpY2s6ICgpID0+IGVkaXRvci5jaGFpbigpLmZvY3VzKCkucmVkbygpLnJ1bigpIH0sDQogICAgICAgICAgeyBkaXZpZGVyOiB0cnVlLCBsYWJlbDogIiIgfSwNCiAgICAgICAgICB7IGxhYmVsOiAi5Ymq5YiHIiwgaWNvbjogPFNjaXNzb3JzIHNpemU9ezE0fSAvPiwgc2hvcnRjdXQ6IGAke21vZH0rWGAsIGRpc2FibGVkOiAhaGFzU2VsZWN0aW9uLCBvbkNsaWNrOiBhc3luYyAoKSA9PiB7IGF3YWl0IGNvcHlTZWxlY3Rpb24oKTsgZWRpdG9yLmNoYWluKCkuZm9jdXMoKS5kZWxldGVTZWxlY3Rpb24oKS5ydW4oKTsgfSB9LA0KICAgICAgICAgIHsgbGFiZWw6ICLlpI3liLYiLCBpY29uOiA8Q29weSBzaXplPXsxNH0gLz4sIHNob3J0Y3V0OiBgJHttb2R9K0NgLCBkaXNhYmxlZDogIWhhc1NlbGVjdGlvbiwgb25DbGljazogY29weVNlbGVjdGlvbiB9LA0KICAgICAgICAgIHsgbGFiZWw6ICLnspjotLQiLCBpY29uOiA8Q2xpcGJvYXJkUGFzdGUgc2l6ZT17MTR9IC8+LCBzaG9ydGN1dDogYCR7bW9kfStWYCwgb25DbGljazogcGFzdGVUZXh0IH0sDQogICAgICAgICAgeyBkaXZpZGVyOiB0cnVlLCBsYWJlbDogIiIgfSwNCiAgICAgICAgICB7IGxhYmVsOiAi5Yqg57KXIiwgaWNvbjogPEJvbGQgc2l6ZT17MTR9IC8+LCBzaG9ydGN1dDogYCR7bW9kfStCYCwgb25DbGljazogKCkgPT4gZWRpdG9yLmNoYWluKCkuZm9jdXMoKS50b2dnbGVCb2xkKCkucnVuKCkgfSwNCiAgICAgICAgICB7IGxhYmVsOiAi5pac5L2TIiwgaWNvbjogPEl0YWxpYyBzaXplPXsxNH0gLz4sIHNob3J0Y3V0OiBgJHttb2R9K0lgLCBvbkNsaWNrOiAoKSA9PiBlZGl0b3IuY2hhaW4oKS5mb2N1cygpLnRvZ2dsZUl0YWxpYygpLnJ1bigpIH0sDQogICAgICAgICAgeyBkaXZpZGVyOiB0cnVlLCBsYWJlbDogIiIgfSwNCiAgICAgICAgICB7IGxhYmVsOiAi5q2j5paHIiwgY2hlY2tlZDogYmxvY2tDaGVja2VkLnBhcmFncmFwaCwgb25DbGljazogKCkgPT4gZWRpdG9yLmNoYWluKCkuZm9jdXMoKS5zZXRQYXJhZ3JhcGgoKS5ydW4oKSB9LA0KICAgICAgICAgIHsNCiAgICAgICAgICAgIGxhYmVsOiAi5qCH6aKYIiwNCiAgICAgICAgICAgIGljb246IDxUeXBlIHNpemU9ezE0fSAvPiwNCiAgICAgICAgICAgIGNoaWxkcmVuOiAoWzEsIDIsIDNdIGFzIGNvbnN0KS5tYXAoKGxldmVsKSA9PiAoew0KICAgICAgICAgICAgICBsYWJlbDogYOagh+mimCAke2xldmVsfWAsDQogICAgICAgICAgICAgIGNoZWNrZWQ6IGJsb2NrQ2hlY2tlZFtgaCR7bGV2ZWx9YCBhcyBjb25zdF0sDQogICAgICAgICAgICAgIHNob3J0Y3V0OiBgJHttb2R9K0FsdCske2xldmVsfWAsDQogICAgICAgICAgICAgIG9uQ2xpY2s6ICgpID0+IGVkaXRvci5jaGFpbigpLmZvY3VzKCkudG9nZ2xlSGVhZGluZyh7IGxldmVsIH0pLnJ1bigpLA0KICAgICAgICAgICAgfSkpLA0KICAgICAgICAgIH0sDQogICAgICAgICAgeyBsYWJlbDogIuW8leeUqCIsIGNoZWNrZWQ6IGJsb2NrQ2hlY2tlZC5xdW90ZSwgb25DbGljazogKCkgPT4gZWRpdG9yLmNoYWluKCkuZm9jdXMoKS50b2dnbGVCbG9ja3F1b3RlKCkucnVuKCkgfSwNCiAgICAgICAgICB7IGxhYmVsOiAi5peg5bqP5YiX6KGoIiwgY2hlY2tlZDogYmxvY2tDaGVja2VkLmJ1bGxldCwgb25DbGljazogKCkgPT4gZWRpdG9yLmNoYWluKCkuZm9jdXMoKS50b2dnbGVCdWxsZXRMaXN0KCkucnVuKCkgfSwNCiAgICAgICAgICB7IGxhYmVsOiAi5pyJ5bqP5YiX6KGoIiwgY2hlY2tlZDogYmxvY2tDaGVja2VkLm9yZGVyZWQsIG9uQ2xpY2s6ICgpID0+IGVkaXRvci5jaGFpbigpLmZvY3VzKCkudG9nZ2xlT3JkZXJlZExpc3QoKS5ydW4oKSB9LA0KICAgICAgICAgIHsgZGl2aWRlcjogdHJ1ZSwgbGFiZWw6ICIiIH0sDQogICAgICAgICAgew0KICAgICAgICAgICAgbGFiZWw6ICLoh6rliqjmlbTnkIbmoLzlvI8iLA0KICAgICAgICAgICAgaWNvbjogPFdhbmRTcGFya2xlcyBzaXplPXsxNH0gLz4sDQogICAgICAgICAgICBvbkNsaWNrOiAoKSA9PiBvbkF1dG9Gb3JtYXQ/LigpLA0KICAgICAgICAgIH0sDQogICAgICAgICAgeyBsYWJlbDogIuWIhumalOe6vyIsIGljb246IDxNaW51cyBzaXplPXsxNH0gLz4sIG9uQ2xpY2s6ICgpID0+IGVkaXRvci5jaGFpbigpLmZvY3VzKCkuc2V0SG9yaXpvbnRhbFJ1bGUoKS5ydW4oKSB9LA0KICAgICAgICAgIHsgbGFiZWw6ICLkv53lrZgiLCBpY29uOiA8U2F2ZSBzaXplPXsxNH0gLz4sIHNob3J0Y3V0OiBgJHttb2R9K1NgLCBvbkNsaWNrOiAoKSA9PiBvblNhdmU/LigpIH0sDQogICAgICAgIF0sDQogICAgICB9KTsNCiAgICB9LA0KICAgIFtlZGl0b3IsIG9uU2F2ZSwgb25BdXRvRm9ybWF0XSwNCiAgKTsNCg0KICByZXR1cm4gKA0KICAgIDxkaXYNCiAgICAgIGNsYXNzTmFtZT17Y24oDQogICAgICAgICJmbGV4IG1pbi13LTAgZmxleC0xIGZsZXgtY29sIG1pbi1oLTAiLA0KICAgICAgICBpc0Z1bGxzY3JlZW4gJiYgImZpeGVkIGluc2V0LTAgei01MCIsDQogICAgICApfQ0KICAgID4NCiAgICAgIHtpc0Z1bGxzY3JlZW4gfHwgZm9jdXNNb2RlID8gKA0KICAgICAgICA8ZGl2DQogICAgICAgICAgY2xhc3NOYW1lPSJyZWxhdGl2ZSBzaHJpbmstMCINCiAgICAgICAgICBvbk1vdXNlRW50ZXI9e2ZvY3VzTW9kZSA/IG9uVG9vbGJhckVudGVyIDogdW5kZWZpbmVkfQ0KICAgICAgICAgIG9uTW91c2VMZWF2ZT17Zm9jdXNNb2RlID8gb25Ub29sYmFyTGVhdmUgOiB1bmRlZmluZWR9DQogICAgICAgID4NCiAgICAgICAgICA8ZGl2DQogICAgICAgICAgICBjbGFzc05hbWU9e2NuKA0KICAgICAgICAgICAgICAic2hyaW5rLTAgdHJhbnNpdGlvbi1vcGFjaXR5IGR1cmF0aW9uLTMwMCIsDQogICAgICAgICAgICAgIHNob3dUb29sYmFyID8gIm9wYWNpdHktMTAwIiA6ICJwb2ludGVyLWV2ZW50cy1ub25lIG9wYWNpdHktMCIsDQogICAgICAgICAgICApfQ0KICAgICAgICAgID4NCiAgICAgICAgICAgIDxUb29sYmFyDQogICAgICAgICAgICAgIGVkaXRvcj17ZWRpdG9yfQ0KICAgICAgICAgICAgICBvblNhdmU9e29uU2F2ZX0NCiAgICAgICAgICAgICAgb25BdXRvRm9ybWF0PXtvbkF1dG9Gb3JtYXR9DQogICAgICAgICAgICAgIGlzRnVsbHNjcmVlbj17aXNGdWxsc2NyZWVufQ0KICAgICAgICAgICAgICBvblRvZ2dsZUZ1bGxzY3JlZW49e29uVG9nZ2xlRnVsbHNjcmVlbn0NCiAgICAgICAgICAgIC8+DQogICAgICAgICAgPC9kaXY+DQogICAgICAgIDwvZGl2Pg0KICAgICAgKSA6ICgNCiAgICAgICAgPGRpdiBjbGFzc05hbWU9InNocmluay0wIj4NCiAgICAgICAgICA8VG9vbGJhcg0KICAgICAgICAgICAgZWRpdG9yPXtlZGl0b3J9DQogICAgICAgICAgICBvblNhdmU9e29uU2F2ZX0NCiAgICAgICAgICAgIG9uQXV0b0Zvcm1hdD17b25BdXRvRm9ybWF0fQ0KICAgICAgICAgICAgaXNGdWxsc2NyZWVuPXtpc0Z1bGxzY3JlZW59DQogICAgICAgICAgICBvblRvZ2dsZUZ1bGxzY3JlZW49e29uVG9nZ2xlRnVsbHNjcmVlbn0NCiAgICAgICAgICAvPg0KICAgICAgICA8L2Rpdj4NCiAgICAgICl9DQogICAgICA8ZGl2DQogICAgICAgIHJlZj17Y29udGFpbmVyUmVmfQ0KICAgICAgICBjbGFzc05hbWU9e2NuKA0KICAgICAgICAgICJpbmt3ZWxsLWVkaXRvciBmbGV4LTEgdy1mdWxsIG1pbi1oLTAgb3ZlcmZsb3cteS1hdXRvIGJnLXBhcGVyIGRhcms6YmctcGFwZXItZGFyayB0cmFuc2l0aW9uLWFsbCBkdXJhdGlvbi0zMDAiLA0KICAgICAgICAgIGZvY3VzTW9kZSA/ICJvcGFjaXR5LTEwMCIgOiAiIiwNCiAgICAgICAgICBpc0Z1bGxzY3JlZW4gJiYgImJnLXBhcGVyIGRhcms6YmctcGFwZXItZGFyayIsDQogICAgICAgICl9DQogICAgICAgIHN0eWxlPXt7IHBhZGRpbmc6IGAwICR7YXBwU2V0dGluZ3MuZWRpdG9yUGFkZGluZ31weGAgfX0NCiAgICAgICAgb25LZXlEb3duPXtoYW5kbGVLZXlEb3dufQ0KICAgICAgICBvbldoZWVsPXtoYW5kbGVXaGVlbH0NCiAgICAgICAgb25Db250ZXh0TWVudUNhcHR1cmU9e2hhbmRsZUNvbnRleHRNZW51fQ0KICAgICAgPg0KICAgICAgICA8ZGl2DQogICAgICAgICAgY2xhc3NOYW1lPSJtaW4taC1mdWxsIHB5LTEyIg0KICAgICAgICAgIHN0eWxlPXt7DQogICAgICAgICAgICAvLyBBZGFwdGl2ZSBjb2x1bW4gd2lkdGg6IHByZWZlciB0aGUgY29uZmlndXJlZCBtYXggd2lkdGgsIGJ1dCBvbiBhDQogICAgICAgICAgICAvLyBuYXJyb3cgcGFuZSBzaHJpbmsgdG8gZml0IChtaW51cyBwYWRkaW5nKSwgYW5kIG9uIGEgdmVyeSB3aWRlDQogICAgICAgICAgICAvLyBwYW5lIGNhcCBhdCB0aGUgY29uZmlndXJlZCB3aWR0aCBzbyBsaW5lcyBzdGF5IHJlYWRhYmxlLg0KICAgICAgICAgICAgbWF4V2lkdGg6IGNvbnRhaW5lcldpZHRoDQogICAgICAgICAgICAgID8gTWF0aC5taW4oZWRpdG9yTWF4V2lkdGgsIE1hdGgubWF4KDQyMCwgY29udGFpbmVyV2lkdGggLSBhcHBTZXR0aW5ncy5lZGl0b3JQYWRkaW5nICogMikpDQogICAgICAgICAgICAgIDogZWRpdG9yTWF4V2lkdGgsDQogICAgICAgICAgICBtYXJnaW46ICIwIGF1dG8iLA0KICAgICAgICAgIH19DQogICAgICAgID4NCiAgICAgICAgICA8RWRpdG9yQ29udGVudCBlZGl0b3I9e2VkaXRvcn0gY2xhc3NOYW1lPSJoLWZ1bGwiIC8+DQogICAgICAgIDwvZGl2Pg0KICAgICAgPC9kaXY+DQogICAgICA8Q29udGV4dE1lbnUgbWVudT17Y3R4TWVudX0gb25DbG9zZT17KCkgPT4gc2V0Q3R4TWVudShudWxsKX0gLz4NCiAgICA8L2Rpdj4NCiAgKTsNCn0NCg==
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Typography from "@tiptap/extension-typography";
+import { useEffect, useCallback, useRef, useState } from "react";
+import { Bold, ClipboardPaste, Copy, Italic, Minus, Redo, Save, Scissors, Undo, Type, WandSparkles } from "lucide-react";
+import { useAppStore } from "../store";
+import { Toolbar } from "./Toolbar";
+import { ContextMenu, type CtxMenuState } from "./ContextMenu";
+import { cn } from "../lib/utils";
+import { modKey } from "../lib/platform";
+
+interface EditorProps {
+  content: string;
+  onChange: (content: string) => void;
+  onSave?: () => void;
+  onAutoFormat?: () => void;
+  /** 强制同步通道：挂载后可用 canonical HTML 直接重写编辑器内容（跳过比对）。 */
+  syncRef?: React.MutableRefObject<((canonical: string) => void) | null>;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  showToolbar?: boolean;
+  onToolbarEnter?: () => void;
+  onToolbarLeave?: () => void;
+}
+
+export function Editor({
+  content,
+  onChange,
+  onSave,
+  onAutoFormat,
+  syncRef,
+  isFullscreen = false,
+  onToggleFullscreen,
+  showToolbar = false,
+  onToolbarEnter,
+  onToolbarLeave,
+}: EditorProps) {
+  const { currentProject, focusMode, updateAppSettings, appSettings } = useAppStore();
+  const typography = appSettings.editorTypography;
+  const editorFontFamily = appSettings.editorFontFamily || "";
+  // 编辑区最大宽度：设置里可调，默认 880px。宽屏下给足阅读宽度。
+  const editorMaxWidth = appSettings.editorMaxWidth || 880;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Placeholder.configure({
+        placeholder: "从这里开始你的故事……",
+      }),
+      Typography,
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      // 标记「编辑器自己发出的更新」，同步 effect 据此跳过 canonical 回写。
+      applyingExternal.current = true;
+      const html = editor.getHTML();
+      onChange(html);
+    },
+    editorProps: {
+      attributes: {
+        class: "prose prose-stone dark:prose-invert max-w-none outline-none",
+      },
+    },
+  });
+
+  // 外部内容同步：跳过「编辑器自己刚发出的更新」，否则 canonical 化后的
+  // 回写会触发第二次 onUpdate，把自动整理这类 DOM 级修改覆盖回去。
+  const applyingExternal = useRef(false);
+  useEffect(() => {
+    // emitUpdate: false — a non-canonical initial document must not produce
+    // a phantom "edit" (which would create a draft + autosave for content
+    // the user never touched).
+    if (editor && !applyingExternal.current && editor.getHTML() !== content) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+    applyingExternal.current = false;
+  }, [content, editor]);
+
+  // 注册强制同步通道：canonical HTML → setContent（emitUpdate=false）→
+  // 直接上报，绕过 onUpdate 比对，保证整理结果不被同步 effect 回滚。
+  useEffect(() => {
+    if (!editor || !syncRef) return;
+    syncRef.current = (canonical: string) => {
+      if (editor.isDestroyed) return;
+      editor.commands.setContent(canonical, { emitUpdate: false });
+      // 灌入后的 getHTML() 即 canonical 形态，直接上报；内容必然与传入
+      // content 不同（否则调用方不会走强制通道），无需抑制同步 effect。
+      onChange(editor.getHTML());
+    };
+    return () => {
+      syncRef.current = null;
+    };
+  }, [editor, syncRef, onChange]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const editorEl = editor.view.dom as HTMLElement;
+    editorEl.style.setProperty("--inkwell-font-size", `${typography.fontSize}px`);
+    editorEl.style.setProperty("--inkwell-line-height", `${typography.lineHeight}`);
+    editorEl.style.setProperty("--inkwell-paragraph-spacing", `${typography.paragraphSpacing}em`);
+    // 首行缩进开关（默认开）— 中文小说排版惯例两字符缩进。
+    editorEl.style.setProperty("--inkwell-indent", appSettings.firstLineIndent === false ? "0" : "2em");
+    // 编辑区字体（设置里可换）；空时移除变量，回落到界面字体。
+    if (editorFontFamily) {
+      editorEl.style.setProperty("--inkwell-editor-font", editorFontFamily);
+    } else {
+      editorEl.style.removeProperty("--inkwell-editor-font");
+    }
+  }, [editor, typography, appSettings.firstLineIndent, editorFontFamily]);
+
+  // Track the actual editing-pane width so the text column can adapt: use the
+  // full configured max width, but never leave absurdly wide empty margins on
+  // very wide screens, nor overflow on narrow ones.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    setContainerWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen && onToggleFullscreen) {
+        e.preventDefault();
+        onToggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen, onToggleFullscreen]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        // localContent is already kept in sync by onUpdate -> onChange on every
+        // keystroke, so onSave (handleManualSave) reads the latest content.
+        onSave?.();
+      }
+    },
+    [onSave],
+  );
+
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (!editor || !currentProject) return;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const newSize = Math.min(32, Math.max(12, typography.fontSize + delta));
+        if (newSize !== typography.fontSize) {
+          updateAppSettings({
+            editorTypography: { ...typography, fontSize: newSize },
+          });
+        }
+      }
+    },
+    [editor, currentProject, typography, updateAppSettings],
+  );
+
+  // 写作区右键菜单：常用排版与编辑操作，替换 webview 默认菜单。
+  // 在 capture 阶段拦截，保证 ProseMirror 内的右键也走这里。
+  // 块级格式（正文/标题/引用/列表）以复选框模式显示当前激活态。
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!editor || editor.isDestroyed) return;
+      e.preventDefault();
+      // 告诉 App 层的全局拦截：这里已经接管，别再 preventDefault 之外的默认行为。
+      (e.nativeEvent as unknown as Record<string, unknown>).__inkwellCtxHandled = true;
+      const mod = modKey();
+      const { from, to, empty } = editor.state.selection;
+      const selectedText = empty ? "" : editor.state.doc.textBetween(from, to, " ");
+      const hasSelection = selectedText.length > 0;
+      const copySelection = async () => {
+        try {
+          await navigator.clipboard.writeText(selectedText);
+        } catch {
+          // 剪贴板权限被拒时静默失败（键盘快捷键仍可用）
+        }
+      };
+      const pasteText = async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) editor.chain().focus().insertContent(text).run();
+        } catch {
+          // 剪贴板权限被拒时静默失败
+        }
+      };
+      const blockChecked = {
+        paragraph: editor.isActive("paragraph") && ![1, 2, 3].some((l) => editor.isActive("heading", { level: l })) && !editor.isActive("blockquote") && !editor.isActive("bulletList") && !editor.isActive("orderedList"),
+        h1: editor.isActive("heading", { level: 1 }),
+        h2: editor.isActive("heading", { level: 2 }),
+        h3: editor.isActive("heading", { level: 3 }),
+        quote: editor.isActive("blockquote"),
+        bullet: editor.isActive("bulletList"),
+        ordered: editor.isActive("orderedList"),
+      };
+      setCtxMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          { label: "撤销", icon: <Undo size={14} />, shortcut: `${mod}+Z`, disabled: !editor.can().undo(), onClick: () => editor.chain().focus().undo().run() },
+          { label: "重做", icon: <Redo size={14} />, shortcut: `${mod}+Y`, disabled: !editor.can().redo(), onClick: () => editor.chain().focus().redo().run() },
+          { divider: true, label: "" },
+          { label: "剪切", icon: <Scissors size={14} />, shortcut: `${mod}+X`, disabled: !hasSelection, onClick: async () => { await copySelection(); editor.chain().focus().deleteSelection().run(); } },
+          { label: "复制", icon: <Copy size={14} />, shortcut: `${mod}+C`, disabled: !hasSelection, onClick: copySelection },
+          { label: "粘贴", icon: <ClipboardPaste size={14} />, shortcut: `${mod}+V`, onClick: pasteText },
+          { divider: true, label: "" },
+          { label: "加粗", icon: <Bold size={14} />, shortcut: `${mod}+B`, onClick: () => editor.chain().focus().toggleBold().run() },
+          { label: "斜体", icon: <Italic size={14} />, shortcut: `${mod}+I`, onClick: () => editor.chain().focus().toggleItalic().run() },
+          { divider: true, label: "" },
+          { label: "正文", checked: blockChecked.paragraph, onClick: () => editor.chain().focus().setParagraph().run() },
+          {
+            label: "标题",
+            icon: <Type size={14} />,
+            children: ([1, 2, 3] as const).map((level) => ({
+              label: `标题 ${level}`,
+              checked: blockChecked[`h${level}` as const],
+              shortcut: `${mod}+Alt+${level}`,
+              onClick: () => editor.chain().focus().toggleHeading({ level }).run(),
+            })),
+          },
+          { label: "引用", checked: blockChecked.quote, onClick: () => editor.chain().focus().toggleBlockquote().run() },
+          { label: "无序列表", checked: blockChecked.bullet, onClick: () => editor.chain().focus().toggleBulletList().run() },
+          { label: "有序列表", checked: blockChecked.ordered, onClick: () => editor.chain().focus().toggleOrderedList().run() },
+          { divider: true, label: "" },
+          {
+            label: "自动整理格式",
+            icon: <WandSparkles size={14} />,
+            onClick: () => onAutoFormat?.(),
+          },
+          { label: "分隔线", icon: <Minus size={14} />, onClick: () => editor.chain().focus().setHorizontalRule().run() },
+          { label: "保存", icon: <Save size={14} />, shortcut: `${mod}+S`, onClick: () => onSave?.() },
+        ],
+      });
+    },
+    [editor, onSave, onAutoFormat],
+  );
+
+  const toolbar = (
+    <Toolbar
+      editor={editor}
+      onSave={onSave}
+      onAutoFormat={onAutoFormat}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={onToggleFullscreen}
+    />
+  );
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-1 flex-col min-h-0",
+        isFullscreen && "fixed inset-0 z-50",
+      )}
+    >
+      {isFullscreen || focusMode ? (
+        <div
+          className="relative shrink-0"
+          onMouseEnter={focusMode ? onToolbarEnter : undefined}
+          onMouseLeave={focusMode ? onToolbarLeave : undefined}
+        >
+          <div
+            className={cn(
+              "shrink-0 transition-opacity duration-300",
+              showToolbar ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            {toolbar}
+          </div>
+        </div>
+      ) : (
+        <div className="shrink-0">{toolbar}</div>
+      )}
+      <div
+        ref={containerRef}
+        className={cn(
+          "inkwell-editor flex-1 w-full min-h-0 overflow-y-auto bg-paper dark:bg-paper-dark transition-all duration-300",
+          focusMode ? "opacity-100" : "",
+          isFullscreen && "bg-paper dark:bg-paper-dark",
+        )}
+        style={{ padding: `0 ${appSettings.editorPadding}px` }}
+        onKeyDown={handleKeyDown}
+        onWheel={handleWheel}
+        onContextMenuCapture={handleContextMenu}
+      >
+        <div
+          className="min-h-full py-12"
+          style={{
+            // Adaptive column width: prefer the configured max width, but on a
+            // narrow pane shrink to fit (minus padding), and on a very wide
+            // pane cap at the configured width so lines stay readable.
+            maxWidth: containerWidth
+              ? Math.min(editorMaxWidth, Math.max(420, containerWidth - appSettings.editorPadding * 2))
+              : editorMaxWidth,
+            margin: "0 auto",
+          }}
+        >
+          <EditorContent editor={editor} className="h-full" />
+        </div>
+      </div>
+      <ContextMenu menu={ctxMenu} onClose={() => setCtxMenu(null)} />
+    </div>
+  );
+}

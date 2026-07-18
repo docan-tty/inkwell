@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useAppStore, pendingChapterContent } from "./store";
+import {
+  useAppStore,
+  cancelAutoSave,
+  flushPendingChapterContents,
+  flushPendingMetaSaves,
+} from "./store";
 import { ProjectList } from "./components/ProjectList";
 import { Workspace } from "./components/Workspace";
 import { RecoveryDialog } from "./components/RecoveryDialog";
@@ -10,6 +15,8 @@ import {
   loadChapterContentFromLocal,
   loadProjectFromLocal,
   saveChapterContentToLocal,
+  registerContentRoot,
+  getAppDataDir,
   isTauri,
 } from "./lib/storage";
 
@@ -30,14 +37,28 @@ function App() {
     applyTheme();
   }, [applyTheme]);
 
+  // Register the writable content roots with the Rust-side path whitelist:
+  // the app data dir (default location) plus the user's custom content
+  // directory (restored from settings on every launch).
+  useEffect(() => {
+    if (!isTauri()) return;
+    (async () => {
+      const appDir = await getAppDataDir();
+      await registerContentRoot(appDir);
+      const custom = useAppStore.getState().appSettings.projectSaveDirectory;
+      if (custom) await registerContentRoot(custom);
+    })();
+  }, []);
+
   // 屏蔽 webview 默认右键菜单（Copy / Inspect Element 等）。
   // 写作区自行提供编辑菜单（Editor 的 onContextMenuCapture 在 capture
-  // 阶段先跑并 setData，这里检查标记跳过），输入框保留默认的剪贴板菜单。
+  // 阶段先跑并 setData，这里检查标记跳过），输入框与 contenteditable
+  // 表面保留默认的剪贴板菜单。
   useEffect(() => {
     const onCtx = (e: MouseEvent) => {
       if ((e as unknown as Record<string, unknown>).__inkwellCtxHandled) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest("input, textarea")) return;
+      if (target?.closest("input, textarea, [contenteditable]")) return;
       e.preventDefault();
     };
     document.addEventListener("contextmenu", onCtx);
@@ -79,7 +100,9 @@ function App() {
 
   // Flush any pending (not-yet-on-disk) chapter content before the window
   // closes. The draft buffer already covers true crashes; this covers the
-  // normal close path inside the 3s autosave debounce.
+  // normal close path inside the 3s autosave debounce. The queued autosave
+  // timer is cancelled first so it can't fire after the flush and rewrite
+  // with an older buffer.
   useEffect(() => {
     if (!isTauri()) return;
     let unlisten: (() => void) | undefined;
@@ -88,18 +111,13 @@ function App() {
         const win = getCurrentWindow();
         unlisten = await win.onCloseRequested(async () => {
           const settings = useAppStore.getState().appSettings;
-          const entries = [...pendingChapterContent.entries()];
-          await Promise.all(
-            entries.map(async ([chapterId, content]) => {
-              try {
-                await saveChapterContentToLocal(chapterId, content, settings);
-                clearDraft(chapterId);
-                pendingChapterContent.delete(chapterId);
-              } catch {
-                // Keep the draft — next launch's recovery scan will offer it.
-              }
-            }),
-          );
+          cancelAutoSave();
+          try {
+            await flushPendingChapterContents(settings);
+          } catch {
+            // Keep the drafts — next launch's recovery scan will offer them.
+          }
+          await flushPendingMetaSaves();
           await useAppStore.getState().saveCurrentProject().catch(() => {});
         });
       } catch {
@@ -125,11 +143,9 @@ function App() {
     const isOpen = state.chapters.some((c) => c.id === chapterId);
     try {
       if (isOpen) {
+        // restoreChapterContent bumps contentVersion, which makes the open
+        // editor reload the restored bytes — no manual nudge needed.
         await state.restoreChapterContent(chapterId, draft);
-        // Refresh the open editor if it is showing the restored chapter.
-        if (state.currentChapter?.id === chapterId) {
-          state.setCurrentChapter({ ...state.currentChapter });
-        }
       } else {
         await saveChapterContentToLocal(chapterId, draft, state.appSettings);
         clearDraft(chapterId);

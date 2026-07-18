@@ -1,1 +1,71 @@
-aW1wb3J0IHsgZGVzY3JpYmUsIGV4cGVjdCwgaXQgfSBmcm9tICJ2aXRlc3QiOwppbXBvcnQgeyBjb3VudFdvcmRzLCBmb3JtYXRQbGFpblRleHQsIHNhbml0aXplRmlsZU5hbWUgfSBmcm9tICIuL3V0aWxzIjsKCmRlc2NyaWJlKCJjb3VudFdvcmRzIiwgKCkgPT4gewogIGl0KCJjb3VudHMgQ2hpbmVzZSBjaGFyYWN0ZXJzIGluY2x1ZGluZyBwdW5jdHVhdGlvbiBieSBkZWZhdWx0IiwgKCkgPT4gewogICAgZXhwZWN0KGNvdW50V29yZHMoIuS9oOWlve+8jOS4lueVjO+8gSIpKS50b0JlKDYpOwogIH0pOwoKICBpdCgiZXhjbHVkZXMgcHVuY3R1YXRpb24gd2hlbiBjb25maWd1cmVkIiwgKCkgPT4gewogICAgZXhwZWN0KGNvdW50V29yZHMoIuS9oOWlve+8jOS4lueVjO+8gSIsIGZhbHNlKSkudG9CZSg0KTsKICB9KTsKCiAgaXQoImNvdW50cyBFbmdsaXNoIGNoYXJhY3RlcnMgaW4gcHVuY3R1YXRpb24gbW9kZSIsICgpID0+IHsKICAgIGV4cGVjdChjb3VudFdvcmRzKCJIZWxsbyB3b3JsZCIpKS50b0JlKDEwKTsKICB9KTsKCiAgaXQoImNvdW50cyBFbmdsaXNoIHdvcmRzIGluIG5vbi1wdW5jdHVhdGlvbiBtb2RlIiwgKCkgPT4gewogICAgZXhwZWN0KGNvdW50V29yZHMoIkhlbGxvIHdvcmxkIiwgZmFsc2UpKS50b0JlKDIpOwogICAgZXhwZWN0KGNvdW50V29yZHMoIkhlbGxv5LiW55WMIiwgZmFsc2UpKS50b0JlKDMpOwogIH0pOwoKICBpdCgiY291bnRzIG1peGVkIENKSyBhbmQgRW5nbGlzaCBjb3JyZWN0bHkgd2l0aG91dCBwdW5jdHVhdGlvbiIsICgpID0+IHsKICAgIGV4cGVjdChjb3VudFdvcmRzKCLkvaDlpb0gSGVsbG8g5LiW55WMIHdvcmxkIiwgZmFsc2UpKS50b0JlKDYpOwogICAgZXhwZWN0KGNvdW50V29yZHMoIkhlbGxvLCB3b3JsZCEg5L2g5aW944CCIiwgZmFsc2UpKS50b0JlKDQpOwogIH0pOwoKICBpdCgicmV0dXJucyAwIGZvciBlbXB0eSBzdHJpbmciLCAoKSA9PiB7CiAgICBleHBlY3QoY291bnRXb3JkcygiIikpLnRvQmUoMCk7CiAgfSk7Cn0pOwoKZGVzY3JpYmUoInNhbml0aXplRmlsZU5hbWUiLCAoKSA9PiB7CiAgaXQoInJlcGxhY2VzIGlsbGVnYWwgZmlsZW5hbWUgY2hhcmFjdGVycyB3aXRoIHVuZGVyc2NvcmVzIiwgKCkgPT4gewogICAgZXhwZWN0KHNhbml0aXplRmlsZU5hbWUoJ2E8Yj5jOmQvZVxcZnxnP2gqaSInKSkudG9CZSgiYV9iX2NfZF9lX2ZfZ19oX2lfIik7CiAgfSk7CgogIGl0KCJmYWxscyBiYWNrIHRvIHVudGl0bGVkIGZvciBlbXB0eSByZXN1bHQiLCAoKSA9PiB7CiAgICBleHBlY3Qoc2FuaXRpemVGaWxlTmFtZSgiICAgIikpLnRvQmUoInVudGl0bGVkIik7CiAgfSk7Cn0pOwoKZGVzY3JpYmUoImZvcm1hdFBsYWluVGV4dCIsICgpID0+IHsKICBpdCgiY29udmVydHMgZnVsbC13aWR0aCBzcGFjZXMgdG8gcmVndWxhciBhbmQgY29sbGFwc2VzIHJ1bnMgb2YgYmxhbmtzIiwgKCkgPT4gewogICAgZXhwZWN0KGZvcm1hdFBsYWluVGV4dCgi5L2g5aW944CA5LiW55WMICDkvaDlpb0iKSkudG9CZSgi5L2g5aW9IOS4lueVjCDkvaDlpb0iKTsKICB9KTsKCiAgaXQoImNvbnZlcnRzIEVuZ2xpc2ggcHVuY3R1YXRpb24gdG8gZnVsbC13aWR0aCBpbiBDaGluZXNlIGNvbnRleHQiLCAoKSA9PiB7CiAgICBleHBlY3QoZm9ybWF0UGxhaW5UZXh0KCLku4DkuYgh55yf55qEP+WvuTvlpb066LWwLCIpKS50b0JlKCLku4DkuYjvvIHnnJ/nmoTvvJ/lr7nvvJvlpb3vvJrotbDvvIwiKTsKICB9KTsKCiAgaXQoImtlZXBzIGhhbGYtd2lkdGggcHVuY3R1YXRpb24gYmV0d2VlbiBkaWdpdHMiLCAoKSA9PiB7CiAgICBleHBlY3QoZm9ybWF0UGxhaW5UZXh0KCLku7fmoLzmmK8gMy41LCDnuqYgMSwwMDAg5YWDIikpLnRvQmUoIuS7t+agvOaYryAzLjXvvIznuqYgMSwwMDAg5YWDIik7CiAgfSk7CgogIGl0KCJhbHRlcm5hdGVzIHN0cmFpZ2h0IGRvdWJsZSBxdW90ZXMgaW50byBjdXJseSBwYWlycyIsICgpID0+IHsKICAgIGV4cGVjdChmb3JtYXRQbGFpblRleHQoJ+S7luivtCLkvaDlpb0i6L2s6Lqr6LWw5LqGJykpLnRvQmUoIuS7luivtOKAnOS9oOWlveKAnei9rOi6q+i1sOS6hiIpOwogICAgZXhwZWN0KGZvcm1hdFBsYWluVGV4dCgnImEi5ZKMImIiJykpLnRvQmUoIuKAnGHigJ3lkozigJxi4oCdIik7CiAgfSk7CgogIGl0KCJub3JtYWxpemVzIGN1cmx5IHF1b3RlcyBiYWNrIHRvIHByb3BlciBwYWlycyIsICgpID0+IHsKICAgIGV4cGVjdChmb3JtYXRQbGFpblRleHQoIuKAnOS9oOWlveKAnSIpKS50b0JlKCLigJzkvaDlpb3igJ0iKTsKICB9KTsKCiAgaXQoImNvbnZlcnRzIHRocmVlIGRvdHMgdG8gZWxsaXBzaXMiLCAoKSA9PiB7CiAgICBleHBlY3QoZm9ybWF0UGxhaW5UZXh0KCLnrYnnrYkuLi4iKSkudG9CZSgi562J562J4oCm4oCmIik7CiAgfSk7CgogIGl0KCJ0cmltcyBsaW5lIGVkZ2VzIHdpdGhvdXQgbWVyZ2luZyBsaW5lcyIsICgpID0+IHsKICAgIGV4cGVjdChmb3JtYXRQbGFpblRleHQoIiAg56ys5LiA6KGMICBcblx056ys5LqM6KGMXHQiKSkudG9CZSgi56ys5LiA6KGMXG7nrKzkuozooYwiKTsKICB9KTsKfSk7Cg==
+import { describe, expect, it } from "vitest";
+import { countWords, formatPlainText, sanitizeFileName } from "./utils";
+
+describe("countWords", () => {
+  it("counts Chinese characters including punctuation by default", () => {
+    expect(countWords("你好，世界！")).toBe(6);
+  });
+
+  it("excludes punctuation when configured", () => {
+    expect(countWords("你好，世界！", false)).toBe(4);
+  });
+
+  it("counts English characters in punctuation mode", () => {
+    expect(countWords("Hello world")).toBe(10);
+  });
+
+  it("counts English words in non-punctuation mode", () => {
+    expect(countWords("Hello world", false)).toBe(2);
+    expect(countWords("Hello世界", false)).toBe(3);
+  });
+
+  it("counts mixed CJK and English correctly without punctuation", () => {
+    expect(countWords("你好 Hello 世界 world", false)).toBe(6);
+    expect(countWords("Hello, world! 你好。", false)).toBe(4);
+  });
+
+  it("returns 0 for empty string", () => {
+    expect(countWords("")).toBe(0);
+  });
+});
+
+describe("sanitizeFileName", () => {
+  it("replaces illegal filename characters with underscores", () => {
+    expect(sanitizeFileName('a<b>c:d/e\\f|g?h*i"')).toBe("a_b_c_d_e_f_g_h_i_");
+  });
+
+  it("falls back to untitled for empty result", () => {
+    expect(sanitizeFileName("   ")).toBe("untitled");
+  });
+});
+
+describe("formatPlainText", () => {
+  it("converts full-width spaces to regular and collapses runs of blanks", () => {
+    expect(formatPlainText("你好　世界  你好")).toBe("你好 世界 你好");
+  });
+
+  it("converts English punctuation to full-width in Chinese context", () => {
+    expect(formatPlainText("什么!真的?对;好:走,")).toBe("什么！真的？对；好：走，");
+  });
+
+  it("keeps half-width punctuation between digits", () => {
+    expect(formatPlainText("价格是 3.5, 约 1,000 元")).toBe("价格是 3.5，约 1,000 元");
+  });
+
+  it("alternates straight double quotes into curly pairs", () => {
+    expect(formatPlainText('他说"你好"转身走了')).toBe("他说“你好”转身走了");
+    expect(formatPlainText('"a"和"b"')).toBe("“a”和“b”");
+  });
+
+  it("normalizes curly quotes back to proper pairs", () => {
+    expect(formatPlainText("“你好”")).toBe("“你好”");
+  });
+
+  it("converts three dots to ellipsis", () => {
+    expect(formatPlainText("等等...")).toBe("等等……");
+  });
+
+  it("trims line edges without merging lines", () => {
+    expect(formatPlainText("  第一行  \n\t第二行\t")).toBe("第一行\n第二行");
+  });
+});

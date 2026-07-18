@@ -1,5 +1,5 @@
 import { useAppStore } from "../store";
-import { formatNumber, formatDateTime, cn } from "../lib/utils";
+import { formatNumber, formatDateTime, formatTime, cn } from "../lib/utils";
 import { getTodayGained, formatDuration } from "../lib/stats";
 import { Save, AlertCircle, X, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -20,7 +20,9 @@ export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
   const [retrying, setRetrying] = useState(false);
 
   const totalWords = chapters.reduce((sum, c) => sum + c.wordCount, 0);
-  const chapterTarget = currentChapter?.targetWords || appSettings.defaultChapterTargetWords;
+  // 章节目标字数：0/未设置 = 跟随全局默认；正数为该章自定义目标。
+  const chapterTarget =
+    currentChapter?.targetWords || appSettings.defaultChapterTargetWords;
   const todayGained = currentProject ? getTodayGained(currentProject.id, totalWords) : 0;
   const projectProgress = currentProject?.targetWords
     ? Math.min(100, Math.round((totalWords / currentProject.targetWords) * 100))
@@ -54,7 +56,7 @@ export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
   };
 
   return (
-    <div className="flex h-8 shrink-0 items-center justify-between border-t border-warm-gray bg-paper px-4 text-xs text-ink-muted dark:text-ink-muted-dark dark:border-warm-gray-dark dark:bg-paper-dark">
+    <div className="flex h-8 shrink-0 items-center justify-between bg-paper px-4 text-xs text-ink-muted dark:text-ink-muted-dark dark:bg-paper-dark">
       <div className="flex min-w-0 items-center gap-4">
         {currentProject && (
           <>
@@ -115,7 +117,7 @@ export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
           title={lastSavedAt ? `上次保存于 ${formatDateTime(lastSavedAt)}` : "尚未保存"}
         >
           <Save size={12} className={savedIndicator ? "text-accent" : ""} />
-          <span>{lastSavedAt ? `已保存 · ${formatDateTime(lastSavedAt).slice(11)}` : "就绪"}</span>
+          <span>{lastSavedAt ? `已保存 · ${formatTime(lastSavedAt)}` : "就绪"}</span>
         </div>
       )}
     </div>

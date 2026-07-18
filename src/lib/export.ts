@@ -82,11 +82,29 @@ const REMOVE_TAGS = new Set([
   "option",
 ]);
 
-const DANGEROUS_ATTRS = new Set(["style"]);
+// Attribute blocklist applied to every allowed tag. INVARIANT: adding a tag
+// to ALLOWED_TAGS re-exposes its URL-bearing attributes (href/src/action/…)
+// to isSafeUrl below — audit that function before extending either list.
+const BLOCKED_ATTRS = new Set(["style"]);
 
-function isDangerousUrl(value: string): boolean {
-  const trimmed = value.trim().toLowerCase();
-  return trimmed.startsWith("javascript:") || trimmed.startsWith("data:text/html");
+// URL schemes allowed to survive sanitization. The exported HTML leaves the
+// app's CSP sandbox and opens in the user's real browser, so anything
+// scriptable (javascript:, data:text/html, vbscript:…) must be dropped.
+// Parsing with new URL() (after stripping whitespace/control chars, which
+// browsers silently ignore inside schemes) catches the classic bypasses:
+// "java\tscript:", " java script :", HTML-entity-encoded variants.
+const ALLOWED_SCHEMES = new Set(["http:", "https:", "mailto:"]);
+
+function isSafeUrl(value: string): boolean {
+  // Strip whitespace AND control chars — browsers ignore them inside
+  // schemes ("java\tscript:" executes), so the check must too.
+  const stripped = value.replace(/[\s\-]+/g, "");
+  try {
+    const url = new URL(stripped, "https://invalid.invalid/");
+    return ALLOWED_SCHEMES.has(url.protocol);
+  } catch {
+    return false;
+  }
 }
 
 export function sanitizeHtml(html: string): string {
@@ -122,9 +140,9 @@ export function sanitizeHtml(html: string): string {
       const name = attr.name.toLowerCase();
       const value = attr.value;
 
-      if (DANGEROUS_ATTRS.has(name)) return;
+      if (BLOCKED_ATTRS.has(name)) return;
       if (name.startsWith("on")) return;
-      if ((name === "href" || name === "src") && isDangerousUrl(value)) return;
+      if ((name === "href" || name === "src") && !isSafeUrl(value)) return;
 
       newEl.setAttribute(name, value);
     });
@@ -299,8 +317,10 @@ function sortChaptersForExport(
 ): { sorted: Chapter[]; volumeMap: Map<string, Volume> } {
   const volumeMap = new Map(volumes.map((v) => [v.id, v]));
   const sorted = [...chapters].sort((a, b) => {
-    const va = volumeMap.get(a.parentId || "")?.order ?? -1;
-    const vb = volumeMap.get(b.parentId || "")?.order ?? -1;
+    // Chapters without a volume sort AFTER all volumes, matching the
+    // chapter tree's "未分类章节" section at the bottom.
+    const va = volumeMap.get(a.parentId || "")?.order ?? Number.MAX_SAFE_INTEGER;
+    const vb = volumeMap.get(b.parentId || "")?.order ?? Number.MAX_SAFE_INTEGER;
     if (va !== vb) return va - vb;
     return a.order - b.order;
   });

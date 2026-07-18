@@ -1,137 +1,165 @@
-# 墨池 InkWell 功能优化报告
+# InkWell 全量代码审查报告
 
-**审查日期**：2026-07-15（第三轮：功能优化 + 复审）
-**审查范围**：`src/` 前端（React 19 + TypeScript + TipTap + Zustand + Tailwind 4）、`src-tauri/src/` Rust 后端、配置文件与测试。排除 `node_modules/`、`dist*/`、`src-tauri/gen/`、`src-tauri/target/` 等产物。
-**验证手段**：通读全部源码（3671 行 / 35 个源文件）+ `npx tsc --noEmit`（**0 错误**）+ 纯逻辑单测在 Node 下独立复跑（**12/12 通过**）。
+**审查日期：** 2026-07-17
+**范围：** 全部工程代码 —— `src/`（21 个组件、store、9 个 lib 模块、types）、`src-tauri/`（Rust 后端、capabilities、配置）、构建配置与全部测试文件
+**方法：** 五轴审查（正确性 / 可读性 / 架构 / 安全 / 性能），双人并行审查 + 关键发现源码复核
+**验证：** `tsc --noEmit` ✅ 通过；`vitest run` ⚠️ 无法在本审查环境执行（node_modules 原生绑定为 Windows 平台编译，非代码问题）——测试通过状态未经本次验证
 
-> 说明：`npx vitest run` 在本审查沙箱无法启动，因为工程 `node_modules` 只含 Windows 平台二进制（`@rollup/rollup-win32-x64-*`），而沙箱是 Linux。这是**环境差异、非代码缺陷**——在你的 Windows 机器上 `npm test` 可正常运行。我已将测试覆盖的纯逻辑（`countWords`、`reorderChaptersByVolume`）提取到 Node 独立验证，12 项断言全部通过。
+## 结论（Verdict）
 
----
+**Request changes（需修改后合并）** —— 存在 3 项 Critical（其中 2 项为数据丢失场景）与多项 Required。
 
-## 一、与上一轮（同日第二轮）审查对比
-
-第二轮报告的 **15 项问题已全部解决**。逐项核验：
-
-| 第二轮问题 | 状态 | 证据 |
-|------------|------|------|
-| Workspace Rules of Hooks 违规（早返回夹在 Hook 之间） | ✅ 已修复 | `Workspace.tsx` 所有 Hook 均在 `if (!currentProject) return null`（142 行）之前 |
-| 字数统计双路径不一致 | ✅ 已统一 | `updateChapterContent` 与 `updateWordCount` 均用 `stripHtml`+`countWords`；新增内存级 `updateChapterWordCount` |
-| `countWords` 英文词数错误 | ✅ 已修复 | 先去空白前匹配英文词；测试断言 `"Hello world", false === 2` |
-| 每次按键整项目落盘 | ✅ 已解耦 | `updateChapterWordCount` 仅改内存；`updateChapterContent` 不再触发 `saveCurrentProject`；`setCurrentChapter` 无重复保存 |
-| `deleteProject` 泄漏文件 | ✅ 已修复 | 先 `Promise.all(removeChapterContentFromLocal)` 再 `removeProjectFromLocal` |
-| fs 权限 `$HOME/**` 过宽 | ✅ 已重构 | 弃用 `tauri-plugin-fs`，改自定义 `read/write/remove/exists` 命令 + 最小 capability（无 fs scope） |
-| 死代码（STATUS_COLORS/throttle/readDir/空 ProjectSettings） | ✅ 已清理 | 全部移除，`Project.settings` 字段一并删除 |
-| OutlineView 未按卷排序 | ✅ 已修复 | 按 `volume.order` 分组 + 组内 `chapter.order` 排序 |
-| Ctrl+S 冗余 onChange | ✅ 已修复 | 直接 `onSave?.()` |
-| storage fallback key 冲突 | ✅ 已修复 | 通用文件操作加 `inkwell-fs:` 前缀 |
-| 数字输入无上限 | ✅ 已修复 | `defaultChapterTargetWords` 校验 `n <= 1000000` |
-| storage 末尾冗余 re-export | ✅ 已修复 | 内联 `export async function getAppDataDir` |
-| Toolbar 空函数兜底 | ✅ 已修复 | 改为 `onSave?.()` 可选调用 |
-| `dist-old-2/` 残留 | ⚠ 仍存在 | 本地旧产物，已被 `.gitignore` 忽略，建议手动删除 |
-
-**结论**：工程质量已显著提升——CSP 收紧、导出去 XSS、存储走自定义命令、保存逻辑解耦、测试建立（4 文件 23 用例）。代码健康度良好，**无 Critical / Required 级遗留缺陷**。
+代码整体质量较高：持久化采用"草稿缓冲 + pending map + 3 秒自动保存 + 定时快照 + 关闭落盘"的多层冗余设计，注释解释 *为什么* 而非 *是什么*，无任何 `dangerouslySetInnerHTML`，Tauri capabilities 与 CSP 收敛得当。问题集中在**各层之间的接缝处**：竞态窗口、防抖计时器与状态切换的交错，正是写作软件最不能出错的"丢稿"路径。
 
 ---
 
-## 二、本报告重点：功能优化清单
+## Critical（阻断合并）
 
-既然代码质量已达标，本报告聚焦「最大限度优化功能」。以下分四组：**高价值功能**（强烈推荐）、**健壮性补强**、**体验打磨**、**代码级小优化**。每项标注：价值 / 工作量 / 涉及文件。
+### C1. 非原子写入可能损坏项目文件 → 整部作品"消失"（体验级数据丢失）
 
-### A. 高价值功能优化（强烈推荐）
+`src-tauri/src/lib.rs:29-38`（`write_text_file` 使用 `std::fs::write` 原地截断写入），消费方：`src/lib/storage.ts:162-178`（`saveProjectToLocal`）、`src/store/index.ts:670-676`。
 
-| # | 优化项 | 价值 | 工作量 | 说明与建议实现 | 涉及文件 |
-|---|--------|------|--------|----------------|----------|
-| A1 | **崩溃/断电恢复** | ★★★ | 中 | 这是写作工具的**最高优先**功能。当前自动保存 3s 一次，但 `handleContentChange` 里 200ms 字数防抖与 3s 内容保存之间，若进程崩溃仍可能丢失最多 3s 内容；更重要的是**切换章节前若未触发保存、或窗口被强杀**，`localContent` 未落盘。建议：① 每次 `onChange` 立即把 `localContent` 写入 localStorage 作为"草稿缓冲区"（轻量、同步）；② 启动/打开章节时若检测到草稿与磁盘不一致，提示"检测到未保存内容，是否恢复"；③ 用 Tauri 的 `onCloseRequested` 在关窗前强制 flush。 | `store/index.ts`、`Workspace.tsx`、`src-tauri/lib.rs` |
-| A2 | **撤销/恢复 + 版本快照（历史版本）** | ★★★ | 中高 | 小说写作最怕误删/误改。TipTap 自带撤销仅限当前会话。建议：每章保留最近 N 个时间戳快照（如每 5 分钟或有实质改动时存 `chapters/{id}.snapshots/{ts}.md`），右侧面板加"历史版本"标签，可预览/回滚。配合已有的 `stripHtml` 做 diff 预览。 | `store/index.ts`、`RightPanel.tsx`、`lib.rs` |
-| A3 | **全项目搜索（书名内查找/替换）** | ★★☆ | 中 | 长篇写作高频需求。当前只能在单章内浏览。建议：顶部加搜索框（Ctrl+Shift+F），跨全部章节 `stripHtml(content)` 检索标题+正文，结果按卷/章分组，点击跳转定位。替换功能可后置。纯前端即可实现，无需后端。 | `Workspace.tsx`、新 `SearchPanel.tsx`、`store/index.ts` |
-| A4 | **导出格式扩充：TXT 整本 / Markdown 整本 / DOCX** | ★★☆ | 低 | 当前仅单章 md/txt + 整本 HTML。网文作者常需**整本 TXT**（投稿/导入其他平台）和**整本 Markdown**。`buildProjectHtml` 的排序逻辑已就绪，复用 `stripHtml` 即可低成本产出整本 TXT/MD。DOCX 可引入 `docx` 库（已在你的技能环境可用）。 | `lib/export.ts`、`Toolbar.tsx` |
-| A5 | **写作统计与目标追踪** | ★★☆ | 中 | `StatusBar` 已有总字数/本章进度。可升级：① 今日新增字数（对比每日零点快照）；② 写作时长；③ 目标完成度进度条；④ 简单的周/月字数趋势图（`recharts` 曾依赖后被移除，如需图表可重新引入或用纯 SVG）。`Project.targetWords` 已存在但只作展示，可接入总进度。 | `StatusBar.tsx`、`store/index.ts`、新 `StatsPanel.tsx` |
-| A6 | **编辑器首行缩进** | ★★☆ | 低 | 中文小说排版的核心诉求，README 宣称"默认首行缩进"但 `App.css` 并未实现 `.ProseMirror p { text-indent: 2em }`（仅标题/列表 `text-indent: 0` 做了复位）。补一行 CSS 即可兑现 README 承诺，并建议在设置中加"首行缩进"开关。 | `App.css`、`GlobalSettingsModal.tsx` |
-| A7 | **章节目录的"卷"也支持拖拽排序** | ★☆☆ | 低 | 当前章节可拖拽跨卷、卷内排序，但**卷之间无法拖拽调整顺序**（`volumes` 数组顺序固定）。复用 `moveChapter` 的思路加 `moveVolume(volumeId, targetIndex)` + `reorderVolumes`。 | `store/index.ts`、`ChapterTree.tsx`、`VolumeItem.tsx` |
-| A8 | **项目卡片信息增强** | ★☆☆ | 低 | 项目列表卡片仅显示目标字数与更新时间。建议显示**当前总字数**（需统计该项目章节 wordCount 之和）与**完成百分比**，帮助作者一眼掌握进度。数据在 `registry.json` 或 `loadProjectFromLocal` 可聚合。 | `ProjectList.tsx`、`store/index.ts` |
+`std::fs::write` 非原子。写入中途崩溃/断电/磁盘满会留下截断的 `projects/{id}.json`。下次打开时 `loadProjectFromLocal`（storage.ts:155-159）走 `catch { return null; }`，`openProject` 将其视为新项目——**章节 .md 文件全部还在磁盘上，但用户看到的是一部空白小说，且应用内无任何恢复入口**。同理适用于 `registry.json`（解析失败返回 `[]`，隐藏所有项目）与章节 .md 文件本身。
 
-### B. 健壮性补强（防数据丢失/异常）
+**修复：** 写入改为"先写 `{path}.tmp` 再 `std::fs::rename`"（同卷重命名在三大桌面 OS 上均原子），rename 前可 `sync_all`。加载侧区分"文件不存在"与"文件损坏"：损坏时尝试 `.bak`/临时文件，至少向用户报错而不是静默展示空项目。
 
-| # | 优化项 | 价值 | 工作量 | 说明 | 涉及文件 |
-|---|--------|------|--------|------|----------|
-| B1 | **删除操作的二次确认** | ★★★ | 低 | `ProjectCard` 删除作品、`VolumeItem`/`ChapterItem` 删除卷/章均为**单击即删、无确认、不可恢复**。删除作品会级联删除全部章节文件。建议加确认对话框（`dialog` 插件 `ask`/`confirm` 或自绘 modal），删除作品时明确提示"将删除 N 个章节"。 | `ProjectList.tsx`、`ChapterItem.tsx`、`VolumeItem.tsx` |
-| B2 | **切换存储位置时迁移既有内容** | ★★☆ | 中 | 用户在设置中改"作品内容位置"后，`loadProjectFromLocal` 只从新位置读，**旧位置的 `projects/`、`chapters/` 不会自动迁移**，导致旧作品"消失"（注册表在数据文件夹仍列出项目，但内容读不到）。建议：改路径时提示"是否迁移现有内容"，或读取时按"新位置 → 旧位置"双回退。 | `store/index.ts`、`lib/storage.ts`、`GlobalSettingsModal.tsx` |
-| B3 | **空章节标题/空项目名的兜底** | ★☆☆ | 低 | `EditableLabel.commit` 用 `text.trim() || value` 兜底，重命名清空会保留旧名（合理）；但 `createProject` 仅 `newName.trim()` 非空校验，纯空格名虽被挡，重复名不校验。建议项目名查重并提示。 | `ProjectList.tsx` |
-| B4 | **磁盘写入失败的统一兜底与重试** | ★★☆ | 低 | `saveChapterContentToLocal`/`saveProjectToLocal` 失败时，`scheduleAutoSave` 的 `.catch(() => {})` 静默吞错——用户以为已保存实际没落盘。`handleManualSave` 有 alert，自动保存没有。建议：自动保存失败也在 `StatusBar` 显示"保存失败"红色状态 + 重试。 | `store/index.ts`、`StatusBar.tsx` |
+### C2. Tauri 文件系统命令完全未限定范围 → webview 内任意脚本可读写删全盘
 
-### C. 体验打磨（UX Polish）
+`src-tauri/src/lib.rs:23-124`（`read_text_file` / `write_text_file` / `remove_file` / `list_files` / `copy_file` / `copy_dir_recursive` / `open_path`）均接受任意绝对路径，零校验；配合 `core:default`（capabilities/default.json:7）即可从窗口 JS 调用。CSP（`default-src 'self'`）挡得住远程 XSS，但挡不住 npm 供应链投毒（Tiptap、lucide-react 等同处一个 JS 领域）。一个被攻陷的依赖即可 `invoke("write_text_file", ...)` 写启动项或窃取任意文件。lib.rs:11-18 的注释解释了当初为何移除 scope，但纠正过度了。
 
-| # | 优化项 | 价值 | 工作量 | 说明 | 涉及文件 |
-|---|--------|------|--------|------|----------|
-| C1 | **键盘快捷键补全** | ★★☆ | 低 | 设置里列出了加粗/斜体/标题等快捷键，但这些是 TipTap 默认行为；应用级快捷键（新建章节 Ctrl+N、关闭右栏、切换专注模式）未绑定。建议补全并在设置中如实区分"编辑器快捷键"与"应用快捷键"。 | `Workspace.tsx`、`App.tsx` |
-| C2 | **导出成功后的反馈** | ★☆☆ | 低 | `ExportDropdown.onExported` 仅 `console.log("Exported to", path)`。建议用 toast 或 StatusBar 提示"已导出到 {path}"，并提供"打开所在文件夹"（`revealInFolder` 已具备）。 | `Toolbar.tsx` |
-| C3 | **空状态引导** | ★☆☆ | 低 | 编辑器无章节时仅一句"选择或创建一个章节开始写作"。可加"新建章节"按钮直接创建，减少操作路径。 | `Workspace.tsx` |
-| C4 | **章节目录滚动定位** | ★☆☆ | 低 | 打开作品默认定位到"最近更新章节"，但左侧目录树未自动滚动到该章节、也未展开其所在卷。建议选中章节时 `scrollIntoView` + 自动展开父卷。 | `ChapterTree.tsx` |
+此外 `open_path`（lib.rs:6-9）可对任意路径调用 `opener::open`——配合 `write_text_file` 即一键 RCE（写 .exe 再打开）。
 
-### D. 代码级小优化（非功能，顺手清理）
+**修复：** 在 Rust 侧按白名单根目录校验路径（`app_data_dir()` + 用户配置的 `projectSaveDirectory`，canonicalize 后拒绝 `..` 与逃逸符号链接）；导出文件单独走"由 save 对话框返回路径"的命令；`open_path` 限制为目录（`p.is_dir()`）。
 
-| # | 优化项 | 级别 | 说明 | 涉及文件 |
-|---|--------|------|------|----------|
-| D1 | 删除 `dist-old-2/` 旧产物 | Nit | 已被 `.gitignore` 忽略，但占工作区，建议删除。 | 文件系统 |
-| D2 | `store/index.ts` 419 行 | Optional | 混合导航/主题/设置/项目/卷章/UI/持久化。功能稳定后可按 slice 拆分，非阻塞。 | `store/index.ts` |
-| D3 | `updateChapter` 每次触发 `saveCurrentProject` | Optional | 重命名/改状态等轻量操作也会整项目落盘。可对"元数据字段"与"结构变更"区分保存时机（当前已大幅优化，此为进一步细化）。 | `store/index.ts` |
-| D4 | `StatusBar` "已保存"文案重复 | Nit | 43-48 行 `savedIndicator ? "已保存" : "已保存 · 时间"` 分支略显冗余，可合并为单一带时间文案。 | `StatusBar.tsx` |
+### C3. 笔记/词典在 800ms 防抖窗口内切换或关闭项目 → 编辑静默丢失
+
+`src/store/index.ts:700-718`（`scheduleNoteSave` / `scheduleDictSave`），交互方：`openProject`（318-352）、`closeProject`（353-368）。
+
+计时器在**触发时**读取 `currentProject`/`notes`，但编辑发生在**调度时**。序列：编辑笔记 → 400ms 后切换项目 → `openProject` 用项目 B 的数据替换 `notes` → 计时器触发时项目 A 的编辑已无处写入（`if (!currentProject) return` 或写错对象）。**每次切换/关闭项目，最后 <800ms 的笔记与词典输入必丢**——章节内容有草稿缓冲兜底，笔记和词典没有任何兜底。
+
+**修复：** 调度时捕获负载（`projectId` + 数据快照），或在 `openProject`/`closeProject` 替换状态前 `flushPendingMetaSaves()` 同步落盘旧项目的 notes/dict。
 
 ---
 
-## 三、推荐实施顺序（按投入产出比）
+## Required（合并前必须处理）
 
-**第一梯队（先做，防数据丢失）**
-1. B1 删除二次确认 —— 成本最低、防误删，立即见效。
-2. A1 崩溃恢复 —— 写作工具的生命线。
-3. A6 首行缩进 —— 一行 CSS 兑现 README 承诺。
+### 正确性（数据安全相关，按杠杆排序）
 
-**第二梯队（核心写作体验）**
-4. A4 整本 TXT/Markdown 导出 —— 复用现有逻辑，低成本高价值。
-5. A3 全项目搜索 —— 长篇刚需。
-6. A7 卷拖拽排序 —— 补齐目录管理能力。
+**R1. 快照/草稿恢复后编辑器不刷新，且可能被旧内容再次覆盖。**
+`src/components/RightPanel.tsx:179` 与 `src/App.tsx:131`：恢复后用 `setCurrentChapter({ ...currentChapter })` 试图"轻推"重载，但 Workspace 加载 effect 的依赖是 `[currentChapter?.id, ...]`——id 未变，effect 不触发。用户看到的仍是旧内容，而**下一次自动保存会把内存中的旧内容写回，抹掉刚恢复的快照**。这是本次审查中最接近"用户可操作触发的丢稿"的问题。
+**修复：** store 增加 `contentVersion` 计数器，`restoreChapterContent` 时递增，并加入 Workspace 加载 effect 的依赖。
 
-**第三梯队（增值功能）**
-7. A2 版本快照、A5 写作统计、A8 项目卡片进度。
-8. B2 存储位置迁移、B4 保存失败反馈。
-9. C 系列体验打磨 + D 系列代码清理。
+**R2. 章节加载失败 + 一次击键 = 跨章节内容串写。**
+`src/components/Workspace.tsx:102-120`：`getChapterContent` 若 reject（文件损坏），无 catch、无错误提示——`currentChapter` 已切到 B，`localContent` 仍停留在 A 的内容，下一次自动保存将把 A 的文本写入 B 的文件。
+**修复：** 加 `.catch` 报错并 `setCurrentChapter(null)`；并在 effect 开始时先将 `localContent` 置空（乐观清空），杜绝旧内容残留。
+
+**R3. 全局 autosave 计时器在切章/关窗时不取消、不冲刷，旧内容可覆盖新内容。**
+`src/store/index.ts:681-696`（`scheduleAutoSave`）与 `src/App.tsx:89-104`（关窗 flush）：单一全局 `autoSaveTimer` 按击键时捕获的 `chapterId`+`content` 延迟写入。关窗 flush 不取消该计时器——若 flush 后计时器才触发，将以较旧内容覆盖；`setCurrentChapter`（store:515-521）切章时只保存项目 JSON，不冲刷上一章的 pending 内容。
+**修复：** `pendingChapterContent` 改为 `Map<id, {content, seq}>` 携带单调版本号，autosave 回调发现存储版本更新则放弃写入；`setCurrentChapter` 与关窗流程先冲刷/取消计时器。
+
+**R4. `closeProject` 先清状态、依赖求值顺序运气完成最终保存。**
+`src/store/index.ts:353-368`：`saveCurrentProject` 内部 `get()` 恰好在 `set` 清空前同步执行所以今天能工作；任何在函数顶部插入 `await` 的未来重构都会把最终保存变成静默空操作。且关闭时 pending 章节内容同样未冲刷（同 R3）。
+**修复：** 显式化：`closeProject` 先捕获引用、`await flushPendingContent()` + `await saveProjectToLocal(...)`，再清状态。
+
+**R5. `readFileOrFallback` 对任何 Tauri 读错误都回退 localStorage → 可能提供过期镜像并回写。**
+`src/lib/storage.ts:86-93`：外置盘暂时拔掉 → 应用打开的是 localStorage 旧镜像；盘恢复后自动保存把旧内容写回，静默回滚章节。且"文件缺失"走镜像、"文件损坏"返回空，行为不一致。
+**修复：** 仅在 NotFound 时回退，其他错误上浮；或 Tauri 模式下干脆去掉镜像（见 R14）。
+
+**R6. 项目/章节 ID 直接进入文件路径，无格式校验。**
+`src/lib/storage.ts:71-79`：ID 目前由 `generateId()` 生成所以安全，但 `registry.json` 本身是可被本地篡改的文件——`id: "../../x"` 即路径穿越（含删除任意 `{id}.json`）。成本极低的加固。
+**修复：** 存储边界校验 `/^[a-z0-9-]+$/i`，或并入 C2 的 canonicalize 校验。
+
+**R7. `handleManualSave` / 侧栏 resize 持有旧闭包值。**
+`Workspace.tsx:241-254`：手动保存闭包捕获 `localContent`，而文件里已有 `localContentRef`——应改用 ref（上下文菜单等延迟触发路径会写入旧内容）。`Workspace.tsx:327-353`：拖拽结束时持久化的是**拖拽起点**的侧栏宽度（`handleUp` 闭包自 mousedown 渲染），重启后宽度"失忆"。
+**修复：** 两处均改用 ref 镜像最新值。
+
+**R8. ProjectList 字数统计一处失败全体消失。**
+`ProjectList.tsx:42-58`：`Promise.all` 中任一项目文件损坏 → 全部卡片进度条静默消失。
+**修复：** 每个项目的 load 各自 try/catch，失败置 0。
+
+### 安全
+
+**R9. 导出 HTML 的 URL 校验可被空白/实体绕过，文件在用户真实浏览器打开。**
+`src/lib/export.ts:85-90`：`startsWith("javascript:")` 漏掉 `java\tscript:`、HTML 实体编码等浏览器会归一化的变体；导出文件脱离 CSP 在默认浏览器以 file:// 打开。
+**修复：** 用 `new URL()` 解析并按 scheme 白名单（http/https/mailto）放行，检查前剥离空白与控制字符；`DANGEROUS_ATTRS` 更名 `BLOCKED_ATTRS` 并注明"向 ALLOWED_TAGS 加标签即重开 URL 属性面"的不变量。
+
+**R10. 自动排版路径未过 sanitizeHtml（纵深防御缺口）。**
+`Workspace.tsx:24-45`：`formatHtmlTextNodes` 以 `innerHTML` 重序列化后直推编辑器管线；快照恢复路径（RightPanel.tsx:177）做了 sanitize，此路径没有。内容今天来自 TipTap 应属惰性，但一旦非 TipTap 内容进入（导入功能、粘贴 bug）即成注入放大器。
+**修复：** 推送前过一遍 `sanitizeHtml`，与恢复路径对齐。
+
+### 性能
+
+**R11. 全组件 `useAppStore()` 无选择器订阅 → 每次击键全树重渲染。**
+Editor.tsx:38、Toolbar.tsx:70-83、Workspace.tsx:48-70、StatusBar.tsx:8、ProjectList、RightPanel、SearchPanel、ChapterTree、NotesView、DictionaryView、GlobalSettingsModal、App.tsx:23 全部裸订阅整个 store。每 200ms 的字数更新替换 `chapters` 数组引用 → 上述组件全部重渲染，ChapterTree 还在每次渲染中对每卷做 filter+sort（ChapterTree.tsx:88-89，O(V·C)）。300 章长篇时每次输入产生数百次无谓渲染。
+**修复：** 全面改选择器（`useAppStore(s => s.theme)`），组合取值用 `useShallow`；优先 Editor/Toolbar/StatusBar/ChapterTree。ChapterTree 的按卷分组用 `useMemo` 建 `Map<volumeId, Chapter[]>`。
+
+**R12. 笔记分隔条拖拽每帧 pointermove 都写 localStorage。**
+`NotesView.tsx:96-110`：`onMove` 内直接 `updateAppSettings`（同步 JSON 序列化 + 存储写）。侧栏 resize 是 mouseup 才持久化的——应对齐。
+**修复：** 拖拽中用本地 state 实时显示，`onUp` 时才 `updateAppSettings`。
+
+**R13. 搜索面板打开时，打字触发全书重搜。**
+`SearchPanel.tsx:64-122`：effect 依赖 `chapters` 数组引用，打字→字数更新→数组换新→重读全部章节文件重搜。防抖+token 防的是错误结果，防不了无谓 I/O。
+**修复：** 依赖改为稳定结构签名（章节 id+title 的 memo 化字符串）。
+
+**R14. localStorage 镜像写无 try/catch，配额满会误报保存失败。**
+`src/lib/storage.ts:195`：磁盘写成功后镜像写抛 `QuotaExceededError` 会冒泡成"保存失败"——数据其实安全。`saveDraft` 反而有 try/catch，不一致。
+**修复：** 镜像写包 try/catch（同 `writeMeta`），或按 R5 去掉镜像。
+
+### 架构
+
+**R15. `Workspace.tsx`（520 行）职责过载；`formatHtmlTextNodes` 是无法脱离 React 测试的纯函数。**
+文件同时承载：章节加载、草稿恢复 UI、自动保存管线、写作计时、全局快捷键、自动排版（DOM 操作）、专注模式 chrome、侧栏 resize。
+**修复：** `formatHtmlTextNodes` 抽到 `src/lib/format.ts` 并配单测；写作计时与顶栏自动隐藏抽成 hooks。
+
+**R16. 测试完全不覆盖 Tauri 持久化分支——真正写用户小说的路径零测试。**
+happy-dom 下 `isTauri()` 恒 false，`storage.test.ts` 全部走 localStorage 回退。`snapshots.ts`（剪枝、`parseTimestamp`、删除容错）完全无测试；store 的 autosave/草稿/pending 生命周期（C3/R3/R4 场景）无测试。
+**修复：** `vi.mock` `@tauri-apps/api/core` 并按测试设置 `window.__TAURI_INTERNALS__` 跑双分支；补快照剪枝测试；用 fake timers 固化 C3 回归。
 
 ---
 
-## 四、总体结论
+## Optional / Nit（择要）
 
-经过前两轮审查与修复，**当前代码库无 Critical/Required 级缺陷**：类型检查零错误、核心逻辑测试通过、安全面（CSP、XSS 消毒、最小权限、自定义文件命令）已收口、保存与排序逻辑正确。
-
-功能层面，墨池已具备"写作 + 章节管理 + 导出 + 设置"的完整 MVP。下一步的最高杠杆方向是**数据安全保障**（崩溃恢复 A1、删除确认 B1、版本快照 A2）与**长篇写作效率**（全文搜索 A3、整本导出 A4、统计 A5）。这些功能大多能复用现有模块（`stripHtml`、排序逻辑、`revealInFolder`、快照存储），实现成本可控。
+- `src/lib/export.ts:301-306`：`?? -1` 使无卷章节排在第一卷之前导出，与树 UI 顺序不一致（用 `Number.MAX_SAFE_INTEGER` 或与树比较器对齐）。
+- `src/store/index.ts:530`：`moveChapter` 只钳上界，负 `targetIndex` 触发 splice 倒数语义；`moveVolume` 两端都钳——对齐。
+- `src/lib/storage.ts:18-29`：`tauriPath` 动态导入缓存与第 3 行静态导入重复，`getPath()` 可删。
+- `src/lib/snapshots.ts:14-16`：`buildFsPath` 是对 `join` 的无增益包装，可删（死代码清理候选）。
+- `ProjectList.tsx:2`：两条 import 挤在一行。
+- `Editor.tsx:253-284`：专注/全屏两分支重复 `<Toolbar>` 调用，可提取常量。`Editor.tsx:75`：`setContent(content)` 未传 `{ emitUpdate: false }`，非规范 HTML 首载会触发幻影"修改"→多余草稿+autosave。
+- `Editor.tsx:176`、`GlobalSettingsModal.tsx:57`：`navigator.platform` 已废弃，建议集中一个 `modKey()` helper。
+- `StatusBar.tsx:118`：`formatDateTime(...).slice(11)` 取时间脆弱，应有独立 `formatTime`。
+- `ProjectEditDialog` / `GlobalSettingsModal` 无 Escape 关闭（其他弹窗都有），不一致。
+- `Toolbar.tsx:171` 等 tooltip 宣称的快捷键在可编辑区域不生效，提示过度承诺。
+- `stats.ts` 的 `inkwell-stats-*` 键在项目删除时不清理——无界泄漏（体积微不足道，Nit）。
+- `App.tsx:29-45`：全局右键抑制只豁免 `input, textarea`，未来出现 `[contenteditable]` 表面会被静默打断（把豁免加上）。
+- 文件规模提醒：`store/index.ts`（718）、`NotesView.tsx`（593）、`ProjectList.tsx`（570）、`GlobalSettingsModal.tsx`（569）已接近 1000 行警戒线——后续加功能前先分解（ProjectCard/ProjectRow 的进度条块近乎逐字重复，可先抽 `ProgressBar`）。
 
 ---
 
-*生成时间：2026-07-15 · 验证：tsc 0 错误，纯逻辑测试 12/12 通过*
+## 做得好的地方
 
----
+- **内容防丢的设计意图是一流的**：逐键草稿 + pending map + 3 秒 autosave + 5 分钟快照（20 个剪枝上限）+ 关窗落盘；缺口都在接缝，不在设计。
+- 快照失败回滚时间戳以便下次重试（store:497-501）；`findRecoverableDrafts` 对读不到的磁盘文件偏向"可恢复"而非丢弃最后副本（draft.ts:104-111）——正确的偏向。
+- 章节正文与项目元数据分离存储，元数据操作不重写小说全文。
+- 竞态守卫覆盖到位：async effect 的 `cancelled` 标志、search token、`editor.isDestroyed` 检查、拖拽深度计数。
+- 安全姿态：零 `dangerouslySetInnerHTML`；CSP 无 `unsafe-eval`；`dragDropEnabled: false` 阻断 webview 拖拽劫持导航；capabilities 最小化；导出时标题/作者统一 `escapeHtml`。
+- 主题系统纯函数化（`computeThemeVars` 无 DOM 依赖）且有测试；现有测试行为驱动、命名达意。
 
-## 五、实施记录（2026-07-17，全部落地）
+## 测试充分性评估
 
-本报告 A/B/C/D 四组优化项已全部实施并验证（`tsc` 0 错误、`vitest` 6 文件 39 用例全绿、`cargo check` 通过、生产构建成功）：
+现有测试质量不差（draft 恢复分支、排序不变量、标点边界都有覆盖），但存在结构性盲区：**Tauri 分支零覆盖**（R16）、**snapshots 零测试**、**store 保存生命周期零测试**——恰好是 C1/C3/R3/R4 的所在层。修复上述 Critical/Required 时应一并补回归测试，尤其 C3 可用 fake timers 精确复现。
 
-| 项目 | 实现 |
-|------|------|
-| A1 崩溃恢复 | `lib/draft.ts` 逐键草稿缓冲（localStorage）+ 启动扫描恢复弹窗（`RecoveryDialog`）+ 切章草稿提示条 + Tauri `onCloseRequested` 关窗强制落盘 |
-| A2 版本快照 | `lib/snapshots.ts`，保存时每 5 分钟（有改动）快照至 `chapters/{id}.snapshots/`，上限 20 个自动修剪；右侧栏新增"历史版本"标签可预览/回滚；删除章节/卷/作品时级联清理 |
-| A3 全书搜索 | `SearchPanel`（Ctrl+Shift+F），跨章节标题+正文检索、按卷分组、键盘导航、点击跳转 |
-| A4 导出扩充 | 整本 TXT / Markdown（卷标题分节、与目录同序），导出菜单分"本章/整本"两组共 5 种格式 |
-| A5 写作统计 | `lib/stats.ts` 每日零点快照对比得"今日新增"；活跃打字计时得"写作时长"；StatusBar 显示总进度%与本章进度条 |
-| A6 首行缩进 | `.ProseMirror p { text-indent: 2em }` + 设置"段落首行缩进"开关（默认开） |
-| A7 卷拖拽 | `moveVolume` + 卷抓手拖拽，`DropTarget` 按 dataTransfer 类型区分章节/卷拖拽互不干扰 |
-| A8 项目卡片 | 聚合各作品章节字数，卡片显示"当前字数 / 目标 + 进度条" |
-| B1 删除确认 | 通用 `ConfirmDialog`，删除作品提示"将删除 N 个章节"，卷/章同级确认 |
-| B2 存储迁移 | 改作品内容位置后提示一键迁移（Rust `copy_dir_recursive` 复制 projects/ + chapters/） |
-| B3 查重 | `createProject` 重名抛错，新建表单就地显示 |
-| B4 保存失败 | autosave 失败置 `saveError`，StatusBar 红色"保存失败"+ 重试/忽略；成功即清除 |
-| C1 快捷键 | Ctrl+N 新建章节、Ctrl+B 目录侧栏、Ctrl+Alt+O 大纲、Ctrl+Shift+D 专注模式；设置面板分"编辑器内/应用"两组如实标注 |
-| C2 导出反馈 | 导出成功 toast 显示目标路径 + "打开所在文件夹" |
-| C3 空状态 | 无章节时编辑器空态提供"新建章节"按钮 |
-| C4 目录定位 | 选中章节自动展开父卷并 `scrollIntoView` |
-| D1/D4 | `dist-old-2/` 已删除；StatusBar 保存文案合并 |
+## 验证记录（本次审查执行）
 
-Rust 后端新增 `list_files` / `copy_file` / `copy_dir_recursive` 三个命令（仍走自有最小权限命令体系，无 fs scope）。UI 统一圆角（面板/弹窗 rounded-xl、按钮 rounded-lg）、悬浮态与过渡动画、弹窗淡入/缩放动效。
+| 项目 | 结果 |
+|---|---|
+| `tsc --noEmit` | ✅ 通过，零错误 |
+| `vitest run` | ⚠️ 未能执行：node_modules 的 rollup/swc 原生绑定为 Windows 平台编译，审查沙箱（Linux）无法加载。非代码缺陷；请在 Windows 本机跑一次 `npm test` 确认 |
+| 关键发现源码复核 | ✅ C1/C2/C3/R1/R2/R9 均逐行核对源码确认 |
+
+## 修复优先级（只做五件事的话）
+
+1. **C2** — Rust 侧给文件命令加根目录白名单、`open_path` 限目录。
+2. **C1** — 写入改 temp+rename 原子化；加载区分缺失/损坏。
+3. **C3 + R3/R4** — 统一修"防抖计时器 vs 状态切换"族：调度时捕获负载、切换/关闭前冲刷、关闭前落盘再清状态。
+4. **R1 + R2** — 恢复后刷新编辑器（contentVersion）、章节加载失败的错误面与清空保护。这两条是用户正常操作即可踩到的丢稿路径。
+5. **R11/R12/R13** — 打字卡顿三件套：store 选择器、分隔条 mouseup 持久化、搜索依赖结构签名。

@@ -10,8 +10,8 @@
  *  - 纸张质感只作用于浅色（深色下保持暗背景）。
  */
 
-export type AccentKey = "brown" | "blue" | "green" | "red" | "purple";
-export type PaperKey = "plain" | "parchment" | "eye";
+export type AccentKey = "brown" | "blue" | "green" | "red" | "purple" | "teal";
+export type PaperKey = "plain" | "parchment" | "eye" | "celadon";
 export type ThemeMode = "light" | "dark" | "system";
 
 interface Palette {
@@ -36,7 +36,7 @@ interface DarkPalette {
   placeholder: string;
 }
 
-export const ACCENT_ORDER: AccentKey[] = ["brown", "blue", "green", "red", "purple"];
+export const ACCENT_ORDER: AccentKey[] = ["brown", "blue", "green", "teal", "red", "purple"];
 
 export const ACCENTS: Record<
   AccentKey,
@@ -82,9 +82,17 @@ export const ACCENTS: Record<
     darkLight: "#d0bde3",
     swatch: "#876a99",
   },
+  teal: {
+    label: "青瓷",
+    light: "#2f6f6a",
+    lightLight: "#4d8c86",
+    dark: "#8fc4bd",
+    darkLight: "#abd6d0",
+    swatch: "#4d8c86",
+  },
 };
 
-export const PAPER_ORDER: PaperKey[] = ["plain", "parchment", "eye"];
+export const PAPER_ORDER: PaperKey[] = ["plain", "parchment", "eye", "celadon"];
 
 export const PAPERS: Record<PaperKey, { label: string; hint: string; base: Omit<Palette, "accent" | "accentLight"> }> = {
   plain: {
@@ -126,7 +134,40 @@ export const PAPERS: Record<PaperKey, { label: string; hint: string; base: Omit<
       placeholder: "rgba(50,80,55,0.28)",
     },
   },
+  celadon: {
+    label: "青瓷",
+    hint: "冷调青灰",
+    base: {
+      paper: "#eef3f2",
+      ink: "#1a2322",
+      inkMuted: "#556664",
+      warmGray: "#d8e2e0",
+      scrollbarThumb: "rgba(40,80,80,0.16)",
+      scrollbarThumbHover: "rgba(40,80,80,0.28)",
+      placeholder: "rgba(45,75,75,0.26)",
+    },
+  },
 };
+
+  /** 预设主题：整套协调搭配（主题色 + 纸张质感），一键应用。 */
+export interface ThemePreset {
+  id: string;
+  label: string;
+  hint: string;
+  accent: AccentKey;
+  paper: PaperKey;
+  /** 预览卡底色（浅色纸张）。 */
+  preview: string;
+}
+
+export const THEME_PRESETS: ThemePreset[] = [
+  { id: "ink", label: "墨韵", hint: "默认米白 + 墨棕", accent: "brown", paper: "plain", preview: "#faf8f5" },
+  { id: "celadon", label: "青瓷", hint: "冷调青灰 + 青瓷", accent: "teal", paper: "celadon", preview: "#eef3f2" },
+  { id: "parchment", label: "卷轴", hint: "暖黄羊皮纸 + 胭脂", accent: "red", paper: "parchment", preview: "#f5efdd" },
+  { id: "pine", label: "松间", hint: "护眼绿 + 松绿", accent: "green", paper: "eye", preview: "#edf3ec" },
+  { id: "dusk", label: "暮蓝", hint: "米白 + 黛蓝", accent: "blue", paper: "plain", preview: "#f2f4f8" },
+  { id: "sandal", label: "檀香", hint: "羊皮纸 + 紫檀", accent: "purple", paper: "parchment", preview: "#f5efdd" },
+];
 
 /*
  * 深色模式：暖调墨色。

@@ -1,1 +1,325 @@
-aW1wb3J0IHsKICBVbmRvLAogIFJlZG8sCiAgTW9vbiwKICBTdW4sCiAgQ2hlY2ssCiAgUGFuZWxMZWZ0LAogIFBhbmVsUmlnaHQsCiAgRm9jdXMsCiAgRXhwYW5kLAogIFNocmluaywKICBTYXZlLAogIERvd25sb2FkLAogIEZpbGVUZXh0LAogIEJvb2tPcGVuLAogIEZpbGVUeXBlLAogIEZvbGRlck9wZW4sCiAgV2FuZFNwYXJrbGVzLAp9IGZyb20gImx1Y2lkZS1yZWFjdCI7CmltcG9ydCB7IHVzZUFwcFN0b3JlIH0gZnJvbSAiLi4vc3RvcmUiOwppbXBvcnQgeyBjbiB9IGZyb20gIi4uL2xpYi91dGlscyI7CmltcG9ydCB0eXBlIHsgRWRpdG9yIH0gZnJvbSAiQHRpcHRhcC9yZWFjdCI7CmltcG9ydCB7IHVzZVN0YXRlLCB1c2VSZWYsIHVzZUVmZmVjdCB9IGZyb20gInJlYWN0IjsKaW1wb3J0IHR5cGUgeyBQcm9qZWN0LCBDaGFwdGVyLCBBcHBTZXR0aW5ncyB9IGZyb20gIi4uL3R5cGVzIjsKaW1wb3J0IHsgZXhwb3J0Q2hhcHRlciwgZXhwb3J0UHJvamVjdCB9IGZyb20gIi4uL2xpYi9leHBvcnQiOwppbXBvcnQgeyByZXZlYWxJbkZvbGRlciwgZGlybmFtZSB9IGZyb20gIi4uL2xpYi9zdG9yYWdlIjsKaW1wb3J0IHsgdXNlQ2xpY2tPdXRzaWRlIH0gZnJvbSAiLi4vaG9va3MvdXNlQ2xpY2tPdXRzaWRlIjsKCmludGVyZmFjZSBUb29sYmFyUHJvcHMgewogIGVkaXRvcjogRWRpdG9yIHwgbnVsbDsKICBvblNhdmU/OiAoKSA9PiB2b2lkOwogIG9uQXV0b0Zvcm1hdD86ICgpID0+IHZvaWQ7CiAgaXNGdWxsc2NyZWVuPzogYm9vbGVhbjsKICBvblRvZ2dsZUZ1bGxzY3JlZW4/OiAoKSA9PiB2b2lkOwp9CgpmdW5jdGlvbiBUb29sYmFyQnV0dG9uKHsKICBhY3RpdmUsCiAgZGlzYWJsZWQsCiAgb25DbGljaywKICBjaGlsZHJlbiwKICB0aXRsZSwKfTogewogIGFjdGl2ZT86IGJvb2xlYW47CiAgZGlzYWJsZWQ/OiBib29sZWFuOwogIG9uQ2xpY2s6ICgpID0+IHZvaWQ7CiAgY2hpbGRyZW46IFJlYWN0LlJlYWN0Tm9kZTsKICB0aXRsZT86IHN0cmluZzsKfSkgewogIHJldHVybiAoCiAgICA8YnV0dG9uCiAgICAgIHR5cGU9ImJ1dHRvbiIKICAgICAgdGl0bGU9e3RpdGxlfQogICAgICBkaXNhYmxlZD17ZGlzYWJsZWR9CiAgICAgIG9uQ2xpY2s9e29uQ2xpY2t9CiAgICAgIGNsYXNzTmFtZT17Y24oCiAgICAgICAgImZsZXggaC04IHctOCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcm91bmRlZC1tZCB0ZXh0LXNtIHRyYW5zaXRpb24tY29sb3JzIiwKICAgICAgICBhY3RpdmUKICAgICAgICAgID8gImJnLWFjY2VudC8xMCB0ZXh0LWFjY2VudCBkYXJrOmJnLWFjY2VudC8yMCIKICAgICAgICAgIDogInRleHQtaW5rLzcwIGhvdmVyOmJnLXdhcm0tZ3JheSBkYXJrOnRleHQtaW5rLWRhcmsvNzAgZGFyazpob3ZlcjpiZy13YXJtLWdyYXktZGFyayIsCiAgICAgICAgZGlzYWJsZWQgJiYgInBvaW50ZXItZXZlbnRzLW5vbmUgb3BhY2l0eS00MCIsCiAgICAgICl9CiAgICA+CiAgICAgIHtjaGlsZHJlbn0KICAgIDwvYnV0dG9uPgogICk7Cn0KCmV4cG9ydCBmdW5jdGlvbiBUb29sYmFyKHsgZWRpdG9yLCBvblNhdmUsIG9uQXV0b0Zvcm1hdCwgaXNGdWxsc2NyZWVuLCBvblRvZ2dsZUZ1bGxzY3JlZW4gfTogVG9vbGJhclByb3BzKSB7CiAgY29uc3QgewogICAgdGhlbWUsCiAgICBzZXRUaGVtZSwKICAgIGxlZnRTaWRlYmFyT3BlbiwKICAgIHRvZ2dsZUxlZnRTaWRlYmFyLAogICAgcmlnaHRTaWRlYmFyT3BlbiwKICAgIHRvZ2dsZVJpZ2h0U2lkZWJhciwKICAgIGZvY3VzTW9kZSwKICAgIHRvZ2dsZUZvY3VzTW9kZSwKICAgIGN1cnJlbnRQcm9qZWN0LAogICAgY3VycmVudENoYXB0ZXIsCiAgICBhcHBTZXR0aW5ncywKICAgIGxhc3RTYXZlZEF0LAogIH0gPSB1c2VBcHBTdG9yZSgpOwoKICAvLyBCcmllZmx5IHN3YXAgdGhlIFNhdmUgaWNvbiBmb3IgYSBDaGVjayB3aGVuZXZlciBhIHNhdmUgbGFuZHMsIHNvIHRoZQogIC8vIHVzZXIgZ2V0cyB1bm1pc3NhYmxlIG9uLWJ1dHRvbiBmZWVkYmFjayAodGhlIFN0YXR1c0JhciB0ZXh0IGlzIGVhc3kgdG8KICAvLyBtaXNzIHdoaWxlIHRoZSB1c2VyJ3MgZXllcyBhcmUgb24gdGhlIHRvb2xiYXIpLgogIGNvbnN0IFtqdXN0U2F2ZWQsIHNldEp1c3RTYXZlZF0gPSB1c2VTdGF0ZShmYWxzZSk7CiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGlmICghbGFzdFNhdmVkQXQpIHJldHVybjsKICAgIHNldEp1c3RTYXZlZCh0cnVlKTsKICAgIGNvbnN0IHQgPSBzZXRUaW1lb3V0KCgpID0+IHNldEp1c3RTYXZlZChmYWxzZSksIDE1MDApOwogICAgcmV0dXJuICgpID0+IGNsZWFyVGltZW91dCh0KTsKICB9LCBbbGFzdFNhdmVkQXRdKTsKCiAgLy8g5pW055CG5qC85byP5Y+N6aaI77ya5ZCMIGp1c3RTYXZlZO+8jOaMiemSruefreaaguWPmOaIkOWvueWLvuOAggogIGNvbnN0IFtqdXN0Rm9ybWF0dGVkLCBzZXRKdXN0Rm9ybWF0dGVkXSA9IHVzZVN0YXRlKGZhbHNlKTsKICBjb25zdCBmb3JtYXRUaW1lciA9IHVzZVJlZjxSZXR1cm5UeXBlPHR5cGVvZiBzZXRUaW1lb3V0PiB8IG51bGw+KG51bGwpOwogIHVzZUVmZmVjdCgoKSA9PiAoKSA9PiB7CiAgICBpZiAoZm9ybWF0VGltZXIuY3VycmVudCkgY2xlYXJUaW1lb3V0KGZvcm1hdFRpbWVyLmN1cnJlbnQpOwogIH0sIFtdKTsKICBjb25zdCBoYW5kbGVBdXRvRm9ybWF0ID0gKCkgPT4gewogICAgaWYgKCFlZGl0b3IgfHwgZWRpdG9yLmlzRGVzdHJveWVkKSByZXR1cm47CiAgICBvbkF1dG9Gb3JtYXQ/LigpOwogICAgc2V0SnVzdEZvcm1hdHRlZCh0cnVlKTsKICAgIGlmIChmb3JtYXRUaW1lci5jdXJyZW50KSBjbGVhclRpbWVvdXQoZm9ybWF0VGltZXIuY3VycmVudCk7CiAgICBmb3JtYXRUaW1lci5jdXJyZW50ID0gc2V0VGltZW91dCgoKSA9PiBzZXRKdXN0Rm9ybWF0dGVkKGZhbHNlKSwgMTUwMCk7CiAgfTsKCiAgaWYgKCFlZGl0b3IgfHwgZWRpdG9yLmlzRGVzdHJveWVkKSByZXR1cm4gbnVsbDsKCiAgY29uc3QgcnVuID0gKGZuOiAoKSA9PiBib29sZWFuKSA9PiB7CiAgICBpZiAoZWRpdG9yLmlzRGVzdHJveWVkKSByZXR1cm4gZmFsc2U7CiAgICBlZGl0b3IuY29tbWFuZHMuZm9jdXMoKTsKICAgIHJldHVybiBmbigpOwogIH07CgogIHJldHVybiAoCiAgICAvLyBOT1RFOiBubyBgb3ZlcmZsb3cteC1hdXRvYCBoZXJlLiBQZXIgdGhlIENTUyBzcGVjLCBzZXR0aW5nCiAgICAvLyBgb3ZlcmZsb3cteGAgdG8gYW55dGhpbmcgb3RoZXIgdGhhbiBgdmlzaWJsZWAgZm9yY2VzIGBvdmVyZmxvdy15YAogICAgLy8gdG8gYGF1dG9gLCB3aGljaCB3b3VsZCBjbGlwIHRoZSBFeHBvcnREcm9wZG93biB0aGF0IGV4dGVuZHMgYmVsb3cKICAgIC8vIHRoZSB0b29sYmFyLiBUaGUgdG9vbGJhciBpcyB3aWRlIGVub3VnaCBvbiB0aGUgYXBwJ3MgbWluaW11bQogICAgLy8gd2luZG93IHNpemUgdGhhdCBob3Jpem9udGFsIHNjcm9sbCBpcyBub3QgbmVlZGVkLgogICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaC0xMiBzaHJpbmstMCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGJvcmRlci1iIGJvcmRlci13YXJtLWdyYXkgYmctcGFwZXIgcHgtMyBkYXJrOmJvcmRlci13YXJtLWdyYXktZGFyayBkYXJrOmJnLXBhcGVyLWRhcmsiPgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTEiPgogICAgICAgIDxUb29sYmFyQnV0dG9uCiAgICAgICAgICBkaXNhYmxlZD17IWVkaXRvci5jYW4oKS51bmRvKCl9CiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBydW4oKCkgPT4gZWRpdG9yLmNoYWluKCkudW5kbygpLnJ1bigpKX0KICAgICAgICAgIHRpdGxlPSLmkqTplIAgKEN0cmwrWikiCiAgICAgICAgPgogICAgICAgICAgPFVuZG8gc2l6ZT17MTZ9IC8+CiAgICAgICAgPC9Ub29sYmFyQnV0dG9uPgogICAgICAgIDxUb29sYmFyQnV0dG9uCiAgICAgICAgICBkaXNhYmxlZD17IWVkaXRvci5jYW4oKS5yZWRvKCl9CiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBydW4oKCkgPT4gZWRpdG9yLmNoYWluKCkucmVkbygpLnJ1bigpKX0KICAgICAgICAgIHRpdGxlPSLph43lgZogKEN0cmwrWSkiCiAgICAgICAgPgogICAgICAgICAgPFJlZG8gc2l6ZT17MTZ9IC8+CiAgICAgICAgPC9Ub29sYmFyQnV0dG9uPgogICAgICA8L2Rpdj4KCiAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMSI+CiAgICAgICAge2N1cnJlbnRQcm9qZWN0ICYmICgKICAgICAgICAgIDxUb29sYmFyQnV0dG9uCiAgICAgICAgICAgIG9uQ2xpY2s9e2hhbmRsZUF1dG9Gb3JtYXR9CiAgICAgICAgICAgIHRpdGxlPXtqdXN0Rm9ybWF0dGVkID8gIuW3suaVtOeQhiIgOiAi6Ieq5Yqo5pW055CG5qC85byP77yI5qCH54K55YWo6KeS5YyW44CB5byV5Y+36YWN5a+544CB56m655m95LiO6L+e57ut56m65q615pS25pWb77yJIn0KICAgICAgICAgICAgYWN0aXZlPXtqdXN0Rm9ybWF0dGVkfQogICAgICAgICAgPgogICAgICAgICAgICB7anVzdEZvcm1hdHRlZCA/IDxDaGVjayBzaXplPXsxNn0gLz4gOiA8V2FuZFNwYXJrbGVzIHNpemU9ezE2fSAvPn0KICAgICAgICAgIDwvVG9vbGJhckJ1dHRvbj4KICAgICAgICApfQogICAgICAgIHtjdXJyZW50UHJvamVjdCAmJiAoCiAgICAgICAgICA8VG9vbGJhckJ1dHRvbgogICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBvblNhdmU/LigpfQogICAgICAgICAgICB0aXRsZT17anVzdFNhdmVkID8gIuW3suS/neWtmCIgOiAi5L+d5a2YIChDdHJsK1MpIn0KICAgICAgICAgICAgYWN0aXZlPXtqdXN0U2F2ZWR9CiAgICAgICAgICA+CiAgICAgICAgICAgIHtqdXN0U2F2ZWQgPyA8Q2hlY2sgc2l6ZT17MTZ9IC8+IDogPFNhdmUgc2l6ZT17MTZ9IC8+fQogICAgICAgICAgPC9Ub29sYmFyQnV0dG9uPgogICAgICAgICl9CiAgICAgICAge2N1cnJlbnRQcm9qZWN0ICYmIGN1cnJlbnRDaGFwdGVyICYmICgKICAgICAgICAgIDxFeHBvcnREcm9wZG93bgogICAgICAgICAgICBwcm9qZWN0PXtjdXJyZW50UHJvamVjdH0KICAgICAgICAgICAgY2hhcHRlcj17Y3VycmVudENoYXB0ZXJ9CiAgICAgICAgICAgIGFwcFNldHRpbmdzPXthcHBTZXR0aW5nc30KICAgICAgICAgIC8+CiAgICAgICAgKX0KICAgICAgICA8VG9vbGJhckJ1dHRvbiBvbkNsaWNrPXt0b2dnbGVMZWZ0U2lkZWJhcn0gYWN0aXZlPXtsZWZ0U2lkZWJhck9wZW59IHRpdGxlPSLlt6bkvqfmoI8gKEN0cmwrQikiPgogICAgICAgICAgPFBhbmVsTGVmdCBzaXplPXsxNn0gLz4KICAgICAgICA8L1Rvb2xiYXJCdXR0b24+CiAgICAgICAgPFRvb2xiYXJCdXR0b24gb25DbGljaz17dG9nZ2xlUmlnaHRTaWRlYmFyfSBhY3RpdmU9e3JpZ2h0U2lkZWJhck9wZW59IHRpdGxlPSLlj7PkvqfmoI8gKEN0cmwrQWx0K08pIj4KICAgICAgICAgIDxQYW5lbFJpZ2h0IHNpemU9ezE2fSAvPgogICAgICAgIDwvVG9vbGJhckJ1dHRvbj4KICAgICAgICA8VG9vbGJhckJ1dHRvbiBvbkNsaWNrPXt0b2dnbGVGb2N1c01vZGV9IGFjdGl2ZT17Zm9jdXNNb2RlfSB0aXRsZT0i5LiT5rOo5qih5byPIChDdHJsK1NoaWZ0K0QpIj4KICAgICAgICAgIDxGb2N1cyBzaXplPXsxNn0gLz4KICAgICAgICA8L1Rvb2xiYXJCdXR0b24+CiAgICAgICAgPFRvb2xiYXJCdXR0b24KICAgICAgICAgIG9uQ2xpY2s9eygpID0+IG9uVG9nZ2xlRnVsbHNjcmVlbj8uKCl9CiAgICAgICAgICBhY3RpdmU9e2lzRnVsbHNjcmVlbn0KICAgICAgICAgIHRpdGxlPXtpc0Z1bGxzY3JlZW4gPyAi6YCA5Ye65YWo5bGPIChFc2MpIiA6ICLlhajlsY/nvJbovpEifQogICAgICAgID4KICAgICAgICAgIHtpc0Z1bGxzY3JlZW4gPyA8U2hyaW5rIHNpemU9ezE2fSAvPiA6IDxFeHBhbmQgc2l6ZT17MTZ9IC8+fQogICAgICAgIDwvVG9vbGJhckJ1dHRvbj4KICAgICAgICA8VG9vbGJhckJ1dHRvbgogICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0VGhlbWUodGhlbWUgPT09ICJsaWdodCIgPyAiZGFyayIgOiAibGlnaHQiKX0KICAgICAgICAgIHRpdGxlPXt0aGVtZSA9PT0gImxpZ2h0IiA/ICLliIfmjaLliLDmt7HoibIiIDogIuWIh+aNouWIsOa1heiJsiJ9CiAgICAgICAgPgogICAgICAgICAge3RoZW1lID09PSAibGlnaHQiID8gPE1vb24gc2l6ZT17MTZ9IC8+IDogPFN1biBzaXplPXsxNn0gLz59CiAgICAgICAgPC9Ub29sYmFyQnV0dG9uPgogICAgICA8L2Rpdj4KICAgIDwvZGl2PgogICk7Cn0KCnR5cGUgRXhwb3J0Rm9ybWF0ID0gImNoYXB0ZXItbWQiIHwgImNoYXB0ZXItdHh0IiB8ICJwcm9qZWN0LWh0bWwiIHwgInByb2plY3QtbWQiIHwgInByb2plY3QtdHh0IjsKCmZ1bmN0aW9uIEV4cG9ydERyb3Bkb3duKHsKICBwcm9qZWN0LAogIGNoYXB0ZXIsCiAgYXBwU2V0dGluZ3MsCn06IHsKICBwcm9qZWN0OiBQcm9qZWN0OwogIGNoYXB0ZXI6IENoYXB0ZXI7CiAgYXBwU2V0dGluZ3M6IEFwcFNldHRpbmdzOwp9KSB7CiAgY29uc3QgW29wZW4sIHNldE9wZW5dID0gdXNlU3RhdGUoZmFsc2UpOwogIGNvbnN0IFtleHBvcnRlZCwgc2V0RXhwb3J0ZWRdID0gdXNlU3RhdGU8c3RyaW5nIHwgbnVsbD4obnVsbCk7CiAgY29uc3QgZHJvcGRvd25SZWYgPSB1c2VSZWY8SFRNTERpdkVsZW1lbnQ+KG51bGwpOwogIGNvbnN0IHsgdm9sdW1lcywgY2hhcHRlcnMsIGdldENoYXB0ZXJDb250ZW50IH0gPSB1c2VBcHBTdG9yZSgpOwogIHVzZUNsaWNrT3V0c2lkZShkcm9wZG93blJlZiwgKCkgPT4gc2V0T3BlbihmYWxzZSksIG9wZW4pOwoKICAvLyBFeHBvcnQgZmVlZGJhY2s6IGEgc21hbGwgdG9hc3QgdW5kZXIgdGhlIHRvb2xiYXIgbmFtaW5nIHRoZSBkZXN0aW5hdGlvbiwKICAvLyB3aXRoIGEgb25lLWNsaWNrICJvcGVuIGNvbnRhaW5pbmcgZm9sZGVyIi4gQXV0by1kaXNtaXNzZXMgYWZ0ZXIgNnMuCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGlmICghZXhwb3J0ZWQpIHJldHVybjsKICAgIGNvbnN0IHQgPSBzZXRUaW1lb3V0KCgpID0+IHNldEV4cG9ydGVkKG51bGwpLCA2MDAwKTsKICAgIHJldHVybiAoKSA9PiBjbGVhclRpbWVvdXQodCk7CiAgfSwgW2V4cG9ydGVkXSk7CgogIGNvbnN0IGhhbmRsZUV4cG9ydCA9IGFzeW5jIChmb3JtYXQ6IEV4cG9ydEZvcm1hdCkgPT4gewogICAgc2V0T3BlbihmYWxzZSk7CiAgICB0cnkgewogICAgICBsZXQgcmVzdWx0OiB7IGNhbmNlbGVkOiBib29sZWFuOyBwYXRoPzogc3RyaW5nIH07CiAgICAgIGlmIChmb3JtYXQgPT09ICJwcm9qZWN0LWh0bWwiIHx8IGZvcm1hdCA9PT0gInByb2plY3QtbWQiIHx8IGZvcm1hdCA9PT0gInByb2plY3QtdHh0IikgewogICAgICAgIGNvbnN0IHByb2plY3RGb3JtYXQgPSBmb3JtYXQgPT09ICJwcm9qZWN0LWh0bWwiID8gImh0bWwiIDogZm9ybWF0ID09PSAicHJvamVjdC1tZCIgPyAibWQiIDogInR4dCI7CiAgICAgICAgcmVzdWx0ID0gYXdhaXQgZXhwb3J0UHJvamVjdChwcm9qZWN0LCB2b2x1bWVzLCBjaGFwdGVycywgZ2V0Q2hhcHRlckNvbnRlbnQsIGFwcFNldHRpbmdzLCBwcm9qZWN0Rm9ybWF0KTsKICAgICAgfSBlbHNlIHsKICAgICAgICByZXN1bHQgPSBhd2FpdCBleHBvcnRDaGFwdGVyKAogICAgICAgICAgcHJvamVjdCwKICAgICAgICAgIGNoYXB0ZXIsCiAgICAgICAgICBnZXRDaGFwdGVyQ29udGVudCwKICAgICAgICAgIGZvcm1hdCA9PT0gImNoYXB0ZXItbWQiID8gIm1kIiA6ICJ0eHQiLAogICAgICAgICAgYXBwU2V0dGluZ3MsCiAgICAgICAgKTsKICAgICAgfQogICAgICBpZiAoIXJlc3VsdC5jYW5jZWxlZCAmJiByZXN1bHQucGF0aCkgewogICAgICAgIHNldEV4cG9ydGVkKHJlc3VsdC5wYXRoKTsKICAgICAgfQogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIGNvbnNvbGUuZXJyb3IoIkV4cG9ydCBmYWlsZWQiLCBlcnIpOwogICAgICBhbGVydChg5a+85Ye65aSx6LSl77yaJHtlcnIgaW5zdGFuY2VvZiBFcnJvciA/IGVyci5tZXNzYWdlIDogU3RyaW5nKGVycil9YCk7CiAgICB9CiAgfTsKCiAgY29uc3Qgb3BlbkV4cG9ydGVkRm9sZGVyID0gYXN5bmMgKCkgPT4gewogICAgaWYgKCFleHBvcnRlZCkgcmV0dXJuOwogICAgdHJ5IHsKICAgICAgY29uc3QgZGlyID0gYXdhaXQgZGlybmFtZShleHBvcnRlZCk7CiAgICAgIGNvbnN0IGVyciA9IGF3YWl0IHJldmVhbEluRm9sZGVyKGRpcik7CiAgICAgIGlmIChlcnIpIGFsZXJ0KGDml6Dms5XmiZPlvIDmlofku7blpLnvvJoke2Vycn1gKTsKICAgIH0gY2F0Y2ggewogICAgICAvLyBCcm93c2VyIGZhbGxiYWNrIGV4cG9ydCAoYSBkb3dubG9hZCkg4oCUIG5vIGZvbGRlciB0byBvcGVuLgogICAgfQogIH07CgogIHJldHVybiAoCiAgICA8ZGl2IHJlZj17ZHJvcGRvd25SZWZ9IGNsYXNzTmFtZT0icmVsYXRpdmUiPgogICAgICA8VG9vbGJhckJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBzZXRPcGVuKCFvcGVuKX0gdGl0bGU9IuWvvOWHuiI+CiAgICAgICAgPERvd25sb2FkIHNpemU9ezE2fSAvPgogICAgICA8L1Rvb2xiYXJCdXR0b24+CiAgICAgIHtvcGVuICYmICgKICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYWJzb2x1dGUgcmlnaHQtMCB0b3AtMTAgei0yMCB3LTQ4IHJvdW5kZWQtbGcgYm9yZGVyIGJvcmRlci13YXJtLWdyYXkgYmctcGFwZXIgcHktMSBzaGFkb3ctbGcgZGFyazpib3JkZXItd2FybS1ncmF5LWRhcmsgZGFyazpiZy1wYXBlci1kYXJrIj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJweC0zIHBiLTEgcHQtMS41IHRleHQtWzEwcHhdIGZvbnQtbWVkaXVtIHVwcGVyY2FzZSB0cmFja2luZy13aWRlIHRleHQtaW5rLW11dGVkIGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayI+CiAgICAgICAgICAgIOacrOeroAogICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8RXhwb3J0SXRlbSBvbkNsaWNrPXsoKSA9PiBoYW5kbGVFeHBvcnQoImNoYXB0ZXItbWQiKX0gaWNvbj17PEZpbGVUZXh0IHNpemU9ezE0fSAvPn0gbGFiZWw9IuWvvOWHuuS4uiBNYXJrZG93biIgLz4KICAgICAgICAgIDxFeHBvcnRJdGVtIG9uQ2xpY2s9eygpID0+IGhhbmRsZUV4cG9ydCgiY2hhcHRlci10eHQiKX0gaWNvbj17PEZpbGVUZXh0IHNpemU9ezE0fSAvPn0gbGFiZWw9IuWvvOWHuuS4uue6r+aWh+acrCIgLz4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJteC0yIG15LTEgYm9yZGVyLXQgYm9yZGVyLXdhcm0tZ3JheSBkYXJrOmJvcmRlci13YXJtLWdyYXktZGFyayIgLz4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJweC0zIHBiLTEgcHQtMSB0ZXh0LVsxMHB4XSBmb250LW1lZGl1bSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZSB0ZXh0LWluay1tdXRlZCBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsiPgogICAgICAgICAgICDmlbTmnKzkvZzlk4EKICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPEV4cG9ydEl0ZW0gb25DbGljaz17KCkgPT4gaGFuZGxlRXhwb3J0KCJwcm9qZWN0LWh0bWwiKX0gaWNvbj17PEJvb2tPcGVuIHNpemU9ezE0fSAvPn0gbGFiZWw9IuWvvOWHuuS4uiBIVE1MIiAvPgogICAgICAgICAgPEV4cG9ydEl0ZW0gb25DbGljaz17KCkgPT4gaGFuZGxlRXhwb3J0KCJwcm9qZWN0LW1kIil9IGljb249ezxGaWxlVHlwZSBzaXplPXsxNH0gLz59IGxhYmVsPSLlr7zlh7rkuLogTWFya2Rvd24iIC8+CiAgICAgICAgICA8RXhwb3J0SXRlbSBvbkNsaWNrPXsoKSA9PiBoYW5kbGVFeHBvcnQoInByb2plY3QtdHh0Iil9IGljb249ezxGaWxlVHlwZSBzaXplPXsxNH0gLz59IGxhYmVsPSLlr7zlh7rkuLrnuq/mlofmnKwiIC8+CiAgICAgICAgPC9kaXY+CiAgICAgICl9CiAgICAgIHtleHBvcnRlZCAmJiAoCiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImFic29sdXRlIHJpZ2h0LTAgdG9wLTEwIHotMjAgdy02NCByb3VuZGVkLWxnIGJvcmRlciBib3JkZXItd2FybS1ncmF5IGJnLXBhcGVyIHAtMyBzaGFkb3ctbGcgZGFyazpib3JkZXItd2FybS1ncmF5LWRhcmsgZGFyazpiZy1wYXBlci1kYXJrIGFuaW1hdGUtW2lua3dlbGwtcG9wLWluXzAuMTVzX2Vhc2Utb3V0XSI+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1zdGFydCBnYXAtMiI+CiAgICAgICAgICAgIDxDaGVjayBzaXplPXsxNH0gY2xhc3NOYW1lPSJtdC0wLjUgc2hyaW5rLTAgdGV4dC1ncmVlbi02MDAgZGFyazp0ZXh0LWdyZWVuLTQwMCIgLz4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9Im1pbi13LTAgZmxleC0xIj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idGV4dC14cyBmb250LW1lZGl1bSB0ZXh0LWluayBkYXJrOnRleHQtaW5rLWRhcmsiPuWvvOWHuuaIkOWKnzwvZGl2PgogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtdC0wLjUgYnJlYWstYWxsIHRleHQtWzExcHhdIGxlYWRpbmctcmVsYXhlZCB0ZXh0LWluay1tdXRlZCBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsiPgogICAgICAgICAgICAgICAge2V4cG9ydGVkfQogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICAgIG9uQ2xpY2s9e29wZW5FeHBvcnRlZEZvbGRlcn0KICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0ibXQtMS41IGZsZXggaXRlbXMtY2VudGVyIGdhcC0xIHRleHQtWzExcHhdIHRleHQtYWNjZW50IHRyYW5zaXRpb24tY29sb3JzIGhvdmVyOnVuZGVybGluZSIKICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICA8Rm9sZGVyT3BlbiBzaXplPXsxMX0gLz4KICAgICAgICAgICAgICAgIOaJk+W8gOaJgOWcqOaWh+S7tuWkuQogICAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldEV4cG9ydGVkKG51bGwpfQogICAgICAgICAgICAgIGNsYXNzTmFtZT0ic2hyaW5rLTAgdGV4dC1pbmstbXV0ZWQgdHJhbnNpdGlvbi1jb2xvcnMgaG92ZXI6dGV4dC1pbmsgZGFyazp0ZXh0LWluay1tdXRlZC1kYXJrIGRhcms6aG92ZXI6dGV4dC1pbmstZGFyayIKICAgICAgICAgICAgPgogICAgICAgICAgICAgIMOXCiAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICAgICl9CiAgICA8L2Rpdj4KICApOwp9CgpmdW5jdGlvbiBFeHBvcnRJdGVtKHsKICBvbkNsaWNrLAogIGljb24sCiAgbGFiZWwsCn06IHsKICBvbkNsaWNrOiAoKSA9PiB2b2lkOwogIGljb246IFJlYWN0LlJlYWN0Tm9kZTsKICBsYWJlbDogc3RyaW5nOwp9KSB7CiAgcmV0dXJuICgKICAgIDxidXR0b24KICAgICAgb25DbGljaz17b25DbGlja30KICAgICAgY2xhc3NOYW1lPSJmbGV4IHctZnVsbCBpdGVtcy1jZW50ZXIgZ2FwLTIgcHgtMyBweS0xLjUgdGV4dC1sZWZ0IHRleHQtc20gdGV4dC1pbmsgdHJhbnNpdGlvbi1jb2xvcnMgaG92ZXI6Ymctd2FybS1ncmF5IGRhcms6dGV4dC1pbmstZGFyayBkYXJrOmhvdmVyOmJnLXdhcm0tZ3JheS1kYXJrIgogICAgPgogICAgICB7aWNvbn0KICAgICAge2xhYmVsfQogICAgPC9idXR0b24+CiAgKTsKfQo=
+import {
+  Undo,
+  Redo,
+  Moon,
+  Sun,
+  Check,
+  PanelLeft,
+  PanelRight,
+  Focus,
+  Expand,
+  Shrink,
+  Save,
+  Download,
+  FileText,
+  BookOpen,
+  FileType,
+  FolderOpen,
+  WandSparkles,
+} from "lucide-react";
+import { useAppStore } from "../store";
+import { cn } from "../lib/utils";
+import type { Editor } from "@tiptap/react";
+import { useState, useRef, useEffect } from "react";
+import type { Project, Chapter, AppSettings } from "../types";
+import { exportChapter, exportProject } from "../lib/export";
+import { revealInFolder, dirname } from "../lib/storage";
+import { useClickOutside } from "../hooks/useClickOutside";
+
+interface ToolbarProps {
+  editor: Editor | null;
+  onSave?: () => void;
+  onAutoFormat?: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+}
+
+function ToolbarButton({
+  active,
+  disabled,
+  onClick,
+  children,
+  title,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors",
+        active
+          ? "bg-accent/10 text-accent dark:bg-accent/20"
+          : "text-ink/70 hover:bg-warm-gray dark:text-ink-dark/70 dark:hover:bg-warm-gray-dark",
+        disabled && "pointer-events-none opacity-40",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function Toolbar({ editor, onSave, onAutoFormat, isFullscreen, onToggleFullscreen }: ToolbarProps) {
+  const {
+    theme,
+    setTheme,
+    leftSidebarOpen,
+    toggleLeftSidebar,
+    rightSidebarOpen,
+    toggleRightSidebar,
+    focusMode,
+    toggleFocusMode,
+    currentProject,
+    currentChapter,
+    appSettings,
+    lastSavedAt,
+  } = useAppStore();
+
+  // Briefly swap the Save icon for a Check whenever a save lands, so the
+  // user gets unmissable on-button feedback (the StatusBar text is easy to
+  // miss while the user's eyes are on the toolbar).
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    setJustSaved(true);
+    const t = setTimeout(() => setJustSaved(false), 1500);
+    return () => clearTimeout(t);
+  }, [lastSavedAt]);
+
+  // 整理格式反馈：同 justSaved，按钮短暂变成对勾。
+  const [justFormatted, setJustFormatted] = useState(false);
+  const formatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (formatTimer.current) clearTimeout(formatTimer.current);
+  }, []);
+  const handleAutoFormat = () => {
+    if (!editor || editor.isDestroyed) return;
+    onAutoFormat?.();
+    setJustFormatted(true);
+    if (formatTimer.current) clearTimeout(formatTimer.current);
+    formatTimer.current = setTimeout(() => setJustFormatted(false), 1500);
+  };
+
+  if (!editor || editor.isDestroyed) return null;
+
+  const run = (fn: () => boolean) => {
+    if (editor.isDestroyed) return false;
+    editor.commands.focus();
+    return fn();
+  };
+
+  return (
+    // NOTE: no `overflow-x-auto` here. Per the CSS spec, setting
+    // `overflow-x` to anything other than `visible` forces `overflow-y`
+    // to `auto`, which would clip the ExportDropdown that extends below
+    // the toolbar. The toolbar is wide enough on the app's minimum
+    // window size that horizontal scroll is not needed.
+    <div className="flex h-12 shrink-0 items-center justify-between border-b border-warm-gray/60 bg-paper px-3 dark:border-warm-gray-dark/60 dark:bg-paper-dark">
+      <div className="flex items-center gap-1">
+        <ToolbarButton
+          disabled={!editor.can().undo()}
+          onClick={() => run(() => editor.chain().undo().run())}
+          title="撤销 (Ctrl+Z)"
+        >
+          <Undo size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          disabled={!editor.can().redo()}
+          onClick={() => run(() => editor.chain().redo().run())}
+          title="重做 (Ctrl+Y)"
+        >
+          <Redo size={16} />
+        </ToolbarButton>
+      </div>
+
+      <div className="flex items-center gap-1">
+        {currentProject && (
+          <ToolbarButton
+            onClick={handleAutoFormat}
+            title={justFormatted ? "已整理" : "自动整理格式（标点全角化、引号配对、空白与连续空段收敛）"}
+            active={justFormatted}
+          >
+            {justFormatted ? <Check size={16} /> : <WandSparkles size={16} />}
+          </ToolbarButton>
+        )}
+        {currentProject && (
+          <ToolbarButton
+            onClick={() => onSave?.()}
+            title={justSaved ? "已保存" : "保存 (Ctrl+S)"}
+            active={justSaved}
+          >
+            {justSaved ? <Check size={16} /> : <Save size={16} />}
+          </ToolbarButton>
+        )}
+        {currentProject && currentChapter && (
+          <ExportDropdown
+            project={currentProject}
+            chapter={currentChapter}
+            appSettings={appSettings}
+          />
+        )}
+        <ToolbarButton onClick={toggleLeftSidebar} active={leftSidebarOpen} title="左侧栏 (Ctrl+B)">
+          <PanelLeft size={16} />
+        </ToolbarButton>
+        <ToolbarButton onClick={toggleRightSidebar} active={rightSidebarOpen} title="右侧栏 (Ctrl+Alt+O)">
+          <PanelRight size={16} />
+        </ToolbarButton>
+        <ToolbarButton onClick={toggleFocusMode} active={focusMode} title="专注模式 (Ctrl+Shift+D)">
+          <Focus size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => onToggleFullscreen?.()}
+          active={isFullscreen}
+          title={isFullscreen ? "退出全屏 (Esc)" : "全屏编辑"}
+        >
+          {isFullscreen ? <Shrink size={16} /> : <Expand size={16} />}
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          title={theme === "light" ? "切换到深色" : "切换到浅色"}
+        >
+          {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+        </ToolbarButton>
+      </div>
+    </div>
+  );
+}
+
+type ExportFormat = "chapter-md" | "chapter-txt" | "project-html" | "project-md" | "project-txt";
+
+function ExportDropdown({
+  project,
+  chapter,
+  appSettings,
+}: {
+  project: Project;
+  chapter: Chapter;
+  appSettings: AppSettings;
+}) {
+  const [open, setOpen] = useState(false);
+  const [exported, setExported] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { volumes, chapters, getChapterContent } = useAppStore();
+  useClickOutside(dropdownRef, () => setOpen(false), open);
+
+  // Export feedback: a small toast under the toolbar naming the destination,
+  // with a one-click "open containing folder". Auto-dismisses after 6s.
+  useEffect(() => {
+    if (!exported) return;
+    const t = setTimeout(() => setExported(null), 6000);
+    return () => clearTimeout(t);
+  }, [exported]);
+
+  const handleExport = async (format: ExportFormat) => {
+    setOpen(false);
+    try {
+      let result: { canceled: boolean; path?: string };
+      if (format === "project-html" || format === "project-md" || format === "project-txt") {
+        const projectFormat = format === "project-html" ? "html" : format === "project-md" ? "md" : "txt";
+        result = await exportProject(project, volumes, chapters, getChapterContent, appSettings, projectFormat);
+      } else {
+        result = await exportChapter(
+          project,
+          chapter,
+          getChapterContent,
+          format === "chapter-md" ? "md" : "txt",
+          appSettings,
+        );
+      }
+      if (!result.canceled && result.path) {
+        setExported(result.path);
+      }
+    } catch (err) {
+      console.error("Export failed", err);
+      alert(`导出失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const openExportedFolder = async () => {
+    if (!exported) return;
+    try {
+      const dir = await dirname(exported);
+      const err = await revealInFolder(dir);
+      if (err) alert(`无法打开文件夹：${err}`);
+    } catch {
+      // Browser fallback export (a download) — no folder to open.
+    }
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <ToolbarButton onClick={() => setOpen(!open)} title="导出">
+        <Download size={16} />
+      </ToolbarButton>
+      {open && (
+        <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark">
+          <div className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted dark:text-ink-muted-dark">
+            本章
+          </div>
+          <ExportItem onClick={() => handleExport("chapter-md")} icon={<FileText size={14} />} label="导出为 Markdown" />
+          <ExportItem onClick={() => handleExport("chapter-txt")} icon={<FileText size={14} />} label="导出为纯文本" />
+          <div className="mx-2 my-1 border-t border-warm-gray dark:border-warm-gray-dark" />
+          <div className="px-3 pb-1 pt-1 text-[10px] font-medium uppercase tracking-wide text-ink-muted dark:text-ink-muted-dark">
+            整本作品
+          </div>
+          <ExportItem onClick={() => handleExport("project-html")} icon={<BookOpen size={14} />} label="导出为 HTML" />
+          <ExportItem onClick={() => handleExport("project-md")} icon={<FileType size={14} />} label="导出为 Markdown" />
+          <ExportItem onClick={() => handleExport("project-txt")} icon={<FileType size={14} />} label="导出为纯文本" />
+        </div>
+      )}
+      {exported && (
+        <div className="absolute right-0 top-10 z-20 w-64 rounded-lg border border-warm-gray bg-paper p-3 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark animate-[inkwell-pop-in_0.15s_ease-out]">
+          <div className="flex items-start gap-2">
+            <Check size={14} className="mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium text-ink dark:text-ink-dark">导出成功</div>
+              <div className="mt-0.5 break-all text-[11px] leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+                {exported}
+              </div>
+              <button
+                onClick={openExportedFolder}
+                className="mt-1.5 flex items-center gap-1 text-[11px] text-accent transition-colors hover:underline"
+              >
+                <FolderOpen size={11} />
+                打开所在文件夹
+              </button>
+            </div>
+            <button
+              onClick={() => setExported(null)}
+              className="shrink-0 text-ink-muted transition-colors hover:text-ink dark:text-ink-muted-dark dark:hover:text-ink-dark"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExportItem({
+  onClick,
+  icon,
+  label,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}

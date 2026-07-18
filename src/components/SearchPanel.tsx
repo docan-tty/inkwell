@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X, FileText, ChevronRight } from "lucide-react";
+import { Search, X, FileText, ChevronRight, ChevronDown, Replace, ReplaceAll, CaseSensitive } from "lucide-react";
 import { useAppStore } from "../store";
 import { stripHtml } from "../lib/export";
 import { cn } from "../lib/utils";
@@ -29,9 +29,11 @@ function excerpt(text: string, idx: number, matchLength: number) {
 }
 
 /**
- * Project-wide full-text search (Ctrl+Shift+F). Searches every chapter's
- * title and body (HTML stripped to plain text), groups hits by volume order
- * like the chapter tree, and jumps to the chapter on click.
+ * Project-wide full-text search & replace (Ctrl+Shift+F). Searches every
+ * chapter's title and body (HTML stripped to plain text), groups hits by
+ * volume order like the chapter tree, and jumps to the chapter on click.
+ * The replace row rewrites chapter HTML through lib/replace (text-node
+ * level — tags are never touched), then reloads the open editor.
  */
 export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const {
@@ -39,20 +41,48 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
     volumes,
     setCurrentChapter,
     getChapterContent,
+    replaceInChapter,
   } = useAppStore();
   const [query, setQuery] = useState("");
+  const [replacement, setReplacement] = useState("");
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [caseSensitive, setCaseSensitive] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [replacing, setReplacing] = useState(false);
+  const [replaceNotice, setReplaceNotice] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const searchToken = useRef(0);
 
+  // Stable structural signature of the chapter list. Typing in the editor
+  // bumps chapter word counts (new chapters array) every 200ms — depending
+  // on the array itself would re-read every chapter file and re-run the
+  // search on each keystroke. Body content is intentionally NOT part of the
+  // signature: searches run against the on-disk content anyway, and a query
+  // typed while editing re-runs on its own debounce.
+  const structureSig = useMemo(
+    () =>
+      volumes.map((v) => `${v.id}:${v.order}:${v.title}`).join("|") +
+      "#" +
+      chapters.map((c) => `${c.id}:${c.parentId}:${c.order}:${c.title}`).join("|"),
+    [volumes, chapters],
+  );
+  // Latest chapter metadata for the search body + jump — read at fire time,
+  // not subscribed (see structureSig above).
+  const chaptersRef = useRef(chapters);
+  chaptersRef.current = chapters;
+  const volumesRef = useRef(volumes);
+  volumesRef.current = volumes;
+
   useEffect(() => {
     if (open) {
       setQuery("");
+      setReplacement("");
       setResults([]);
       setActiveIndex(0);
+      setReplaceNotice(null);
       // Focus after mount.
       requestAnimationFrame(() => inputRef.current?.focus());
     }
@@ -61,6 +91,8 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
   // Debounced full-project search. Reads every chapter's content via the
   // store accessor (disk with localStorage fallback), strips tags, and
   // collects matches in tree order (volume order, then chapter order).
+  // Depends on the structural signature, not the live arrays — typing in the
+  // editor must not re-trigger a whole-book search.
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
@@ -72,18 +104,21 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
     setSearching(true);
     const token = ++searchToken.current;
     const timer = setTimeout(async () => {
-      const volumeOrder = new Map(volumes.map((v) => [v.id, v.order]));
-      const sorted = [...chapters].sort((a, b) => {
-        const va = volumeOrder.get(a.parentId || "") ?? -1;
-        const vb = volumeOrder.get(b.parentId || "") ?? -1;
+      const volumesNow = volumesRef.current;
+      const chaptersNow = chaptersRef.current;
+      const volumeOrder = new Map(volumesNow.map((v) => [v.id, v.order]));
+      const sorted = [...chaptersNow].sort((a, b) => {
+        const va = volumeOrder.get(a.parentId || "") ?? Number.MAX_SAFE_INTEGER;
+        const vb = volumeOrder.get(b.parentId || "") ?? Number.MAX_SAFE_INTEGER;
         if (va !== vb) return va - vb;
         return a.order - b.order;
       });
-      const lowerQ = q.toLowerCase();
+      const needle = caseSensitive ? q : q.toLowerCase();
       const found: SearchResult[] = [];
       for (const chapter of sorted) {
         if (found.length >= MAX_RESULTS) break;
-        if (chapter.title.toLowerCase().includes(lowerQ)) {
+        const titleHay = caseSensitive ? chapter.title : chapter.title.toLowerCase();
+        if (titleHay.includes(needle)) {
           found.push({
             chapterId: chapter.id,
             chapterTitle: chapter.title,
@@ -97,10 +132,10 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
         } catch {
           continue;
         }
-        const lowerText = text.toLowerCase();
+        const bodyHay = caseSensitive ? text : text.toLowerCase();
         let idx = 0;
         while (found.length < MAX_RESULTS) {
-          const hit = lowerText.indexOf(lowerQ, idx);
+          const hit = bodyHay.indexOf(needle, idx);
           if (hit === -1) break;
           found.push({
             chapterId: chapter.id,
@@ -119,7 +154,8 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [query, open, chapters, volumes, getChapterContent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, open, structureSig, caseSensitive, getChapterContent]);
 
   const grouped = useMemo(() => {
     const volumeTitle = new Map(volumes.map((v) => [v.id, v.title]));
@@ -141,11 +177,68 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
   }, [results, volumes]);
 
   const jump = (result: SearchResult) => {
-    const chapter = chapters.find((c) => c.id === result.chapterId);
+    const chapter = chaptersRef.current.find((c) => c.id === result.chapterId);
     if (chapter) {
       setCurrentChapter(chapter);
     }
     onClose();
+  };
+
+  // Body matches per chapter, in document order — the ordinal of a result
+  // within its chapter is what replaceInChapter("one") targets.
+  const bodyResults = useMemo(() => results.filter((r) => !r.inTitle), [results]);
+
+  const replaceOne = async (result: SearchResult) => {
+    if (replacing || result.inTitle) return;
+    setReplacing(true);
+    setReplaceNotice(null);
+    try {
+      const perChapter = bodyResults.filter((r) => r.chapterId === result.chapterId);
+      const ordinalInChapter = perChapter.findIndex((r) => r === result);
+      const { replaced, skipped } = await replaceInChapter(
+        result.chapterId,
+        query.trim(),
+        replacement,
+        caseSensitive,
+        { type: "one", ordinal: ordinalInChapter },
+      );
+      if (replaced === 0 && skipped > 0) {
+        setReplaceNotice("该匹配跨越格式标签，无法安全替换，已跳过");
+      }
+      // 本地移除该条结果；其余匹配在磁盘上已位移，但序号是随搜随算的，
+      // 下一次替换会重新从磁盘取内容计算，不受影响。
+      setResults((prev) => prev.filter((r) => r !== result));
+      setActiveIndex((i) => Math.max(0, Math.min(i, results.length - 2)));
+    } finally {
+      setReplacing(false);
+    }
+  };
+
+  const replaceAll = async () => {
+    if (replacing || bodyResults.length === 0) return;
+    if (!window.confirm(`将全书 ${bodyResults.length} 处正文匹配替换为「${replacement}」？\n（跨越格式标签的匹配会自动跳过，章节标题不受影响）`)) {
+      return;
+    }
+    setReplacing(true);
+    setReplaceNotice(null);
+    try {
+      const chapterIds = [...new Set(bodyResults.map((r) => r.chapterId))];
+      let total = 0;
+      let skipped = 0;
+      for (const id of chapterIds) {
+        const r = await replaceInChapter(id, query.trim(), replacement, caseSensitive, { type: "all" });
+        total += r.replaced;
+        skipped += r.skipped;
+      }
+      setReplaceNotice(
+        skipped > 0
+          ? `已替换 ${total} 处；${skipped} 处因跨越格式标签被跳过`
+          : `已替换 ${total} 处`,
+      );
+      setResults([]);
+    } finally {
+      setReplacing(false);
+    }
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -183,6 +276,13 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
     >
       <div className="flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-warm-gray bg-paper shadow-2xl dark:border-warm-gray-dark dark:bg-paper-dark animate-[inkwell-pop-in_0.15s_ease-out]">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-warm-gray px-4 dark:border-warm-gray-dark">
+          <button
+            onClick={() => setReplaceOpen((v) => !v)}
+            className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+            title={replaceOpen ? "收起替换" : "展开替换"}
+          >
+            {replaceOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
           <Search size={16} className="shrink-0 text-ink-muted dark:text-ink-muted-dark" />
           <input
             ref={inputRef}
@@ -193,6 +293,18 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
             className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted/60 dark:text-ink-dark dark:placeholder:text-ink-muted-dark/60"
           />
           <button
+            onClick={() => setCaseSensitive((v) => !v)}
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+              caseSensitive
+                ? "bg-accent/10 text-accent dark:bg-accent/20"
+                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
+            )}
+            title="区分大小写"
+          >
+            <CaseSensitive size={15} />
+          </button>
+          <button
             onClick={onClose}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
             title="关闭 (Esc)"
@@ -200,6 +312,33 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
             <X size={15} />
           </button>
         </div>
+
+        {replaceOpen && (
+          <div className="flex shrink-0 items-center gap-2 border-b border-warm-gray px-4 py-2 dark:border-warm-gray-dark">
+            <span className="w-5 shrink-0" />
+            <Replace size={15} className="shrink-0 text-ink-muted dark:text-ink-muted-dark" />
+            <input
+              value={replacement}
+              onChange={(e) => setReplacement(e.target.value)}
+              placeholder="替换为…"
+              className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted/60 dark:text-ink-dark dark:placeholder:text-ink-muted-dark/60"
+            />
+            <button
+              onClick={replaceAll}
+              disabled={replacing || bodyResults.length === 0 || !query.trim()}
+              className="flex shrink-0 items-center gap-1 rounded-md bg-accent/10 px-2 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-40 dark:bg-accent/20"
+              title="替换全部章节的正文匹配（标题不受影响）"
+            >
+              <ReplaceAll size={13} />
+              全部替换{bodyResults.length > 0 ? `（${bodyResults.length}）` : ""}
+            </button>
+          </div>
+        )}
+        {replaceNotice && (
+          <div className="shrink-0 border-b border-warm-gray bg-accent/5 px-4 py-1.5 text-xs text-ink-muted dark:border-warm-gray-dark dark:text-ink-muted-dark">
+            {replaceNotice}
+          </div>
+        )}
 
         <div ref={listRef} className="flex-1 overflow-y-auto p-2">
           {query.trim() && !searching && results.length === 0 && (
@@ -253,6 +392,24 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
                         </div>
                       )}
                     </div>
+                    {replaceOpen && !r.inTitle && (
+                      <span
+                        role="button"
+                        tabIndex={-1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          replaceOne(r);
+                        }}
+                        className={cn(
+                          "mt-0.5 flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] text-accent transition-colors hover:bg-accent/10 dark:hover:bg-accent/20",
+                          replacing && "pointer-events-none opacity-40",
+                        )}
+                        title={`替换为「${replacement}」`}
+                      >
+                        <Replace size={11} />
+                        替换
+                      </span>
+                    )}
                     <ChevronRight size={14} className="mt-1 shrink-0 text-ink-muted/50 dark:text-ink-muted-dark/50" />
                   </button>
                 );

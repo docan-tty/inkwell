@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { ArrowLeft, ListTree, Globe, Search, History, NotebookPen, FilePlus2 } from "lucide-react";
-import { useAppStore, scheduleAutoSave, pendingChapterContent } from "../store";
+import { useAppStore, scheduleAutoSave } from "../store";
 import { ChapterTree } from "./chapter-tree";
 import { Editor } from "./Editor";
 import { StatusBar } from "./StatusBar";
@@ -11,9 +11,11 @@ import { LeftSidebarTabs } from "./left-panel/LeftSidebarTabs";
 import { NotesView } from "./left-panel/NotesView";
 import { DictionaryView } from "./left-panel/DictionaryView";
 import { cn, countWords } from "../lib/utils";
-import { stripHtml } from "../lib/export";
+import { stripHtml, sanitizeHtml } from "../lib/export";
+import { formatHtmlTextNodes } from "../lib/format";
 import { saveDraft, getDraft } from "../lib/draft";
-import { addWritingSeconds, getTodayWritingSeconds } from "../lib/stats";
+import { useWritingTime } from "../hooks/useWritingTime";
+import { useAutoHideTopBars } from "../hooks/useAutoHideTopBars";
 
 export function Workspace() {
   const {
@@ -38,19 +40,17 @@ export function Workspace() {
     toggleRightSidebar,
     toggleFocusMode,
     volumes,
+    contentVersion,
   } = useAppStore();
 
   const [localContent, setLocalContent] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showTopBars, setShowTopBars] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(appSettings.leftSidebarWidth || 256);
   const [draftNotice, setDraftNotice] = useState<{ draft: string } | null>(null);
-  const [writingSeconds, setWritingSeconds] = useState(0);
+  const [chapterLoadError, setChapterLoadError] = useState<string | null>(null);
   const wordCountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const topBarsHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTypeAt = useRef(0);
   const resizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(appSettings.leftSidebarWidth || 256);
@@ -59,57 +59,61 @@ export function Workspace() {
   const localContentRef = useRef("");
   const currentChapterRef = useRef(currentChapter);
   currentChapterRef.current = currentChapter;
+  // Latest sidebar width for the drag-end persist — the mouseup handler's
+  // closure is created at drag start and would otherwise save the OLD width.
+  const sidebarWidthRef = useRef(sidebarWidth);
+  sidebarWidthRef.current = sidebarWidth;
+  // 编辑器强制同步通道：Editor 挂载时注册。自动整理等场景需要把 canonical
+  // HTML 直接灌进编辑器并跳过同步 effect 的比对覆盖。
+  const editorSyncRef = useRef<((canonical: string) => void) | null>(null);
+
+  const { writingSeconds, noteTyping } = useWritingTime(currentProject?.id);
+  const { showTopBars, enterTopBars, leaveTopBars } = useAutoHideTopBars(focusMode || isFullscreen);
 
   useEffect(() => {
     setSidebarWidth(appSettings.leftSidebarWidth || 256);
   }, [appSettings.leftSidebarWidth]);
 
-  // Load chapter content when switching chapters. If a crash-recovery draft
-  // exists for this chapter (content that never reached the disk), load the
-  // disk version but offer the draft for one-click restore.
+  // Load chapter content when switching chapters (or when a snapshot/draft
+  // restore bumps contentVersion). Clears the previous chapter's content
+  // first — if the load fails, the editor must NOT keep showing (and later
+  // autosave) chapter A's text under chapter B's identity.
+  // If a crash-recovery draft exists for this chapter (content that never
+  // reached the disk), load the disk version but offer the draft for
+  // one-click restore.
   useEffect(() => {
     let cancelled = false;
     setDraftNotice(null);
+    setChapterLoadError(null);
     if (currentChapter) {
-      getChapterContent(currentChapter.id).then((diskContent) => {
-        if (cancelled) return;
-        const draft = getDraft(currentChapter.id);
-        setLocalContent(diskContent);
-        if (draft !== null && draft !== diskContent) {
-          setDraftNotice({ draft });
-        }
-      });
+      setLocalContent("");
+      getChapterContent(currentChapter.id)
+        .then((diskContent) => {
+          if (cancelled) return;
+          const draft = getDraft(currentChapter.id);
+          setLocalContent(diskContent);
+          if (draft !== null && draft !== diskContent) {
+            setDraftNotice({ draft });
+          }
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setLocalContent("");
+          setChapterLoadError(err instanceof Error ? err.message : String(err));
+        });
     } else {
       setLocalContent("");
     }
     return () => {
       cancelled = true;
     };
-  }, [currentChapter?.id, getChapterContent]);
+  }, [currentChapter?.id, contentVersion, getChapterContent]);
 
   useEffect(() => {
     return () => {
       if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
-      if (topBarsHideTimer.current) clearTimeout(topBarsHideTimer.current);
     };
   }, []);
-
-  // Writing-time tracker: while the user keeps typing, accumulate active
-  // seconds once a minute (idle stretches longer than 30s don't count).
-  // The counter ticks the StatusBar display even between bursts.
-  useEffect(() => {
-    if (!currentProject) return;
-    setWritingSeconds(getTodayWritingSeconds(currentProject.id));
-    const timer = setInterval(() => {
-      const typingRecently = Date.now() - lastTypeAt.current < 30_000;
-      if (typingRecently) {
-        setWritingSeconds(addWritingSeconds(currentProject.id, 60));
-      } else {
-        setWritingSeconds(getTodayWritingSeconds(currentProject.id));
-      }
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [currentProject?.id]);
 
   // Application-level shortcuts. Editor shortcuts (bold/italic/headings/
   // undo) are handled by TipTap inside the editing surface; these work
@@ -167,10 +171,10 @@ export function Workspace() {
       if (currentChapter) {
         // Crash-recovery: mirror every keystroke into the synchronous draft
         // buffer and the close-flush map. Both are dropped the moment the
-        // content lands on disk.
+        // content lands on disk. (scheduleAutoSave writes the seq-tagged
+        // pending entry itself.)
         saveDraft(currentChapter.id, content);
-        pendingChapterContent.set(currentChapter.id, content);
-        lastTypeAt.current = Date.now();
+        noteTyping();
         scheduleAutoSave(currentChapter.id, content);
         if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
         wordCountTimer.current = setTimeout(() => {
@@ -178,17 +182,44 @@ export function Workspace() {
         }, 200);
       }
     },
-    [currentChapter, updateWordCount],
+    [currentChapter, updateWordCount, noteTyping],
   );
 
   localContentRef.current = localContent;
 
-  const handleManualSave = useCallback(async () => {
+  // 自动整理格式入口（顶栏按钮）：整理 → 走强制同步通道 → 立即落盘。
+  // 不能用 handleContentChange 里 setLocalContent + onUpdate 比对的路径——
+  // DOM 级整理结果序列化后与 setContent 的 canonical HTML 有空白差异，
+  // 会被 Editor 的同步 effect 覆盖回去。输出再过一遍 sanitizeHtml，
+  // 与快照恢复路径对齐（纵深防御：今天内容来自 TipTap 属惰性，但一旦非
+  // TipTap 内容进入——导入、粘贴 bug——不能成为注入放大器）。
+  const handleAutoFormat = useCallback(() => {
+    const current = localContentRef.current;
+    const formatted = sanitizeHtml(formatHtmlTextNodes(current));
+    if (formatted === current) return;
+    if (editorSyncRef.current) {
+      editorSyncRef.current(formatted);
+    } else {
+      handleContentChange(formatted);
+    }
     if (currentChapter) {
+      updateChapterContent(currentChapter.id, formatted)
+        .then(() => saveCurrentProject())
+        .catch((err) => {
+          alert(`整理后保存失败：${err instanceof Error ? err.message : String(err)}`);
+        });
+    }
+  }, [currentChapter, handleContentChange, updateChapterContent, saveCurrentProject]);
+
+  const handleManualSave = useCallback(async () => {
+    const chapter = currentChapterRef.current;
+    if (chapter) {
       try {
-        // Await content save so the word count is updated in memory before
+        // Read the latest content via ref — delayed callers (context menu,
+        // keyboard) would otherwise write a stale closure value. Await the
+        // content save so the word count is updated in memory before
         // saveCurrentProject writes the project JSON.
-        await updateChapterContent(currentChapter.id, localContent);
+        await updateChapterContent(chapter.id, localContentRef.current);
         await saveCurrentProject();
       } catch (err) {
         // Surface save failures to the user — silent data loss is worse
@@ -196,7 +227,7 @@ export function Workspace() {
         alert(`保存失败：${err instanceof Error ? err.message : String(err)}`);
       }
     }
-  }, [currentChapter, localContent, updateChapterContent, saveCurrentProject]);
+  }, [updateChapterContent, saveCurrentProject]);
 
   const handleSelectChapter = useCallback(
     async (chapter: NonNullable<typeof currentChapter>) => {
@@ -233,47 +264,13 @@ export function Workspace() {
     setIsFullscreen((prev) => !prev);
   }, []);
 
-  const enterTopBars = useCallback(() => {
-    if (topBarsHideTimer.current) {
-      clearTimeout(topBarsHideTimer.current);
-      topBarsHideTimer.current = null;
-    }
-    setShowTopBars(true);
-  }, []);
-
-  const leaveTopBars = useCallback(() => {
-    topBarsHideTimer.current = setTimeout(() => {
-      setShowTopBars(false);
-    }, 400);
-  }, []);
-
-  useEffect(() => {
-    if (!focusMode && !isFullscreen) {
-      setShowTopBars(false);
-    }
-  }, [focusMode, isFullscreen]);
-
-  // Top-edge hot zone: while the bars are hidden (focus / fullscreen), moving
-  // the mouse into the top ~6px of the window reveals them — the hidden bar
-  // itself can't be hovered (pointer-events-none), so we watch the cursor.
-  useEffect(() => {
-    if (!focusMode && !isFullscreen) return;
-    const onMove = (e: MouseEvent) => {
-      if (e.clientY <= 6) {
-        enterTopBars();
-      }
-    };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, [focusMode, isFullscreen, enterTopBars]);
-
   if (!currentProject) return null;
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     resizing.current = true;
     startX.current = e.clientX;
-    startWidth.current = sidebarWidth;
+    startWidth.current = sidebarWidthRef.current;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
@@ -288,7 +285,9 @@ export function Workspace() {
       resizing.current = false;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      updateAppSettings({ leftSidebarWidth: sidebarWidth });
+      // Persist the FINAL width (via ref) — this closure was created at drag
+      // start and would otherwise save the pre-drag value.
+      updateAppSettings({ leftSidebarWidth: sidebarWidthRef.current });
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
     };
@@ -298,11 +297,11 @@ export function Workspace() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-paper dark:bg-paper-dark">
-      {/* Top bar */}
+    <div className="flex h-full flex-col gap-2 bg-warm-gray/60 p-2 dark:bg-warm-gray-dark/50">
+      {/* 顶栏（独立区块） */}
       <div
         className={cn(
-          "flex h-12 shrink-0 items-center justify-between border-b border-warm-gray px-4 transition-opacity duration-300 dark:border-warm-gray-dark",
+          "flex h-12 shrink-0 items-center justify-between rounded-xl border border-warm-gray/80 bg-paper px-4 shadow-sm transition-opacity duration-300 dark:border-warm-gray-dark/80 dark:bg-paper-dark",
           (focusMode || isFullscreen) && !showTopBars && "pointer-events-none opacity-0",
         )}
         onMouseEnter={(focusMode || isFullscreen) ? enterTopBars : undefined}
@@ -383,11 +382,12 @@ export function Workspace() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 gap-2 overflow-hidden">
         {leftSidebarOpen && !focusMode && (
           <>
+            {/* 左栏（独立区块）：目录 / 笔记 / 词典 */}
             <div
-              className="flex shrink-0 flex-col border-r border-warm-gray dark:border-warm-gray-dark"
+              className="flex shrink-0 flex-col overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark"
               style={{ width: sidebarWidth }}
             >
               <LeftSidebarTabs />
@@ -399,16 +399,16 @@ export function Workspace() {
             </div>
             <div
               onMouseDown={handleResizeStart}
-              className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/30 active:bg-accent/50"
+              className="-mx-1.5 w-2 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/30 active:bg-accent/50"
             />
           </>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col min-h-0">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 min-h-0">
           {currentChapter ? (
             <>
               {draftNotice && (
-                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200">
+                <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200">
                   <span>检测到本章有未保存的草稿（可能因意外关闭未写入磁盘）。</span>
                   <span className="flex shrink-0 gap-2">
                     <button
@@ -426,19 +426,35 @@ export function Workspace() {
                   </span>
                 </div>
               )}
-              <Editor
-                content={localContent}
-                onChange={handleContentChange}
-                onSave={handleManualSave}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={toggleFullscreen}
-                showToolbar={showTopBars}
-                onToolbarEnter={enterTopBars}
-                onToolbarLeave={leaveTopBars}
-              />
+              {chapterLoadError ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-warm-gray/80 bg-paper px-8 text-center shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark">
+                  <p className="text-sm text-red-600 dark:text-red-400">章节内容加载失败</p>
+                  <p className="max-w-md break-all text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+                    {chapterLoadError}
+                  </p>
+                  <p className="text-xs text-ink-muted dark:text-ink-muted-dark">
+                    已阻止编辑以避免把其他内容误写入本章文件。请检查磁盘上的章节文件后重试。
+                  </p>
+                </div>
+              ) : (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark">
+                  <Editor
+                    content={localContent}
+                    onChange={handleContentChange}
+                    onSave={handleManualSave}
+                    onAutoFormat={handleAutoFormat}
+                    syncRef={editorSyncRef}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={toggleFullscreen}
+                    showToolbar={showTopBars}
+                    onToolbarEnter={enterTopBars}
+                    onToolbarLeave={leaveTopBars}
+                  />
+                </div>
+              )}
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center bg-paper dark:bg-paper-dark">
+            <div className="flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark">
               <div className="text-center">
                 <p className="mb-4 text-ink-muted dark:text-ink-muted-dark">选择或创建一个章节开始写作</p>
                 <button
@@ -451,7 +467,9 @@ export function Workspace() {
               </div>
             </div>
           )}
-          <StatusBar writingSeconds={writingSeconds} />
+          <div className="shrink-0 overflow-hidden rounded-xl border border-warm-gray/80 shadow-sm dark:border-warm-gray-dark/80">
+            <StatusBar writingSeconds={writingSeconds} />
+          </div>
         </div>
 
         {rightSidebarOpen && !focusMode && <RightPanel />}

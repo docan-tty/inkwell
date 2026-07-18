@@ -100,6 +100,16 @@
     text-indent: 0;
   }
 
+  /*
+   * 空段落光标对齐：首行缩进会把光标推到 2em 处，而 TipTap 的占位符
+   * （::before float:left + height:0）不参与缩进、停在最左，二者错位。
+   * 让光标宿主元素本身也不再缩进，caret 与占位符都落在行首。
+   */
+  .inkwell-editor .ProseMirror p.is-editor-empty,
+  .inkwell-editor .ProseMirror p.is-empty:has(br.ProseMirror-trailingBreak) {
+    text-indent: 0;
+  }
+
   .inkwell-editor .ProseMirror h1,
   .inkwell-editor .ProseMirror h2,
   .inkwell-editor .ProseMirror h3 {
@@ -206,14 +216,102 @@
   }
 }
 
+/* 书封悬停时的微光扫过：一道斜向高光从左下向右上掠过封面。 */
+@keyframes inkwell-cover-sheen {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(240%) skewX(-18deg);
+  }
+}
+
+/*
+ * 翻书打开动效：从被点封面的中心点出发，先轻微掀起（rotateY 负角，
+ * 书页向读者方向翻开），随后封面放大铺满屏幕并淡入内页纸色；
+ * 末尾由调用方切换到作品视图。整个过程 720ms，分两段节奏：
+ * 前 30% 是「掀开封面」的蓄力，后 70% 加速放大进入书中世界。
+ */
+@keyframes inkwell-book-open {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotateY(0deg) scale(1);
+    filter: brightness(1);
+  }
+  28% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotateY(-38deg) scale(1.35);
+    filter: brightness(1.06);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotateY(-96deg) scale(5);
+    filter: brightness(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotateY(-128deg) scale(16);
+    filter: brightness(1.2);
+  }
+}
+
+/* 翻书动效底部的「书影」：封面掀开后留在原位的封底，略微放大并淡出，
+ * 让翻开有前后两层的纵深感。 */
+@keyframes inkwell-book-shadow {
+  0% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+}
+
+/* 遮罩纸色淡入：在封面放大到看不清细节时接管画面，衔接编辑器视图。 */
+@keyframes inkwell-book-page-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .inkwell-card-enter {
   animation: inkwell-card-enter 0.35s ease-out both;
   animation-delay: var(--inkwell-card-delay, 0ms);
 }
 
+/* 悬停书封时触发一次高光扫过（配合 BookCover 里的 .inkwell-sheen 元素）。 */
+.group:hover .inkwell-sheen {
+  animation: inkwell-cover-sheen 0.9s ease-out 0.05s both;
+}
+
+.inkwell-book-open-cover {
+  animation: inkwell-book-open 0.72s cubic-bezier(0.32, 0.72, 0.35, 1) forwards;
+}
+
+.inkwell-book-open-shadow {
+  animation: inkwell-book-shadow 0.55s ease-out 0.08s forwards;
+}
+
+.inkwell-book-page-overlay {
+  animation: inkwell-book-page-in 0.3s ease-in 0.42s forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .inkwell-view-enter,
   .inkwell-card-enter {
+    animation: none;
+  }
+  /* 翻书动效降级：近乎瞬时完成，由遮罩淡入承担过渡 */
+  .inkwell-book-open-cover,
+  .inkwell-book-open-shadow {
+    animation-duration: 0.01s;
+  }
+  .inkwell-book-page-overlay,
+  .group:hover .inkwell-sheen {
     animation: none;
   }
 }

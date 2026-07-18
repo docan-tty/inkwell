@@ -12,8 +12,8 @@ export function RightPanel() {
   if (rightPanelTab === "none") return null;
 
   return (
-    <div className="flex h-full w-72 flex-col border-l border-warm-gray bg-paper dark:border-warm-gray-dark dark:bg-paper-dark animate-[inkwell-slide-in-right_0.15s_ease-out]">
-      <div className="flex h-12 items-center justify-between border-b border-warm-gray px-3 dark:border-warm-gray-dark">
+    <div className="flex h-full w-72 flex-col overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark animate-[inkwell-slide-in-right_0.15s_ease-out]">
+      <div className="flex h-12 items-center justify-between border-b border-warm-gray/60 px-3 dark:border-warm-gray-dark/60">
         <div className="flex items-center gap-1">
           <PanelTab
             active={rightPanelTab === "outline"}
@@ -86,8 +86,9 @@ function OutlineView() {
   // the left-hand chapter tree instead of the raw insertion order.
   const volumeOrder = new Map(volumes.map((v) => [v.id, v.order]));
   const sorted = [...chapters].sort((a, b) => {
-    const va = volumeOrder.get(a.parentId || "") ?? -1;
-    const vb = volumeOrder.get(b.parentId || "") ?? -1;
+    // Volume-less chapters sort after all volumes, like the chapter tree.
+    const va = volumeOrder.get(a.parentId || "") ?? Number.MAX_SAFE_INTEGER;
+    const vb = volumeOrder.get(b.parentId || "") ?? Number.MAX_SAFE_INTEGER;
     if (va !== vb) return va - vb;
     return a.order - b.order;
   });
@@ -122,7 +123,7 @@ function OutlineView() {
 // saving (one every few minutes when content changed). Preview shows the
 // snapshot's plain text; restore overwrites the chapter file with it.
 function HistoryView() {
-  const { currentChapter, appSettings, restoreChapterContent, setCurrentChapter } = useAppStore();
+  const { currentChapter, appSettings, restoreChapterContent } = useAppStore();
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<{ timestamp: number; text: string } | null>(null);
@@ -136,6 +137,8 @@ function HistoryView() {
     setLoading(true);
     try {
       setSnapshots(await listSnapshots(currentChapter.id, appSettings));
+    } catch {
+      setSnapshots([]);
     } finally {
       setLoading(false);
     }
@@ -173,10 +176,9 @@ function HistoryView() {
     try {
       const html = await readSnapshot(currentChapter.id, snap.timestamp, appSettings);
       // Sanitize before writing back — snapshots are our own files, but they
-      // go straight into the editor's HTML pipeline.
+      // go straight into the editor's HTML pipeline. restoreChapterContent
+      // bumps contentVersion, which makes the workspace reload the editor.
       await restoreChapterContent(currentChapter.id, sanitizeHtml(html));
-      // Nudge the workspace to reload the editor content.
-      setCurrentChapter({ ...currentChapter });
     } catch (err) {
       alert(`恢复失败：${err instanceof Error ? err.message : String(err)}`);
     }

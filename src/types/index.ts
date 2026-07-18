@@ -1,1 +1,132 @@
-ZXhwb3J0IHR5cGUgQ2hhcHRlclN0YXR1cyA9ICJkcmFmdCIgfCAiZWRpdGluZyIgfCAicmV2aWV3IiB8ICJkb25lIjsNCg0KZXhwb3J0IGludGVyZmFjZSBDaGFwdGVyIHsNCiAgaWQ6IHN0cmluZzsNCiAgcHJvamVjdElkOiBzdHJpbmc7DQogIHBhcmVudElkOiBzdHJpbmcgfCBudWxsOw0KICB0aXRsZTogc3RyaW5nOw0KICBzdW1tYXJ5OiBzdHJpbmc7DQogIG9yZGVyOiBudW1iZXI7DQogIHN0YXR1czogQ2hhcHRlclN0YXR1czsNCiAgd29yZENvdW50OiBudW1iZXI7DQogIHRhcmdldFdvcmRzPzogbnVtYmVyOw0KICB0YWdzOiBzdHJpbmdbXTsNCiAgbm90ZXM6IHN0cmluZzsNCiAgY3JlYXRlZEF0OiBudW1iZXI7DQogIHVwZGF0ZWRBdDogbnVtYmVyOw0KfQ0KDQpleHBvcnQgaW50ZXJmYWNlIFZvbHVtZSB7DQogIGlkOiBzdHJpbmc7DQogIHByb2plY3RJZDogc3RyaW5nOw0KICB0aXRsZTogc3RyaW5nOw0KICBvcmRlcjogbnVtYmVyOw0KICBjcmVhdGVkQXQ6IG51bWJlcjsNCiAgdXBkYXRlZEF0OiBudW1iZXI7DQp9DQoNCmV4cG9ydCBpbnRlcmZhY2UgUHJvamVjdCB7DQogIGlkOiBzdHJpbmc7DQogIG5hbWU6IHN0cmluZzsNCiAgYXV0aG9yOiBzdHJpbmc7DQogIGdlbnJlOiBzdHJpbmc7DQogIGRlc2NyaXB0aW9uOiBzdHJpbmc7DQogIGNvdmVySW1hZ2U/OiBzdHJpbmc7DQogIHRhcmdldFdvcmRzOiBudW1iZXI7DQogIGNyZWF0ZWRBdDogbnVtYmVyOw0KICB1cGRhdGVkQXQ6IG51bWJlcjsNCn0NCg0KZXhwb3J0IGludGVyZmFjZSBFZGl0b3JUeXBvZ3JhcGh5IHsNCiAgZm9udFNpemU6IG51bWJlcjsNCiAgbGluZUhlaWdodDogbnVtYmVyOw0KICBwYXJhZ3JhcGhTcGFjaW5nOiBudW1iZXI7DQp9DQoNCmV4cG9ydCBpbnRlcmZhY2UgQXBwU2V0dGluZ3Mgew0KICB0aGVtZTogImxpZ2h0IiB8ICJkYXJrIiB8ICJzeXN0ZW0iOw0KICByZWNlbnRQcm9qZWN0czogc3RyaW5nW107DQogIHdpbmRvd1N0YXRlPzogew0KICAgIHdpZHRoOiBudW1iZXI7DQogICAgaGVpZ2h0OiBudW1iZXI7DQogICAgbWF4aW1pemVkOiBib29sZWFuOw0KICB9Ow0KICBlZGl0b3JUeXBvZ3JhcGh5OiBFZGl0b3JUeXBvZ3JhcGh5Ow0KICAvKiog57yW6L6R5Yy65q2j5paH5a2X5L2T77yIVUlfRk9OVF9QUkVTRVRTIOS4reeahOWtl+S9k+agiO+8ieOAgiAqLw0KICBlZGl0b3JGb250RmFtaWx5Pzogc3RyaW5nOw0KICAvKiog55WM6Z2i5a2X5L2T77yI5L6n5qCPIC8g5oyJ6ZKuIC8g6I+c5Y2V562J57yW6L6R5Yy65LmL5aSW55qE6YOo5YiG77yJ44CCICovDQogIHVpRm9udEZhbWlseT86IHN0cmluZzsNCiAgZWRpdG9yUGFkZGluZzogbnVtYmVyOw0KICAvKiog56yU6K6w6aG1562+5Lit56yU6K6w5YiX6KGo5Yy655qE6auY5bqm77yIcHjvvInvvIzlj6/mi5bmi73osIPmlbTjgIIgKi8NCiAgbm90ZXNMaXN0SGVpZ2h0PzogbnVtYmVyOw0KICAvKiog5L2c5ZOB5bqT55qE5bGV56S65qih5byP77ya5Y2h54mH572R5qC8IC8g57Sn5YeR5YiX6KGo44CCICovDQogIHByb2plY3RWaWV3TW9kZT86ICJncmlkIiB8ICJsaXN0IjsNCiAgLyoqIOe8lui+keWMuuato+aWh+acgOWkp+WuveW6pu+8iHB477yJ77yM6ZqP56qX5Y+j6Ieq6YCC5bqU44CCICovDQogIGVkaXRvck1heFdpZHRoPzogbnVtYmVyOw0KICBpbmNsdWRlUHVuY3R1YXRpb25JbldvcmRDb3VudDogYm9vbGVhbjsNCiAgZGVmYXVsdENoYXB0ZXJUYXJnZXRXb3JkczogbnVtYmVyOw0KICBsZWZ0U2lkZWJhcldpZHRoPzogbnVtYmVyOw0KICAvLyBDaGluZXNlLW5vdmVsIHR5cG9ncmFwaHk6IGluZGVudCB0aGUgZmlyc3QgbGluZSBvZiBldmVyeSBwYXJhZ3JhcGggYnkNCiAgLy8gMmVtLiBPbiBieSBkZWZhdWx0IOKAlCB0aGUgUkVBRE1FIHByb21pc2VzIGl0OyBoZWFkaW5ncywgbGlzdHMgYW5kDQogIC8vIGJsb2NrcXVvdGVzIGFsd2F5cyByZXNldCB0byAwIGluZGVudCByZWdhcmRsZXNzIG9mIHRoaXMgc2V0dGluZy4NCiAgZmlyc3RMaW5lSW5kZW50PzogYm9vbGVhbjsNCiAgLyoqIOS4quaAp+WMluS4u+mimOiJsu+8iOWiqOajlS/pu5vok50v5p2+57u/L+iDreiEgi/ntKvmqoDvvInjgIIgKi8NCiAgdGhlbWVDb2xvcj86IHN0cmluZzsNCiAgLyoqIOe6uOW8oOi0qOaEn++8iOexs+eZvS/nvornmq7nurgv5oqk55y857u/77yJ77yM5LuF5rWF6Imy5qih5byP55Sf5pWI44CCICovDQogIHBhcGVyVGV4dHVyZT86IHN0cmluZzsNCiAgLy8gQ3VzdG9tIGxvY2F0aW9uIGZvciB0aGUgdXNlcidzIG5vdmVsIGNvbnRlbnQgKHByb2plY3QgSlNPTiBmaWxlcyBhbmQNCiAgLy8gY2hhcHRlciBgLm1kYCBmaWxlcykuIFdoZW4gdW5zZXQsIGNvbnRlbnQgZmFsbHMgYmFjayB0byB0aGUgZGF0YSBmb2xkZXIuDQogIC8vIFRoZSBkYXRhIGZvbGRlciBpdHNlbGYgaG9sZHMgYXBwLWxldmVsIGRhdGEgb25seSDigJQgc2V0dGluZ3MgYW5kIHRoZQ0KICAvLyBwcm9qZWN0IGluZGV4IChgcmVnaXN0cnkuanNvbmApLg0KICBwcm9qZWN0U2F2ZURpcmVjdG9yeT86IHN0cmluZzsNCn0NCg0KLyoqIOWGmeS9nOeslOiusO+8muWFqOS5puWFseS6q+eahOmaj+aJi+iusO+8iOS6uueJqeiuvuWumuOAgeeBteaEn+OAgeS8j+eslOetie+8ieOAgiAqLw0KZXhwb3J0IGludGVyZmFjZSBOb3RlIHsNCiAgaWQ6IHN0cmluZzsNCiAgdGl0bGU6IHN0cmluZzsNCiAgY29udGVudDogc3RyaW5nOw0KICAvKiog572u6aG256yU6K6w5o6S5Zyo5YiX6KGo5pyA5YmN77yI572u6aG25Yy65YaF6YOo5oyJ5pu05paw5pe26Ze05o6S5bqP77yJ44CCICovDQogIHBpbm5lZD86IGJvb2xlYW47DQogIC8qKiDmiYDlsZ7mlofku7blpLnlkI3vvJvnqbrlgLzlvZLlhaXjgIzmnKrlvZLmoaPjgI3jgIIgKi8NCiAgZm9sZGVyPzogc3RyaW5nOw0KICB1cGRhdGVkQXQ6IG51bWJlcjsNCn0NCg0KZXhwb3J0IHR5cGUgVmlld01vZGUgPSAicHJvamVjdHMiIHwgImVkaXRvciI7DQpleHBvcnQgdHlwZSBSaWdodFBhbmVsVGFiID0gIm91dGxpbmUiIHwgImhpc3RvcnkiIHwgIm5vbmUiOw0KLyoqIOW3puS+p+agj+mhteetvu+8mueroOiKguebruW9lSAvIOWGmeS9nOeslOiusCAvIOiuvuWumuivjeWFuOOAgiAqLw0KZXhwb3J0IHR5cGUgTGVmdFNpZGViYXJUYWIgPSAiY2hhcHRlcnMiIHwgIm5vdGVzIiB8ICJkaWN0aW9uYXJ5IjsNCg0KLyoqIOivjeWFuOivjeadoemihOiuvuWIhuexu+OAgiAqLw0KZXhwb3J0IGNvbnN0IERJQ1RfQ0FURUdPUklFUyA9IFsi5Lq654mpIiwgIuWcsOeCuSIsICLlir/lipsiLCAi54mp5ZOBIiwgIuamguW/tSJdIGFzIGNvbnN0Ow0KZXhwb3J0IHR5cGUgRGljdENhdGVnb3J5ID0gKHR5cGVvZiBESUNUX0NBVEVHT1JJRVMpW251bWJlcl0gfCAoc3RyaW5nICYge30pOw0KDQovKiog6K+N5YW46K+N5p2h77ya5bCP6K+06K6+5a6a5bqT77yI5Lq654mp5Y2h44CB5Zyw5ZCN44CB5Yq/5Yqb5YWz57O74oCm4oCm77yJ77yM5oyJ5YiG57G75qOA57Si44CCICovDQpleHBvcnQgaW50ZXJmYWNlIERpY3RFbnRyeSB7DQogIGlkOiBzdHJpbmc7DQogIC8qKiDor43mnaHlkI3vvIzlpoLjgIzpob7kupHls6XjgI0gKi8NCiAgdGVybTogc3RyaW5nOw0KICAvKiog5Yir5ZCNL+ensOWRvO+8jOWkmuS4qu+8jOWmguOAjOS6keWzpSAvIOWzpeWTpeOAjSAqLw0KICBhbGlhc2VzOiBzdHJpbmdbXTsNCiAgLyoqIOWIhuexu++8jOingSBESUNUX0NBVEVHT1JJRVMg6aKE6K6+77yM5Lmf5YWB6K646Ieq5a6a5LmJ44CCICovDQogIGNhdGVnb3J5OiBzdHJpbmc7DQogIC8qKiDor43mnaHlhoXlrrnvvIjorr7lrpror6bmg4XvvInjgIIgKi8NCiAgY29udGVudDogc3RyaW5nOw0KICB1cGRhdGVkQXQ6IG51bWJlcjsNCn0NCg0KZXhwb3J0IGNvbnN0IERFRkFVTFRfUFJPSkVDVF9UQVJHRVRfV09SRFMgPSA0MDAwOw0KDQpleHBvcnQgY29uc3QgREVGQVVMVF9FRElUT1JfVFlQT0dSQVBIWTogRWRpdG9yVHlwb2dyYXBoeSA9IHsNCiAgZm9udFNpemU6IDE4LA0KICBsaW5lSGVpZ2h0OiAxLjg1LA0KICBwYXJhZ3JhcGhTcGFjaW5nOiAwLjgsDQp9Ow0KDQpleHBvcnQgY29uc3QgU1RBVFVTX0xBQkVMUzogUmVjb3JkPENoYXB0ZXJTdGF0dXMsIHN0cmluZz4gPSB7DQogIGRyYWZ0OiAi6I2J56i/IiwNCiAgZWRpdGluZzogIuS/ruaUueS4rSIsDQogIHJldmlldzogIuW+heagoeWvuSIsDQogIGRvbmU6ICLlt7LlrozmiJAiLA0KfTsNCg==
+export type ChapterStatus = "draft" | "editing" | "review" | "done";
+
+export interface Chapter {
+  id: string;
+  projectId: string;
+  parentId: string | null;
+  title: string;
+  summary: string;
+  order: number;
+  status: ChapterStatus;
+  wordCount: number;
+  targetWords?: number;
+  tags: string[];
+  notes: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Volume {
+  id: string;
+  projectId: string;
+  title: string;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  author: string;
+  genre: string;
+  description: string;
+  coverImage?: string;
+  targetWords: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface EditorTypography {
+  fontSize: number;
+  lineHeight: number;
+  paragraphSpacing: number;
+}
+
+export interface AppSettings {
+  theme: "light" | "dark" | "system";
+  recentProjects: string[];
+  windowState?: {
+    width: number;
+    height: number;
+    maximized: boolean;
+  };
+  editorTypography: EditorTypography;
+  /** 编辑区正文字体（UI_FONT_PRESETS 中的字体栈）。 */
+  editorFontFamily?: string;
+  /** 界面字体（侧栏 / 按钮 / 菜单等编辑区之外的部分）。 */
+  uiFontFamily?: string;
+  editorPadding: number;
+  /** 笔记页签中笔记列表区的高度（px），可拖拽调整。 */
+  notesListHeight?: number;
+  /** 作品库的展示模式：卡片网格 / 紧凑列表。 */
+  projectViewMode?: "grid" | "list";
+  /** 编辑区正文最大宽度（px），随窗口自适应。 */
+  editorMaxWidth?: number;
+  includePunctuationInWordCount: boolean;
+  defaultChapterTargetWords: number;
+  leftSidebarWidth?: number;
+  // Chinese-novel typography: indent the first line of every paragraph by
+  // 2em. On by default — the README promises it; headings, lists and
+  // blockquotes always reset to 0 indent regardless of this setting.
+  firstLineIndent?: boolean;
+  /** 个性化主题色（墨棕/黛蓝/松绿/胭脂/紫檀）。 */
+  themeColor?: string;
+  /** 纸张质感（米白/羊皮纸/护眼绿），仅浅色模式生效。 */
+  paperTexture?: string;
+  // Custom location for the user's novel content (project JSON files and
+  // chapter `.md` files). When unset, content falls back to the data folder.
+  // The data folder itself holds app-level data only — settings and the
+  // project index (`registry.json`).
+  projectSaveDirectory?: string;
+}
+
+/** 写作笔记：全书共享的随手记（人物设定、灵感、伏笔等）。 */
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  /** 置顶笔记排在列表最前（置顶区内部按更新时间排序）。 */
+  pinned?: boolean;
+  /** 所属文件夹名；空值归入「未归档」。 */
+  folder?: string;
+  updatedAt: number;
+}
+
+export type ViewMode = "projects" | "editor";
+export type RightPanelTab = "outline" | "history" | "none";
+/** 左侧栏页签：章节目录 / 写作笔记 / 设定词典。 */
+export type LeftSidebarTab = "chapters" | "notes" | "dictionary";
+
+/** 词典词条预设分类。 */
+export const DICT_CATEGORIES = ["人物", "地点", "势力", "物品", "概念"] as const;
+export type DictCategory = (typeof DICT_CATEGORIES)[number] | (string & {});
+
+/** 词典词条：小说设定库（人物卡、地名、势力关系……），按分类检索。 */
+export interface DictEntry {
+  id: string;
+  /** 词条名，如「顾云峥」 */
+  term: string;
+  /** 别名/称呼，多个，如「云峥 / 峥哥」 */
+  aliases: string[];
+  /** 分类，见 DICT_CATEGORIES 预设，也允许自定义。 */
+  category: string;
+  /** 词条内容（设定详情）。 */
+  content: string;
+  updatedAt: number;
+}
+
+export const DEFAULT_PROJECT_TARGET_WORDS = 4000;
+
+export const DEFAULT_EDITOR_TYPOGRAPHY: EditorTypography = {
+  fontSize: 18,
+  lineHeight: 1.85,
+  paragraphSpacing: 0.8,
+};
+
+export const STATUS_LABELS: Record<ChapterStatus, string> = {
+  draft: "草稿",
+  editing: "修改中",
+  review: "待校对",
+  done: "已完成",
+};

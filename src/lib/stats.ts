@@ -67,6 +67,17 @@ export function addWritingSeconds(projectId: string, delta: number): number {
   return seconds;
 }
 
+/** Drops a project's stats keys — called when the project is deleted so the
+ *  namespaced keys don't leak forever. */
+export function clearProjectStats(projectId: string): void {
+  try {
+    localStorage.removeItem(snapshotKey(projectId));
+    localStorage.removeItem(secondsKey(projectId));
+  } catch {
+    // best-effort
+  }
+}
+
 /** Formats a duration in seconds as e.g. "8 分钟" / "1 小时 23 分钟". */
 export function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.floor(seconds)} 秒`;

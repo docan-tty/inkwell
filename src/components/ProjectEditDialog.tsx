@@ -26,6 +26,19 @@ export function ProjectEditDialog({ project, onSave, onClose }: ProjectEditDialo
     }
   }, [project]);
 
+  // Escape closes the dialog (same as the other modals).
+  useEffect(() => {
+    if (!project) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [project, onClose]);
+
   if (!project) return null;
 
   const handleSave = () => {

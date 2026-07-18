@@ -15,6 +15,7 @@ import {
   BookOpen,
   FileType,
   FolderOpen,
+  WandSparkles,
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { cn } from "../lib/utils";
@@ -28,6 +29,7 @@ import { useClickOutside } from "../hooks/useClickOutside";
 interface ToolbarProps {
   editor: Editor | null;
   onSave?: () => void;
+  onAutoFormat?: () => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
 }
@@ -64,7 +66,7 @@ function ToolbarButton({
   );
 }
 
-export function Toolbar({ editor, onSave, isFullscreen, onToggleFullscreen }: ToolbarProps) {
+export function Toolbar({ editor, onSave, onAutoFormat, isFullscreen, onToggleFullscreen }: ToolbarProps) {
   const {
     theme,
     setTheme,
@@ -91,6 +93,20 @@ export function Toolbar({ editor, onSave, isFullscreen, onToggleFullscreen }: To
     return () => clearTimeout(t);
   }, [lastSavedAt]);
 
+  // 整理格式反馈：同 justSaved，按钮短暂变成对勾。
+  const [justFormatted, setJustFormatted] = useState(false);
+  const formatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (formatTimer.current) clearTimeout(formatTimer.current);
+  }, []);
+  const handleAutoFormat = () => {
+    if (!editor || editor.isDestroyed) return;
+    onAutoFormat?.();
+    setJustFormatted(true);
+    if (formatTimer.current) clearTimeout(formatTimer.current);
+    formatTimer.current = setTimeout(() => setJustFormatted(false), 1500);
+  };
+
   if (!editor || editor.isDestroyed) return null;
 
   const run = (fn: () => boolean) => {
@@ -105,7 +121,7 @@ export function Toolbar({ editor, onSave, isFullscreen, onToggleFullscreen }: To
     // to `auto`, which would clip the ExportDropdown that extends below
     // the toolbar. The toolbar is wide enough on the app's minimum
     // window size that horizontal scroll is not needed.
-    <div className="flex h-12 shrink-0 items-center justify-between border-b border-warm-gray bg-paper px-3 dark:border-warm-gray-dark dark:bg-paper-dark">
+    <div className="flex h-12 shrink-0 items-center justify-between border-b border-warm-gray/60 bg-paper px-3 dark:border-warm-gray-dark/60 dark:bg-paper-dark">
       <div className="flex items-center gap-1">
         <ToolbarButton
           disabled={!editor.can().undo()}
@@ -124,6 +140,15 @@ export function Toolbar({ editor, onSave, isFullscreen, onToggleFullscreen }: To
       </div>
 
       <div className="flex items-center gap-1">
+        {currentProject && (
+          <ToolbarButton
+            onClick={handleAutoFormat}
+            title={justFormatted ? "已整理" : "自动整理格式（标点全角化、引号配对、空白与连续空段收敛）"}
+            active={justFormatted}
+          >
+            {justFormatted ? <Check size={16} /> : <WandSparkles size={16} />}
+          </ToolbarButton>
+        )}
         {currentProject && (
           <ToolbarButton
             onClick={() => onSave?.()}

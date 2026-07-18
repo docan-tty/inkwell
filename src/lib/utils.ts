@@ -19,6 +19,13 @@ export function formatDateTime(timestamp: number): string {
   });
 }
 
+export function formatTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatNumber(num: number): string {
   return num.toLocaleString("zh-CN");
 }
@@ -40,4 +47,45 @@ export function countWords(text: string, includePunctuation = true): number {
 
 export function sanitizeFileName(name: string): string {
   return name.replace(/[<>:"/\\|?*]/g, "_").trim() || "untitled";
+}
+
+// 排版替换表：全角空格 → 半角；英文标点（! ? ; : ,）在中文语境转全角
+// （数字之前保留半角，如 3.5 / 1,000）；连续英文句点 → 省略号。
+// 全角逗号/句号后不吃空格——中文排版里「， 」之间的空格是多余的。
+const FORMAT_PAIRS: [RegExp, string][] = [
+  [/　/g, " "], // 全角空格
+  [/\.{3,}/g, "……"],
+  [/!(?!\d)/g, "！"],
+  [/\?(?!\d)/g, "？"],
+  [/;(?!\d)/g, "；"],
+  [/:(?!\d)/g, "："],
+  [/,(?!\d) ?/g, "，"],
+  [/， +/g, "，"],
+  [/。 +/g, "。"],
+];
+
+/** 弯/直双引号归一后按出现次序交替为「“”」，奇数个末尾保持直引号。 */
+function fixDoubleQuotes(text: string): string {
+  let open = true;
+  return text.replace(/["“”]/g, () => {
+    const out = open ? "“" : "”";
+    open = !open;
+    return out;
+  });
+}
+
+/**
+ * 自动整理格式：规范一段纯文本的中文排版。
+ * 全角空格 → 半角，行内多余空白收敛，英文标点（! ? ; : ,）在中文语境下
+ * 转全角（数字之前保留半角，如 3.5 / 1,000），双引号按交替规则转为
+ * 「“”」，行首/行尾空白修剪。不改动段落划分。
+ */
+export function formatPlainText(text: string): string {
+  let out = text;
+  for (const [re, to] of FORMAT_PAIRS) out = out.replace(re, to);
+  out = fixDoubleQuotes(out);
+  return out
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .join("\n");
 }

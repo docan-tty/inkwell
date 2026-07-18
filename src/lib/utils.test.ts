@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countWords, sanitizeFileName } from "./utils";
+import { countWords, formatPlainText, sanitizeFileName } from "./utils";
 
 describe("countWords", () => {
   it("counts Chinese characters including punctuation by default", () => {
@@ -36,5 +36,36 @@ describe("sanitizeFileName", () => {
 
   it("falls back to untitled for empty result", () => {
     expect(sanitizeFileName("   ")).toBe("untitled");
+  });
+});
+
+describe("formatPlainText", () => {
+  it("converts full-width spaces to regular and collapses runs of blanks", () => {
+    expect(formatPlainText("你好　世界  你好")).toBe("你好 世界 你好");
+  });
+
+  it("converts English punctuation to full-width in Chinese context", () => {
+    expect(formatPlainText("什么!真的?对;好:走,")).toBe("什么！真的？对；好：走，");
+  });
+
+  it("keeps half-width punctuation between digits", () => {
+    expect(formatPlainText("价格是 3.5, 约 1,000 元")).toBe("价格是 3.5，约 1,000 元");
+  });
+
+  it("alternates straight double quotes into curly pairs", () => {
+    expect(formatPlainText('他说"你好"转身走了')).toBe("他说“你好”转身走了");
+    expect(formatPlainText('"a"和"b"')).toBe("“a”和“b”");
+  });
+
+  it("normalizes curly quotes back to proper pairs", () => {
+    expect(formatPlainText("“你好”")).toBe("“你好”");
+  });
+
+  it("converts three dots to ellipsis", () => {
+    expect(formatPlainText("等等...")).toBe("等等……");
+  });
+
+  it("trims line edges without merging lines", () => {
+    expect(formatPlainText("  第一行  \n\t第二行\t")).toBe("第一行\n第二行");
   });
 });

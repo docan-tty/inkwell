@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, ChevronsUpDown, Plus } from "lucide-react";
 import { useAppStore } from "../../store";
 import type { Chapter, Volume } from "../../types";
@@ -18,19 +18,19 @@ type DropPosition = {
 } | null;
 
 export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
-  const {
-    volumes,
-    chapters,
-    currentChapter,
-    createVolume,
-    createChapter,
-    updateVolume,
-    updateChapter,
-    deleteVolume,
-    deleteChapter,
-    moveChapter,
-    moveVolume,
-  } = useAppStore();
+  // Selector subscriptions — a whole-store subscription would re-render the
+  // tree (and its O(V·C) grouping) on every keystroke's word-count bump.
+  const volumes = useAppStore((s) => s.volumes);
+  const chapters = useAppStore((s) => s.chapters);
+  const currentChapterId = useAppStore((s) => s.currentChapter?.id);
+  const createVolume = useAppStore((s) => s.createVolume);
+  const createChapter = useAppStore((s) => s.createChapter);
+  const updateVolume = useAppStore((s) => s.updateVolume);
+  const updateChapter = useAppStore((s) => s.updateChapter);
+  const deleteVolume = useAppStore((s) => s.deleteVolume);
+  const deleteChapter = useAppStore((s) => s.deleteChapter);
+  const moveChapter = useAppStore((s) => s.moveChapter);
+  const moveVolume = useAppStore((s) => s.moveVolume);
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(
     () => new Set(volumes.map((v) => v.id)),
   );
@@ -47,6 +47,8 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
   // parent volume is expanded (C4 — opening a project jumps to the most
   // recently edited chapter, which may live in a collapsed volume).
   useEffect(() => {
+    if (!currentChapterId) return;
+    const currentChapter = useAppStore.getState().chapters.find((c) => c.id === currentChapterId);
     if (!currentChapter) return;
     if (currentChapter.parentId) {
       setExpandedVolumes((prev) => {
@@ -60,7 +62,7 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
         ?.scrollIntoView({ block: "nearest" });
     }, 50);
     return () => clearTimeout(t);
-  }, [currentChapter?.id]);
+  }, [currentChapterId]);
 
   const toggleVolume = (id: string) => {
     setExpandedVolumes((prev) => {
@@ -85,8 +87,23 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
     }
   };
 
+  // Chapters grouped by volume, sorted once per chapters change — NOT per
+  // render. Word-count updates replace the chapters array on every typing
+  // pause, so recomputing this O(V·C) filter+sort inline was the hottest
+  // wasted work in the tree.
+  const chaptersByVolume = useMemo(() => {
+    const map = new Map<string | null, Chapter[]>();
+    for (const c of chapters) {
+      const key = c.parentId;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(c);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.order - b.order);
+    return map;
+  }, [chapters]);
+
   const volumeChapters = (volumeId: string | null) =>
-    chapters.filter((c) => c.parentId === volumeId).sort((a, b) => a.order - b.order);
+    chaptersByVolume.get(volumeId) ?? [];
 
   const orphanedChapters = volumeChapters(null);
 
@@ -179,7 +196,7 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
               <div key={chapter.id} data-chapter-id={chapter.id}>
                 <ChapterItem
                   chapter={chapter}
-                  active={currentChapter?.id === chapter.id}
+                  active={currentChapterId === chapter.id}
                   onSelect={() => onSelectChapter(chapter)}
                   onUpdate={updateChapter}
                   onDelete={() => setDeletingChapter(chapter)}

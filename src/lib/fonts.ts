@@ -26,6 +26,12 @@ export const UI_FONT_PRESETS: FontPreset[] = [
     value: '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif',
   },
   {
+    id: "yahei",
+    label: "微软雅黑",
+    preview: "笔墨纸砚",
+    value: '"Microsoft YaHei", "微软雅黑", "PingFang SC", "Noto Sans SC", system-ui, sans-serif',
+  },
+  {
     id: "kai",
     label: "楷体",
     preview: "笔墨纸砚",

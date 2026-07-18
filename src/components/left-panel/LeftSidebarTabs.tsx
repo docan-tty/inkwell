@@ -16,7 +16,7 @@ export function LeftSidebarTabs() {
   };
 
   return (
-    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-warm-gray px-2 dark:border-warm-gray-dark">
+    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-warm-gray/60 px-2 dark:border-warm-gray-dark/60">
       <Tab
         active={leftSidebarTab === "chapters"}
         onClick={() => handleClick("chapters")}

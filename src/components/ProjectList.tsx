@@ -1,1 +1,593 @@
-aW1wb3J0IHsgdXNlU3RhdGUsIHVzZUVmZmVjdCwgdXNlUmVmLCB1c2VDYWxsYmFjayB9IGZyb20gInJlYWN0IjsKaW1wb3J0IHsgUGx1cywgQm9va09wZW4sIE1vcmVWZXJ0aWNhbCwgVHJhc2gyLCBGaWxlVGV4dCwgU2V0dGluZ3MsIFBlbmNpbExpbmUsIEZlYXRoZXIsIExheW91dEdyaWQsIFJvd3MzIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgdXNlQXBwU3RvcmUgfSBmcm9tICIuLi9zdG9yZSI7CmltcG9ydCB0eXBlIHsgUHJvamVjdCB9IGZyb20gIi4uL3R5cGVzIjsKaW1wb3J0IHsgZm9ybWF0TnVtYmVyLCBmb3JtYXREYXRlVGltZSB9IGZyb20gIi4uL2xpYi91dGlscyI7CmltcG9ydCB7IEdsb2JhbFNldHRpbmdzTW9kYWwgfSBmcm9tICIuL0dsb2JhbFNldHRpbmdzTW9kYWwiOwppbXBvcnQgeyBDb25maXJtRGlhbG9nIH0gZnJvbSAiLi9Db25maXJtRGlhbG9nIjsKaW1wb3J0IHsgUHJvamVjdEVkaXREaWFsb2cgfSBmcm9tICIuL1Byb2plY3RFZGl0RGlhbG9nIjsKaW1wb3J0IHsgdXNlQ2xpY2tPdXRzaWRlIH0gZnJvbSAiLi4vaG9va3MvdXNlQ2xpY2tPdXRzaWRlIjsKaW1wb3J0IHsgbG9hZFByb2plY3RGcm9tTG9jYWwgfSBmcm9tICIuLi9saWIvc3RvcmFnZSI7CmltcG9ydCB7IGNuIH0gZnJvbSAiLi4vbGliL3V0aWxzIjsKCmV4cG9ydCBmdW5jdGlvbiBQcm9qZWN0TGlzdCgpIHsKICBjb25zdCB7CiAgICBwcm9qZWN0cywKICAgIGxvYWRQcm9qZWN0cywKICAgIGNyZWF0ZVByb2plY3QsCiAgICBvcGVuUHJvamVjdCwKICAgIGRlbGV0ZVByb2plY3QsCiAgICB1cGRhdGVQcm9qZWN0LAogICAgYXBwU2V0dGluZ3MsCiAgICB1cGRhdGVBcHBTZXR0aW5ncywKICB9ID0gdXNlQXBwU3RvcmUoKTsKICBjb25zdCBbY3JlYXRpbmcsIHNldENyZWF0aW5nXSA9IHVzZVN0YXRlKGZhbHNlKTsKICBjb25zdCBbbmV3TmFtZSwgc2V0TmV3TmFtZV0gPSB1c2VTdGF0ZSgiIik7CiAgY29uc3QgW2NyZWF0ZUVycm9yLCBzZXRDcmVhdGVFcnJvcl0gPSB1c2VTdGF0ZSgiIik7CiAgY29uc3QgW3NldHRpbmdzT3Blbiwgc2V0U2V0dGluZ3NPcGVuXSA9IHVzZVN0YXRlKGZhbHNlKTsKICBjb25zdCBbZGVsZXRpbmcsIHNldERlbGV0aW5nXSA9IHVzZVN0YXRlPFByb2plY3QgfCBudWxsPihudWxsKTsKICBjb25zdCBbZWRpdGluZ1Byb2plY3QsIHNldEVkaXRpbmdQcm9qZWN0XSA9IHVzZVN0YXRlPFByb2plY3QgfCBudWxsPihudWxsKTsKICBjb25zdCBbZGVsZXRpbmdDaGFwdGVyQ291bnQsIHNldERlbGV0aW5nQ2hhcHRlckNvdW50XSA9IHVzZVN0YXRlKDApOwogIC8vIFRvdGFsIHdvcmQgY291bnQgcGVyIHByb2plY3QsIGFnZ3JlZ2F0ZWQgZnJvbSBlYWNoIHByb2plY3QgZmlsZSBzbyB0aGUKICAvLyBjYXJkcyBjYW4gc2hvdyBsaXZlIHByb2dyZXNzIHdpdGhvdXQgb3BlbmluZyB0aGUgcHJvamVjdC4KICBjb25zdCBbd29yZENvdW50cywgc2V0V29yZENvdW50c10gPSB1c2VTdGF0ZTxSZWNvcmQ8c3RyaW5nLCBudW1iZXI+Pih7fSk7CgogIHVzZUVmZmVjdCgoKSA9PiB7CiAgICBsb2FkUHJvamVjdHMoKTsKICB9LCBbbG9hZFByb2plY3RzXSk7CgogIC8vIEFnZ3JlZ2F0ZSBwZXItcHJvamVjdCB3b3JkIGNvdW50cyBmb3IgdGhlIHByb2dyZXNzIGRpc3BsYXkuIFJlYWRzIGVhY2gKICAvLyBwcm9qZWN0IGZpbGUgb25jZSBwZXIgcmVnaXN0cnkgY2hhbmdlIOKAlCBjaGVhcCBKU09OLCBubyBjaGFwdGVyIGNvbnRlbnQuCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGxldCBjYW5jZWxsZWQgPSBmYWxzZTsKICAgIChhc3luYyAoKSA9PiB7CiAgICAgIGNvbnN0IHNldHRpbmdzID0gdXNlQXBwU3RvcmUuZ2V0U3RhdGUoKS5hcHBTZXR0aW5nczsKICAgICAgY29uc3QgY291bnRzOiBSZWNvcmQ8c3RyaW5nLCBudW1iZXI+ID0ge307CiAgICAgIGF3YWl0IFByb21pc2UuYWxsKAogICAgICAgIHByb2plY3RzLm1hcChhc3luYyAocCkgPT4gewogICAgICAgICAgY29uc3QgbG9hZGVkID0gYXdhaXQgbG9hZFByb2plY3RGcm9tTG9jYWwocC5pZCwgc2V0dGluZ3MpOwogICAgICAgICAgY291bnRzW3AuaWRdID0gKGxvYWRlZD8uY2hhcHRlcnMgfHwgW10pLnJlZHVjZSgoc3VtLCBjKSA9PiBzdW0gKyBjLndvcmRDb3VudCwgMCk7CiAgICAgICAgfSksCiAgICAgICk7CiAgICAgIGlmICghY2FuY2VsbGVkKSBzZXRXb3JkQ291bnRzKGNvdW50cyk7CiAgICB9KSgpOwogICAgcmV0dXJuICgpID0+IHsKICAgICAgY2FuY2VsbGVkID0gdHJ1ZTsKICAgIH07CiAgfSwgW3Byb2plY3RzXSk7CgogIGNvbnN0IGhhbmRsZUNyZWF0ZSA9IGFzeW5jICgpID0+IHsKICAgIGlmICghbmV3TmFtZS50cmltKCkpIHJldHVybjsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHByb2plY3QgPSBhd2FpdCBjcmVhdGVQcm9qZWN0KHsgbmFtZTogbmV3TmFtZS50cmltKCkgfSk7CiAgICAgIGF3YWl0IG9wZW5Qcm9qZWN0KHByb2plY3QpOwogICAgICBzZXRDcmVhdGluZyhmYWxzZSk7CiAgICAgIHNldE5ld05hbWUoIiIpOwogICAgICBzZXRDcmVhdGVFcnJvcigiIik7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgc2V0Q3JlYXRlRXJyb3IoZXJyIGluc3RhbmNlb2YgRXJyb3IgPyBlcnIubWVzc2FnZSA6IFN0cmluZyhlcnIpKTsKICAgIH0KICB9OwoKICBjb25zdCByZXF1ZXN0RGVsZXRlID0gdXNlQ2FsbGJhY2soYXN5bmMgKHByb2plY3Q6IFByb2plY3QpID0+IHsKICAgIHNldERlbGV0aW5nKHByb2plY3QpOwogICAgc2V0RGVsZXRpbmdDaGFwdGVyQ291bnQoMCk7CiAgICB0cnkgewogICAgICBjb25zdCBsb2FkZWQgPSBhd2FpdCBsb2FkUHJvamVjdEZyb21Mb2NhbCgKICAgICAgICBwcm9qZWN0LmlkLAogICAgICAgIHVzZUFwcFN0b3JlLmdldFN0YXRlKCkuYXBwU2V0dGluZ3MsCiAgICAgICk7CiAgICAgIHNldERlbGV0aW5nQ2hhcHRlckNvdW50KGxvYWRlZD8uY2hhcHRlcnMubGVuZ3RoIHx8IDApOwogICAgfSBjYXRjaCB7CiAgICAgIHNldERlbGV0aW5nQ2hhcHRlckNvdW50KDApOwogICAgfQogIH0sIFtdKTsKCiAgY29uc3QgY29uZmlybURlbGV0ZSA9IHVzZUNhbGxiYWNrKGFzeW5jICgpID0+IHsKICAgIGlmICghZGVsZXRpbmcpIHJldHVybjsKICAgIGNvbnN0IGlkID0gZGVsZXRpbmcuaWQ7CiAgICBzZXREZWxldGluZyhudWxsKTsKICAgIGF3YWl0IGRlbGV0ZVByb2plY3QoaWQpOwogIH0sIFtkZWxldGluZywgZGVsZXRlUHJvamVjdF0pOwoKICAvLyDkvZzlk4HlsZXnpLrmqKHlvI/vvJrljaHniYfnvZHmoLzvvIjpu5jorqTvvIkvIOe0p+WHkeWIl+ihqO+8jOaMgeS5heWMluWcqOWFqOWxgOiuvue9rumHjOOAggogIGNvbnN0IHZpZXdNb2RlID0gYXBwU2V0dGluZ3MucHJvamVjdFZpZXdNb2RlID8/ICJncmlkIjsKCiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGgtZnVsbCBmbGV4LWNvbCBiZy1wYXBlciBkYXJrOmJnLXBhcGVyLWRhcmsiPgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBoLTE2IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gYm9yZGVyLWIgYm9yZGVyLXdhcm0tZ3JheSBweC02IGRhcms6Ym9yZGVyLXdhcm0tZ3JheS1kYXJrIj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMiPgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaC05IHctOSBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcm91bmRlZC14bCBiZy1hY2NlbnQgdGV4dC13aGl0ZSBzaGFkb3ctc20iPgogICAgICAgICAgICA8Qm9va09wZW4gc2l6ZT17MjB9IC8+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxoMSBjbGFzc05hbWU9InRleHQtbGcgZm9udC1zZW1pYm9sZCB0ZXh0LWluayBkYXJrOnRleHQtaW5rLWRhcmsiPuWiqOaxoDwvaDE+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xIj4KICAgICAgICAgIHsvKiDlsZXnpLrmqKHlvI/liIfmjaLvvJrljaHniYfnvZHmoLwgLyDntKflh5HliJfooaggKi99CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibXItMSBmbGV4IGl0ZW1zLWNlbnRlciByb3VuZGVkLWxnIGJvcmRlciBib3JkZXItd2FybS1ncmF5IHAtMC41IGRhcms6Ym9yZGVyLXdhcm0tZ3JheS1kYXJrIj4KICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHVwZGF0ZUFwcFNldHRpbmdzKHsgcHJvamVjdFZpZXdNb2RlOiAiZ3JpZCIgfSl9CiAgICAgICAgICAgICAgY2xhc3NOYW1lPXtjbigKICAgICAgICAgICAgICAgICJmbGV4IGgtNyB3LTcgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtbWQgdHJhbnNpdGlvbi1jb2xvcnMiLAogICAgICAgICAgICAgICAgdmlld01vZGUgPT09ICJncmlkIgogICAgICAgICAgICAgICAgICA/ICJiZy1hY2NlbnQvMTAgdGV4dC1hY2NlbnQgZGFyazpiZy1hY2NlbnQvMjAiCiAgICAgICAgICAgICAgICAgIDogInRleHQtaW5rLW11dGVkIGhvdmVyOmJnLXdhcm0tZ3JheSBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsgZGFyazpob3ZlcjpiZy13YXJtLWdyYXktZGFyayIsCiAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICB0aXRsZT0i5Y2h54mH6KeG5Zu+IgogICAgICAgICAgICA+CiAgICAgICAgICAgICAgPExheW91dEdyaWQgc2l6ZT17MTV9IC8+CiAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gdXBkYXRlQXBwU2V0dGluZ3MoeyBwcm9qZWN0Vmlld01vZGU6ICJsaXN0IiB9KX0KICAgICAgICAgICAgICBjbGFzc05hbWU9e2NuKAogICAgICAgICAgICAgICAgImZsZXggaC03IHctNyBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcm91bmRlZC1tZCB0cmFuc2l0aW9uLWNvbG9ycyIsCiAgICAgICAgICAgICAgICB2aWV3TW9kZSA9PT0gImxpc3QiCiAgICAgICAgICAgICAgICAgID8gImJnLWFjY2VudC8xMCB0ZXh0LWFjY2VudCBkYXJrOmJnLWFjY2VudC8yMCIKICAgICAgICAgICAgICAgICAgOiAidGV4dC1pbmstbXV0ZWQgaG92ZXI6Ymctd2FybS1ncmF5IGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayBkYXJrOmhvdmVyOmJnLXdhcm0tZ3JheS1kYXJrIiwKICAgICAgICAgICAgICApfQogICAgICAgICAgICAgIHRpdGxlPSLliJfooajop4blm74iCiAgICAgICAgICAgID4KICAgICAgICAgICAgICA8Um93czMgc2l6ZT17MTV9IC8+CiAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNldHRpbmdzT3Blbih0cnVlKX0KICAgICAgICAgICAgY2xhc3NOYW1lPSJmbGV4IGgtOSB3LTkgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtbGcgdGV4dC1pbmstbXV0ZWQgdHJhbnNpdGlvbi1jb2xvcnMgaG92ZXI6Ymctd2FybS1ncmF5IGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayBkYXJrOmhvdmVyOmJnLXdhcm0tZ3JheS1kYXJrIgogICAgICAgICAgICB0aXRsZT0i5YWo5bGA6K6+572uIgogICAgICAgICAgPgogICAgICAgICAgICA8U2V0dGluZ3Mgc2l6ZT17MTh9IC8+CiAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KICAgICAgPC9kaXY+CgogICAgICA8ZGl2IGNsYXNzTmFtZT0icmVsYXRpdmUgZmxleC0xIG92ZXJmbG93LXktYXV0byBwLTYiPgogICAgICAgIHtjcmVhdGluZyAmJiAoCiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItNiByb3VuZGVkLXhsIGJvcmRlciBib3JkZXItd2FybS1ncmF5IGJnLXBhcGVyIHAtNCBzaGFkb3ctc20gZGFyazpib3JkZXItd2FybS1ncmF5LWRhcmsgZGFyazpiZy1wYXBlci1kYXJrIj4KICAgICAgICAgICAgPGgzIGNsYXNzTmFtZT0ibWItMyB0ZXh0LXNtIGZvbnQtbWVkaXVtIHRleHQtaW5rIGRhcms6dGV4dC1pbmstZGFyayI+5paw5bu65L2c5ZOBPC9oMz4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMyI+CiAgICAgICAgICAgICAgPGlucHV0CiAgICAgICAgICAgICAgICBhdXRvRm9jdXMKICAgICAgICAgICAgICAgIHZhbHVlPXtuZXdOYW1lfQogICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiB7CiAgICAgICAgICAgICAgICAgIHNldE5ld05hbWUoZS50YXJnZXQudmFsdWUpOwogICAgICAgICAgICAgICAgICBzZXRDcmVhdGVFcnJvcigiIik7CiAgICAgICAgICAgICAgICB9fQogICAgICAgICAgICAgICAgb25LZXlEb3duPXsoZSkgPT4gZS5rZXkgPT09ICJFbnRlciIgJiYgaGFuZGxlQ3JlYXRlKCl9CiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj0i5L2c5ZOB5ZCN56ewIgogICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJ3LWZ1bGwgcm91bmRlZC1sZyBib3JkZXIgYm9yZGVyLXdhcm0tZ3JheSBiZy1wYXBlciBweC0zIHB5LTIgdGV4dC1zbSB0ZXh0LWluayBvdXRsaW5lLW5vbmUgdHJhbnNpdGlvbi1jb2xvcnMgZm9jdXM6Ym9yZGVyLWFjY2VudCBkYXJrOmJvcmRlci13YXJtLWdyYXktZGFyayBkYXJrOmJnLXBhcGVyLWRhcmsgZGFyazp0ZXh0LWluay1kYXJrIgogICAgICAgICAgICAgIC8+CiAgICAgICAgICAgICAge2NyZWF0ZUVycm9yICYmIDxwIGNsYXNzTmFtZT0idGV4dC14cyB0ZXh0LXJlZC02MDAgZGFyazp0ZXh0LXJlZC00MDAiPntjcmVhdGVFcnJvcn08L3A+fQogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGp1c3RpZnktZW5kIGdhcC0yIj4KICAgICAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gewogICAgICAgICAgICAgICAgICAgIHNldENyZWF0aW5nKGZhbHNlKTsKICAgICAgICAgICAgICAgICAgICBzZXROZXdOYW1lKCIiKTsKICAgICAgICAgICAgICAgICAgICBzZXRDcmVhdGVFcnJvcigiIik7CiAgICAgICAgICAgICAgICAgIH19CiAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0icm91bmRlZC1sZyBweC0zIHB5LTEuNSB0ZXh0LXNtIHRleHQtaW5rLW11dGVkIHRyYW5zaXRpb24tY29sb3JzIGhvdmVyOmJnLXdhcm0tZ3JheSBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsgZGFyazpob3ZlcjpiZy13YXJtLWdyYXktZGFyayIKICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAg5Y+W5raICiAgICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICAgICAgb25DbGljaz17aGFuZGxlQ3JlYXRlfQogICAgICAgICAgICAgICAgICBjbGFzc05hbWU9InJvdW5kZWQtbGcgYmctYWNjZW50IHB4LTMgcHktMS41IHRleHQtc20gdGV4dC13aGl0ZSB0cmFuc2l0aW9uLWNvbG9ycyBob3ZlcjpiZy1hY2NlbnQtbGlnaHQiCiAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgIOWIm+W7ugogICAgICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPC9kaXY+CiAgICAgICAgKX0KCiAgICAgICAge3Byb2plY3RzLmxlbmd0aCA9PT0gMCAmJiAhY3JlYXRpbmcgJiYgKAogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggZmxleC1jb2wgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHB5LTIwIHRleHQtY2VudGVyIj4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9Im1iLTQgZmxleCBoLTE2IHctMTYgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtZnVsbCBiZy13YXJtLWdyYXkgZGFyazpiZy13YXJtLWdyYXktZGFyayI+CiAgICAgICAgICAgICAgPEZpbGVUZXh0IHNpemU9ezI4fSBjbGFzc05hbWU9InRleHQtaW5rLW11dGVkIGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayIgLz4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxoMyBjbGFzc05hbWU9Im1iLTEgdGV4dC1iYXNlIGZvbnQtbWVkaXVtIHRleHQtaW5rIGRhcms6dGV4dC1pbmstZGFyayI+6L+Y5rKh5pyJ5L2c5ZOBPC9oMz4KICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJtYi02IHRleHQtc20gdGV4dC1pbmstbXV0ZWQgZGFyazp0ZXh0LWluay1tdXRlZC1kYXJrIj7liJvlu7rkuIDkuKrmlrDkvZzlk4HvvIzlvIDlp4vkvaDnmoTliJvkvZzkuYvml4U8L3A+CiAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRDcmVhdGluZyh0cnVlKX0KICAgICAgICAgICAgICBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIHJvdW5kZWQtbGcgYmctYWNjZW50IHB4LTQgcHktMiB0ZXh0LXNtIGZvbnQtbWVkaXVtIHRleHQtd2hpdGUgc2hhZG93LXNtIHRyYW5zaXRpb24tYWxsIGhvdmVyOmJnLWFjY2VudC1saWdodCBob3ZlcjpzaGFkb3ciCiAgICAgICAgICAgID4KICAgICAgICAgICAgICA8UGx1cyBzaXplPXsxNn0gLz4KICAgICAgICAgICAgICDmlrDlu7rkvZzlk4EKICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICApfQoKICAgICAgICB7dmlld01vZGUgPT09ICJncmlkIiA/ICgKICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJncmlkIGdyaWQtY29scy0xIGdhcC00IG1kOmdyaWQtY29scy0yIGxnOmdyaWQtY29scy0zIj4KICAgICAgICAgICAge3Byb2plY3RzLm1hcCgocHJvamVjdCwgaWR4KSA9PiAoCiAgICAgICAgICAgICAgPFByb2plY3RDYXJkCiAgICAgICAgICAgICAgICBrZXk9e3Byb2plY3QuaWR9CiAgICAgICAgICAgICAgICBwcm9qZWN0PXtwcm9qZWN0fQogICAgICAgICAgICAgICAgaW5kZXg9e2lkeH0KICAgICAgICAgICAgICAgIHRvdGFsV29yZHM9e3dvcmRDb3VudHNbcHJvamVjdC5pZF19CiAgICAgICAgICAgICAgICBvbk9wZW49eygpID0+IG9wZW5Qcm9qZWN0KHByb2plY3QpfQogICAgICAgICAgICAgICAgb25FZGl0PXsoKSA9PiBzZXRFZGl0aW5nUHJvamVjdChwcm9qZWN0KX0KICAgICAgICAgICAgICAgIG9uRGVsZXRlPXsoKSA9PiByZXF1ZXN0RGVsZXRlKHByb2plY3QpfQogICAgICAgICAgICAgIC8+CiAgICAgICAgICAgICkpfQogICAgICAgICAgPC9kaXY+CiAgICAgICAgKSA6ICgKICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIGdhcC0yIj4KICAgICAgICAgICAge3Byb2plY3RzLm1hcCgocHJvamVjdCwgaWR4KSA9PiAoCiAgICAgICAgICAgICAgPFByb2plY3RSb3cKICAgICAgICAgICAgICAgIGtleT17cHJvamVjdC5pZH0KICAgICAgICAgICAgICAgIHByb2plY3Q9e3Byb2plY3R9CiAgICAgICAgICAgICAgICBpbmRleD17aWR4fQogICAgICAgICAgICAgICAgdG90YWxXb3Jkcz17d29yZENvdW50c1twcm9qZWN0LmlkXX0KICAgICAgICAgICAgICAgIG9uT3Blbj17KCkgPT4gb3BlblByb2plY3QocHJvamVjdCl9CiAgICAgICAgICAgICAgICBvbkVkaXQ9eygpID0+IHNldEVkaXRpbmdQcm9qZWN0KHByb2plY3QpfQogICAgICAgICAgICAgICAgb25EZWxldGU9eygpID0+IHJlcXVlc3REZWxldGUocHJvamVjdCl9CiAgICAgICAgICAgICAgLz4KICAgICAgICAgICAgKSl9CiAgICAgICAgICA8L2Rpdj4KICAgICAgICApfQoKICAgICAgICA8YnV0dG9uCiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRDcmVhdGluZyh0cnVlKX0KICAgICAgICAgIGNsYXNzTmFtZT0iZml4ZWQgYm90dG9tLTYgcmlnaHQtNiBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiByb3VuZGVkLWZ1bGwgYmctYWNjZW50IHB4LTQgcHktMi41IHRleHQtc20gZm9udC1tZWRpdW0gdGV4dC13aGl0ZSBzaGFkb3ctbGcgdHJhbnNpdGlvbi1hbGwgaG92ZXI6YmctYWNjZW50LWxpZ2h0IGhvdmVyOnNoYWRvdy14bCIKICAgICAgICA+CiAgICAgICAgICA8UGx1cyBzaXplPXsxNn0gLz4KICAgICAgICAgIOaWsOW7uuS9nOWTgQogICAgICAgIDwvYnV0dG9uPgogICAgICA8L2Rpdj4KICAgICAgPEdsb2JhbFNldHRpbmdzTW9kYWwgb3Blbj17c2V0dGluZ3NPcGVufSBvbkNsb3NlPXsoKSA9PiBzZXRTZXR0aW5nc09wZW4oZmFsc2UpfSAvPgogICAgICA8UHJvamVjdEVkaXREaWFsb2cKICAgICAgICBwcm9qZWN0PXtlZGl0aW5nUHJvamVjdH0KICAgICAgICBvblNhdmU9eyhkYXRhKSA9PiB7CiAgICAgICAgICBpZiAoZWRpdGluZ1Byb2plY3QpIHVwZGF0ZVByb2plY3QoZWRpdGluZ1Byb2plY3QuaWQsIGRhdGEpOwogICAgICAgIH19CiAgICAgICAgb25DbG9zZT17KCkgPT4gc2V0RWRpdGluZ1Byb2plY3QobnVsbCl9CiAgICAgIC8+CiAgICAgIDxDb25maXJtRGlhbG9nCiAgICAgICAgb3Blbj17ZGVsZXRpbmcgIT09IG51bGx9CiAgICAgICAgdGl0bGU9e2DliKDpmaTkvZzlk4HjgIwke2RlbGV0aW5nPy5uYW1lID8/ICIifeOAje+8n2B9CiAgICAgICAgbWVzc2FnZT17CiAgICAgICAgICBkZWxldGluZ0NoYXB0ZXJDb3VudCA+IDAKICAgICAgICAgICAgPyBg5bCG5rC45LmF5Yig6Zmk6K+l5L2c5ZOB5Y+K5YW2ICR7ZGVsZXRpbmdDaGFwdGVyQ291bnR9IOS4queroOiKgueahOWFqOmDqOWGheWuue+8jOatpOaTjeS9nOS4jeWPr+aSpOmUgOOAgmAKICAgICAgICAgICAgOiAi5bCG5rC45LmF5Yig6Zmk6K+l5L2c5ZOB77yM5q2k5pON5L2c5LiN5Y+v5pKk6ZSA44CCIgogICAgICAgIH0KICAgICAgICBjb25maXJtTGFiZWw9IuawuOS5heWIoOmZpCIKICAgICAgICBvbkNvbmZpcm09e2NvbmZpcm1EZWxldGV9CiAgICAgICAgb25DYW5jZWw9eygpID0+IHNldERlbGV0aW5nKG51bGwpfQogICAgICAvPgogICAgPC9kaXY+CiAgKTsKfQoKLy8g5Y2h54mH77ya572R5qC86KeG5Zu+55qE5Li76KaB5bGV56S65Y2V5YWD44CCCmZ1bmN0aW9uIFByb2plY3RDYXJkKHsKICBwcm9qZWN0LAogIGluZGV4LAogIHRvdGFsV29yZHMsCiAgb25PcGVuLAogIG9uRWRpdCwKICBvbkRlbGV0ZSwKfTogewogIHByb2plY3Q6IFByb2plY3Q7CiAgaW5kZXg6IG51bWJlcjsKICB0b3RhbFdvcmRzPzogbnVtYmVyOwogIG9uT3BlbjogKCkgPT4gdm9pZDsKICBvbkVkaXQ6ICgpID0+IHZvaWQ7CiAgb25EZWxldGU6ICgpID0+IHZvaWQ7Cn0pIHsKICBjb25zdCBbbWVudU9wZW4sIHNldE1lbnVPcGVuXSA9IHVzZVN0YXRlKGZhbHNlKTsKICBjb25zdCBtZW51UmVmID0gdXNlUmVmPEhUTUxEaXZFbGVtZW50PihudWxsKTsKICB1c2VDbGlja091dHNpZGUobWVudVJlZiwgKCkgPT4gc2V0TWVudU9wZW4oZmFsc2UpLCBtZW51T3Blbik7CgogIGNvbnN0IHByb2dyZXNzID0KICAgIHRvdGFsV29yZHMgIT09IHVuZGVmaW5lZCAmJiBwcm9qZWN0LnRhcmdldFdvcmRzID4gMAogICAgICA/IE1hdGgubWluKDEwMCwgTWF0aC5yb3VuZCgodG90YWxXb3JkcyAvIHByb2plY3QudGFyZ2V0V29yZHMpICogMTAwKSkKICAgICAgOiBudWxsOwoKICByZXR1cm4gKAogICAgPGRpdgogICAgICBvbkNsaWNrPXtvbk9wZW59CiAgICAgIHN0eWxlPXt7ICItLWlua3dlbGwtY2FyZC1kZWxheSI6IGAke01hdGgubWluKGluZGV4LCA4KSAqIDQ1fW1zYCB9IGFzIFJlYWN0LkNTU1Byb3BlcnRpZXN9CiAgICAgIGNsYXNzTmFtZT0iaW5rd2VsbC1jYXJkLWVudGVyIGdyb3VwIHJlbGF0aXZlIGN1cnNvci1wb2ludGVyIG92ZXJmbG93LWhpZGRlbiByb3VuZGVkLXhsIGJvcmRlciBib3JkZXItd2FybS1ncmF5IGJnLXBhcGVyIHAtNSB0cmFuc2l0aW9uLWFsbCBkdXJhdGlvbi0yMDAgaG92ZXI6LXRyYW5zbGF0ZS15LTEgaG92ZXI6Ym9yZGVyLWFjY2VudC82MCBob3ZlcjpzaGFkb3cteGwgZGFyazpib3JkZXItd2FybS1ncmF5LWRhcmsgZGFyazpiZy1wYXBlci1kYXJrIgogICAgPgogICAgICB7Lyog5oKs5YGc5pe255qE5aKo6Imy5riQ5Y+Y6KeS5qCH77yM57uZ5Y2h54mH5LiA54K544CM57+75byA5Lmm6aG144CN55qE5rCU5oGvICovfQogICAgICA8ZGl2IGNsYXNzTmFtZT0icG9pbnRlci1ldmVudHMtbm9uZSBhYnNvbHV0ZSAtcmlnaHQtOCAtdG9wLTggaC0yNCB3LTI0IHJvdW5kZWQtZnVsbCBiZy1hY2NlbnQvMTAgb3BhY2l0eS0wIGJsdXIteGwgdHJhbnNpdGlvbi1vcGFjaXR5IGR1cmF0aW9uLTMwMCBncm91cC1ob3ZlcjpvcGFjaXR5LTEwMCIgLz4KCiAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi0zIGZsZXggaXRlbXMtc3RhcnQganVzdGlmeS1iZXR3ZWVuIj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBoLTEyIHctMTIgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQteGwgYmctd2FybS1ncmF5IHRleHQtYWNjZW50IHRyYW5zaXRpb24tYWxsIGR1cmF0aW9uLTIwMCBncm91cC1ob3ZlcjpzY2FsZS0xMDUgZ3JvdXAtaG92ZXI6YmctYWNjZW50IGdyb3VwLWhvdmVyOnRleHQtd2hpdGUgZ3JvdXAtaG92ZXI6c2hhZG93LW1kIGRhcms6Ymctd2FybS1ncmF5LWRhcmsiPgogICAgICAgICAgPEJvb2tPcGVuIHNpemU9ezI0fSAvPgogICAgICAgIDwvZGl2PgogICAgICAgIDxQcm9qZWN0TWVudSBtZW51UmVmPXttZW51UmVmfSBtZW51T3Blbj17bWVudU9wZW59IHNldE1lbnVPcGVuPXtzZXRNZW51T3Blbn0gb25FZGl0PXtvbkVkaXR9IG9uRGVsZXRlPXtvbkRlbGV0ZX0gLz4KICAgICAgPC9kaXY+CgogICAgICA8aDMgY2xhc3NOYW1lPSJtYi0xIHRydW5jYXRlIHRleHQtYmFzZSBmb250LXNlbWlib2xkIHRleHQtaW5rIHRyYW5zaXRpb24tY29sb3JzIGdyb3VwLWhvdmVyOnRleHQtYWNjZW50IGRhcms6dGV4dC1pbmstZGFyayI+CiAgICAgICAge3Byb2plY3QubmFtZX0KICAgICAgPC9oMz4KICAgICAge3Byb2plY3QuYXV0aG9yICYmICgKICAgICAgICA8cCBjbGFzc05hbWU9Im1iLTEgZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTEgdGV4dC14cyB0ZXh0LWluay1tdXRlZCBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsiPgogICAgICAgICAgPEZlYXRoZXIgc2l6ZT17MTB9IGNsYXNzTmFtZT0ic2hyaW5rLTAiIC8+CiAgICAgICAgICB7cHJvamVjdC5hdXRob3J9IOiRlwogICAgICAgIDwvcD4KICAgICAgKX0KCiAgICAgIDxwIGNsYXNzTmFtZT0ibWItNCBsaW5lLWNsYW1wLTIgbWluLWgtWzIuNWVtXSB0ZXh0LXNtIGxlYWRpbmctcmVsYXhlZCB0ZXh0LWluay1tdXRlZCBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsiPgogICAgICAgIHtwcm9qZWN0LmRlc2NyaXB0aW9uIHx8ICLmmoLml6DnroDku4sifQogICAgICA8L3A+CgogICAgICB7cHJvZ3Jlc3MgIT09IG51bGwgJiYgKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi0zIj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi0xIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiB0ZXh0LXhzIj4KICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LWluayBkYXJrOnRleHQtaW5rLWRhcmsiPgogICAgICAgICAgICAgIHtmb3JtYXROdW1iZXIodG90YWxXb3JkcyEpfSA8c3BhbiBjbGFzc05hbWU9InRleHQtaW5rLW11dGVkIGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayI+LyB7Zm9ybWF0TnVtYmVyKHByb2plY3QudGFyZ2V0V29yZHMpfSDlrZc8L3NwYW4+CiAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJmb250LW1lZGl1bSB0ZXh0LWFjY2VudCI+e3Byb2dyZXNzfSU8L3NwYW4+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJoLTEuNSBvdmVyZmxvdy1oaWRkZW4gcm91bmRlZC1mdWxsIGJnLXdhcm0tZ3JheSBkYXJrOmJnLXdhcm0tZ3JheS1kYXJrIj4KICAgICAgICAgICAgPGRpdgogICAgICAgICAgICAgIGNsYXNzTmFtZT0iaC1mdWxsIHJvdW5kZWQtZnVsbCBiZy1ncmFkaWVudC10by1yIGZyb20tYWNjZW50IHRvLWFjY2VudC1saWdodCB0cmFuc2l0aW9uLWFsbCBkdXJhdGlvbi01MDAiCiAgICAgICAgICAgICAgc3R5bGU9e3sgd2lkdGg6IGAke3Byb2dyZXNzfSVgIH19CiAgICAgICAgICAgIC8+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgKX0KCiAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC14cyB0ZXh0LWluay1tdXRlZCBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsiPgogICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTEgZm9udC1tZWRpdW0gdGV4dC1hY2NlbnQgb3BhY2l0eS0wIHRyYW5zaXRpb24tYWxsIGR1cmF0aW9uLTIwMCBncm91cC1ob3ZlcjpvcGFjaXR5LTEwMCI+CiAgICAgICAgICDnu6fnu63lhpnkvZwKICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idHJhbnNpdGlvbi10cmFuc2Zvcm0gZHVyYXRpb24tMjAwIGdyb3VwLWhvdmVyOnRyYW5zbGF0ZS14LTAuNSI+4oaSPC9zcGFuPgogICAgICAgIDwvc3Bhbj4KICAgICAgICA8c3Bhbj7mm7TmlrDkuo4ge2Zvcm1hdERhdGVUaW1lKHByb2plY3QudXBkYXRlZEF0KX08L3NwYW4+CiAgICAgIDwvZGl2PgogICAgPC9kaXY+CiAgKTsKfQoKLy8g57Sn5YeR5YiX6KGo6KGM77ya5Zu+5qCHICsg5ZCN56ewL+S9nOiAhS/nroDku4sgKyDlhoXltYzov5vluqbmnaEgKyDmm7TmlrDml7bpl7TvvIzkuI7ljaHniYflhbHkuqvoj5zljZXkuqTkupLjgIIKZnVuY3Rpb24gUHJvamVjdFJvdyh7CiAgcHJvamVjdCwKICBpbmRleCwKICB0b3RhbFdvcmRzLAogIG9uT3BlbiwKICBvbkVkaXQsCiAgb25EZWxldGUsCn06IHsKICBwcm9qZWN0OiBQcm9qZWN0OwogIGluZGV4OiBudW1iZXI7CiAgdG90YWxXb3Jkcz86IG51bWJlcjsKICBvbk9wZW46ICgpID0+IHZvaWQ7CiAgb25FZGl0OiAoKSA9PiB2b2lkOwogIG9uRGVsZXRlOiAoKSA9PiB2b2lkOwp9KSB7CiAgY29uc3QgW21lbnVPcGVuLCBzZXRNZW51T3Blbl0gPSB1c2VTdGF0ZShmYWxzZSk7CiAgY29uc3QgbWVudVJlZiA9IHVzZVJlZjxIVE1MRGl2RWxlbWVudD4obnVsbCk7CiAgdXNlQ2xpY2tPdXRzaWRlKG1lbnVSZWYsICgpID0+IHNldE1lbnVPcGVuKGZhbHNlKSwgbWVudU9wZW4pOwoKICBjb25zdCBwcm9ncmVzcyA9CiAgICB0b3RhbFdvcmRzICE9PSB1bmRlZmluZWQgJiYgcHJvamVjdC50YXJnZXRXb3JkcyA+IDAKICAgICAgPyBNYXRoLm1pbigxMDAsIE1hdGgucm91bmQoKHRvdGFsV29yZHMgLyBwcm9qZWN0LnRhcmdldFdvcmRzKSAqIDEwMCkpCiAgICAgIDogbnVsbDsKCiAgcmV0dXJuICgKICAgIDxkaXYKICAgICAgb25DbGljaz17b25PcGVufQogICAgICBzdHlsZT17eyAiLS1pbmt3ZWxsLWNhcmQtZGVsYXkiOiBgJHtNYXRoLm1pbihpbmRleCwgOCkgKiA0MH1tc2AgfSBhcyBSZWFjdC5DU1NQcm9wZXJ0aWVzfQogICAgICBjbGFzc05hbWU9Imlua3dlbGwtY2FyZC1lbnRlciBncm91cCBmbGV4IGN1cnNvci1wb2ludGVyIGl0ZW1zLWNlbnRlciBnYXAtNCByb3VuZGVkLXhsIGJvcmRlciBib3JkZXItd2FybS1ncmF5IGJnLXBhcGVyIHB4LTQgcHktMyB0cmFuc2l0aW9uLWFsbCBkdXJhdGlvbi0yMDAgaG92ZXI6Ym9yZGVyLWFjY2VudC82MCBob3ZlcjpzaGFkb3ctbWQgZGFyazpib3JkZXItd2FybS1ncmF5LWRhcmsgZGFyazpiZy1wYXBlci1kYXJrIgogICAgPgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBoLTEwIHctMTAgc2hyaW5rLTAgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtbGcgYmctd2FybS1ncmF5IHRleHQtYWNjZW50IHRyYW5zaXRpb24tY29sb3JzIGdyb3VwLWhvdmVyOmJnLWFjY2VudCBncm91cC1ob3Zlcjp0ZXh0LXdoaXRlIGRhcms6Ymctd2FybS1ncmF5LWRhcmsiPgogICAgICAgIDxCb29rT3BlbiBzaXplPXsyMH0gLz4KICAgICAgPC9kaXY+CgogICAgICA8ZGl2IGNsYXNzTmFtZT0idy00OCBtaW4tdy0wIHNocmluay0wIj4KICAgICAgICA8aDMgY2xhc3NOYW1lPSJ0cnVuY2F0ZSB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1pbmsgdHJhbnNpdGlvbi1jb2xvcnMgZ3JvdXAtaG92ZXI6dGV4dC1hY2NlbnQgZGFyazp0ZXh0LWluay1kYXJrIj4KICAgICAgICAgIHtwcm9qZWN0Lm5hbWV9CiAgICAgICAgPC9oMz4KICAgICAgICA8cCBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xIHRleHQteHMgdGV4dC1pbmstbXV0ZWQgZGFyazp0ZXh0LWluay1tdXRlZC1kYXJrIj4KICAgICAgICAgIDxGZWF0aGVyIHNpemU9ezl9IGNsYXNzTmFtZT0ic2hyaW5rLTAiIC8+CiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRydW5jYXRlIj57cHJvamVjdC5hdXRob3IgPyBgJHtwcm9qZWN0LmF1dGhvcn0g6JGXYCA6ICLmnKrnvbLlkI0ifTwvc3Bhbj4KICAgICAgICA8L3A+CiAgICAgIDwvZGl2PgoKICAgICAgPHAgY2xhc3NOYW1lPSJoaWRkZW4gbWluLXctMCBmbGV4LTEgdHJ1bmNhdGUgdGV4dC1zbSB0ZXh0LWluay1tdXRlZCBtZDpibG9jayBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsiPgogICAgICAgIHtwcm9qZWN0LmRlc2NyaXB0aW9uIHx8ICLmmoLml6DnroDku4sifQogICAgICA8L3A+CgogICAgICB7cHJvZ3Jlc3MgIT09IG51bGwgJiYgKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJoaWRkZW4gdy00MCBzaHJpbmstMCBzbTpibG9jayI+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItMSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC1bMTFweF0iPgogICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtaW5rLW11dGVkIGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayI+CiAgICAgICAgICAgICAge2Zvcm1hdE51bWJlcih0b3RhbFdvcmRzISl9IC8ge2Zvcm1hdE51bWJlcihwcm9qZWN0LnRhcmdldFdvcmRzKX0g5a2XCiAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJmb250LW1lZGl1bSB0ZXh0LWFjY2VudCI+e3Byb2dyZXNzfSU8L3NwYW4+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJoLTEgb3ZlcmZsb3ctaGlkZGVuIHJvdW5kZWQtZnVsbCBiZy13YXJtLWdyYXkgZGFyazpiZy13YXJtLWdyYXktZGFyayI+CiAgICAgICAgICAgIDxkaXYKICAgICAgICAgICAgICBjbGFzc05hbWU9ImgtZnVsbCByb3VuZGVkLWZ1bGwgYmctZ3JhZGllbnQtdG8tciBmcm9tLWFjY2VudCB0by1hY2NlbnQtbGlnaHQgdHJhbnNpdGlvbi1hbGwgZHVyYXRpb24tNTAwIgogICAgICAgICAgICAgIHN0eWxlPXt7IHdpZHRoOiBgJHtwcm9ncmVzc30lYCB9fQogICAgICAgICAgICAvPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICAgICl9CgogICAgICA8c3BhbiBjbGFzc05hbWU9ImhpZGRlbiBzaHJpbmstMCB0ZXh0LXhzIHRleHQtaW5rLW11dGVkIGxnOmJsb2NrIGRhcms6dGV4dC1pbmstbXV0ZWQtZGFyayI+CiAgICAgICAge2Zvcm1hdERhdGVUaW1lKHByb2plY3QudXBkYXRlZEF0KX0KICAgICAgPC9zcGFuPgoKICAgICAgPFByb2plY3RNZW51IG1lbnVSZWY9e21lbnVSZWZ9IG1lbnVPcGVuPXttZW51T3Blbn0gc2V0TWVudU9wZW49e3NldE1lbnVPcGVufSBvbkVkaXQ9e29uRWRpdH0gb25EZWxldGU9e29uRGVsZXRlfSAvPgogICAgPC9kaXY+CiAgKTsKfQoKLy8g5Y2h54mHIC8g5YiX6KGo6KGM5YWx55So55qE44CM4ouv44CN6I+c5Y2V77yI57yW6L6R5L+h5oGvIC8g5Yig6Zmk77yJ44CCCmZ1bmN0aW9uIFByb2plY3RNZW51KHsKICBtZW51UmVmLAogIG1lbnVPcGVuLAogIHNldE1lbnVPcGVuLAogIG9uRWRpdCwKICBvbkRlbGV0ZSwKfTogewogIG1lbnVSZWY6IFJlYWN0LlJlZk9iamVjdDxIVE1MRGl2RWxlbWVudCB8IG51bGw+OwogIG1lbnVPcGVuOiBib29sZWFuOwogIHNldE1lbnVPcGVuOiAob3BlbjogYm9vbGVhbikgPT4gdm9pZDsKICBvbkVkaXQ6ICgpID0+IHZvaWQ7CiAgb25EZWxldGU6ICgpID0+IHZvaWQ7Cn0pIHsKICByZXR1cm4gKAogICAgPGRpdiByZWY9e21lbnVSZWZ9IGNsYXNzTmFtZT0icmVsYXRpdmUgc2hyaW5rLTAiPgogICAgICA8YnV0dG9uCiAgICAgICAgb25DbGljaz17KGUpID0+IHsKICAgICAgICAgIGUuc3RvcFByb3BhZ2F0aW9uKCk7CiAgICAgICAgICBzZXRNZW51T3BlbighbWVudU9wZW4pOwogICAgICAgIH19CiAgICAgICAgY2xhc3NOYW1lPSJmbGV4IGgtOCB3LTggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtZnVsbCB0ZXh0LWluay1tdXRlZCBvcGFjaXR5LTAgdHJhbnNpdGlvbi1vcGFjaXR5IGhvdmVyOmJnLXdhcm0tZ3JheSBncm91cC1ob3ZlcjpvcGFjaXR5LTEwMCBkYXJrOnRleHQtaW5rLW11dGVkLWRhcmsgZGFyazpob3ZlcjpiZy13YXJtLWdyYXktZGFyayIKICAgICAgPgogICAgICAgIDxNb3JlVmVydGljYWwgc2l6ZT17MTZ9IC8+CiAgICAgIDwvYnV0dG9uPgogICAgICB7bWVudU9wZW4gJiYgKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJhYnNvbHV0ZSByaWdodC0wIHRvcC05IHotMTAgdy0zMiByb3VuZGVkLWxnIGJvcmRlciBib3JkZXItd2FybS1ncmF5IGJnLXBhcGVyIHB5LTEgc2hhZG93LWxnIGRhcms6Ym9yZGVyLXdhcm0tZ3JheS1kYXJrIGRhcms6YmctcGFwZXItZGFyayI+CiAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgIG9uQ2xpY2s9eyhlKSA9PiB7CiAgICAgICAgICAgICAgZS5zdG9wUHJvcGFnYXRpb24oKTsKICAgICAgICAgICAgICBvbkVkaXQoKTsKICAgICAgICAgICAgICBzZXRNZW51T3BlbihmYWxzZSk7CiAgICAgICAgICAgIH19CiAgICAgICAgICAgIGNsYXNzTmFtZT0iZmxleCB3LWZ1bGwgaXRlbXMtY2VudGVyIGdhcC0yIHB4LTMgcHktMS41IHRleHQtbGVmdCB0ZXh0LXNtIHRleHQtaW5rIHRyYW5zaXRpb24tY29sb3JzIGhvdmVyOmJnLXdhcm0tZ3JheSBkYXJrOnRleHQtaW5rLWRhcmsgZGFyazpob3ZlcjpiZy13YXJtLWdyYXktZGFyayIKICAgICAgICAgID4KICAgICAgICAgICAgPFBlbmNpbExpbmUgc2l6ZT17MTJ9IC8+CiAgICAgICAgICAgIOe8lui+keS/oeaBrwogICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgIG9uQ2xpY2s9eyhlKSA9PiB7CiAgICAgICAgICAgICAgZS5zdG9wUHJvcGFnYXRpb24oKTsKICAgICAgICAgICAgICBvbkRlbGV0ZSgpOwogICAgICAgICAgICAgIHNldE1lbnVPcGVuKGZhbHNlKTsKICAgICAgICAgICAgfX0KICAgICAgICAgICAgY2xhc3NOYW1lPSJmbGV4IHctZnVsbCBpdGVtcy1jZW50ZXIgZ2FwLTIgcHgtMyBweS0xLjUgdGV4dC1sZWZ0IHRleHQtc20gdGV4dC1yZWQtNjAwIHRyYW5zaXRpb24tY29sb3JzIGhvdmVyOmJnLXJlZC01MDAvMTAgZGFyazp0ZXh0LXJlZC00MDAiCiAgICAgICAgICA+CiAgICAgICAgICAgIDxUcmFzaDIgc2l6ZT17MTJ9IC8+CiAgICAgICAgICAgIOWIoOmZpAogICAgICAgICAgPC9idXR0b24+CiAgICAgICAgPC9kaXY+CiAgICAgICl9CiAgICA8L2Rpdj4KICApOwp9Cg==
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Plus, BookOpen, MoreVertical, Trash2, FileText, Settings, PencilLine, Feather, LayoutGrid, Rows3 } from "lucide-react";
+import { useAppStore } from "../store";
+import type { Project } from "../types";
+import { formatNumber, formatDateTime } from "../lib/utils";
+import { GlobalSettingsModal } from "./GlobalSettingsModal";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { ProjectEditDialog } from "./ProjectEditDialog";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { loadProjectFromLocal } from "../lib/storage";
+import { cn } from "../lib/utils";
+
+export function ProjectList() {
+  const {
+    projects,
+    loadProjects,
+    createProject,
+    openProject,
+    deleteProject,
+    updateProject,
+    appSettings,
+    updateAppSettings,
+  } = useAppStore();
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleting, setDeleting] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [deletingChapterCount, setDeletingChapterCount] = useState(0);
+  // Total word count per project, aggregated from each project file so the
+  // cards can show live progress without opening the project.
+  const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
+  // 书籍打开动效：点击书封 → 播放翻页动画 → 动画结束后真正进入作品。
+  const [opening, setOpening] = useState<{ id: string; rect: DOMRect } | null>(null);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  // Aggregate per-project word counts for the progress display. Reads each
+  // project file once per registry change — cheap JSON, no chapter content.
+  // Each project is loaded independently: one corrupt file must not take
+  // down the progress bars of every other card.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const settings = useAppStore.getState().appSettings;
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        projects.map(async (p) => {
+          try {
+            const loaded = await loadProjectFromLocal(p.id, settings);
+            counts[p.id] = (loaded?.chapters || []).reduce((sum, c) => sum + c.wordCount, 0);
+          } catch {
+            counts[p.id] = 0;
+          }
+        }),
+      );
+      if (!cancelled) setWordCounts(counts);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projects]);
+
+  const handleCreate = async () => {
+    if (!newName.trim()) return;
+    try {
+      const project = await createProject({ name: newName.trim() });
+      await openProject(project);
+      setCreating(false);
+      setNewName("");
+      setCreateError("");
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const requestDelete = useCallback(async (project: Project) => {
+    setDeleting(project);
+    setDeletingChapterCount(0);
+    try {
+      const loaded = await loadProjectFromLocal(
+        project.id,
+        useAppStore.getState().appSettings,
+      );
+      setDeletingChapterCount(loaded?.chapters.length || 0);
+    } catch {
+      setDeletingChapterCount(0);
+    }
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleting) return;
+    const id = deleting.id;
+    setDeleting(null);
+    await deleteProject(id);
+  }, [deleting, deleteProject]);
+
+  // 作品展示模式：卡片网格（默认）/ 紧凑列表，持久化在全局设置里。
+  const viewMode = appSettings.projectViewMode ?? "grid";
+
+  // 点击书封：记录封面位置播放「翻书打开」动效，结束后进入作品。
+  const handleOpen = useCallback(
+    (project: Project, rect: DOMRect | null) => {
+      if (opening) return; // 动画进行中忽略重复点击
+      if (!rect) {
+        openProject(project);
+        return;
+      }
+      setOpening({ id: project.id, rect });
+      window.setTimeout(() => {
+        setOpening(null);
+        openProject(project);
+      }, 700);
+    },
+    [opening, openProject],
+  );
+
+  return (
+    <div className="flex h-full flex-col bg-paper dark:bg-paper-dark">
+      <div className="flex h-16 items-center justify-between border-b border-warm-gray px-6 dark:border-warm-gray-dark">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-sm">
+            <BookOpen size={20} />
+          </div>
+          <h1 className="text-lg font-semibold text-ink dark:text-ink-dark">墨池</h1>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* 展示模式切换：卡片网格 / 紧凑列表 */}
+          <div className="mr-1 flex items-center rounded-lg border border-warm-gray p-0.5 dark:border-warm-gray-dark">
+            <button
+              onClick={() => updateAppSettings({ projectViewMode: "grid" })}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+                viewMode === "grid"
+                  ? "bg-accent/10 text-accent dark:bg-accent/20"
+                  : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
+              )}
+              title="卡片视图"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              onClick={() => updateAppSettings({ projectViewMode: "list" })}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+                viewMode === "list"
+                  ? "bg-accent/10 text-accent dark:bg-accent/20"
+                  : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
+              )}
+              title="列表视图"
+            >
+              <Rows3 size={15} />
+            </button>
+          </div>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+            title="全局设置"
+          >
+            <Settings size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative flex-1 overflow-y-auto px-8 py-7 lg:px-12">
+        {creating && (
+          <div className="mb-6 rounded-xl border border-warm-gray bg-paper p-4 shadow-sm dark:border-warm-gray-dark dark:bg-paper-dark">
+            <h3 className="mb-3 text-sm font-medium text-ink dark:text-ink-dark">新建作品</h3>
+            <div className="space-y-3">
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => {
+                  setNewName(e.target.value);
+                  setCreateError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                placeholder="作品名称"
+                className="w-full rounded-lg border border-warm-gray bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent dark:border-warm-gray-dark dark:bg-paper-dark dark:text-ink-dark"
+              />
+              {createError && <p className="text-xs text-red-600 dark:text-red-400">{createError}</p>}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setCreating(false);
+                    setNewName("");
+                    setCreateError("");
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleCreate}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-sm text-white transition-colors hover:bg-accent-light"
+                >
+                  创建
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {projects.length === 0 && !creating && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warm-gray dark:bg-warm-gray-dark">
+              <FileText size={28} className="text-ink-muted dark:text-ink-muted-dark" />
+            </div>
+            <h3 className="mb-1 text-base font-medium text-ink dark:text-ink-dark">还没有作品</h3>
+            <p className="mb-6 text-sm text-ink-muted dark:text-ink-muted-dark">创建一个新作品，开始你的创作之旅</p>
+            <button
+              onClick={() => setCreating(true)}
+              className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-accent-light hover:shadow"
+            >
+              <Plus size={16} />
+              新建作品
+            </button>
+          </div>
+        )}
+
+        {viewMode === "grid" ? (
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {projects.map((project, idx) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                index={idx}
+                totalWords={wordCounts[project.id]}
+                onOpen={handleOpen}
+                onEdit={() => setEditingProject(project)}
+                onDelete={() => requestDelete(project)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mx-auto flex max-w-4xl flex-col gap-2">
+            {projects.map((project, idx) => (
+              <ProjectRow
+                key={project.id}
+                project={project}
+                index={idx}
+                totalWords={wordCounts[project.id]}
+                onOpen={handleOpen}
+                onEdit={() => setEditingProject(project)}
+                onDelete={() => requestDelete(project)}
+              />
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={() => setCreating(true)}
+          className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-accent-light hover:shadow-xl"
+        >
+          <Plus size={16} />
+          新建作品
+        </button>
+      </div>
+      {/* 翻书打开动效覆盖层：从被点封面位置翻开，淡出前完成项目切换 */}
+      {opening && (
+        <BookOpenOverlay
+          rect={opening.rect}
+          title={projects.find((p) => p.id === opening.id)?.name ?? ""}
+          palette={coverColor(opening.id)}
+        />
+      )}
+      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ProjectEditDialog
+        project={editingProject}
+        onSave={(data) => {
+          if (editingProject) updateProject(editingProject.id, data);
+        }}
+        onClose={() => setEditingProject(null)}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        title={`删除作品「${deleting?.name ?? ""}」？`}
+        message={
+          deletingChapterCount > 0
+            ? `将永久删除该作品及其 ${deletingChapterCount} 个章节的全部内容，此操作不可撤销。`
+            : "将永久删除该作品，此操作不可撤销。"
+        }
+        confirmLabel="永久删除"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleting(null)}
+      />
+    </div>
+  );
+}
+
+// 卡片与列表行共用的进度条：当前字数 / 目标字数 + 百分比。
+function ProgressBar({ totalWords, targetWords }: { totalWords?: number; targetWords: number }) {
+  if (totalWords === undefined || targetWords <= 0) return null;
+  const progress = Math.min(100, Math.round((totalWords / targetWords) * 100));
+  return (
+    <>
+      <div className="mb-1 flex items-center justify-between text-[11px]">
+        <span className="text-ink-muted dark:text-ink-muted-dark">
+          {formatNumber(totalWords)} / {formatNumber(targetWords)} 字
+        </span>
+        <span className="font-medium text-accent">{progress}%</span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-full bg-warm-gray dark:bg-warm-gray-dark">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </>
+  );
+}
+
+// 书封配色：按作品 id 散列到一组雅致的主题色（底色 + 书名/书脊深浅阶）。
+const BOOK_COVER_COLORS: { base: string; deep: string; soft: string }[] = [
+  { base: "#7a5c3f", deep: "#5f4630", soft: "#96765a" }, // 棕
+  { base: "#4f6b8a", deep: "#3d5470", soft: "#6a85a3" }, // 黛蓝
+  { base: "#6b7c56", deep: "#546343", soft: "#86976f" }, // 苔绿
+  { base: "#8a5560", deep: "#6e434c", soft: "#a3707b" }, // 绛红
+  { base: "#5f6e9e", deep: "#4b577e", soft: "#7a88b3" }, // 靛青
+  { base: "#7d6b4f", deep: "#63543d", soft: "#97846a" }, // 茶褐
+];
+
+function coverColor(id: string): (typeof BOOK_COVER_COLORS)[number] {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return BOOK_COVER_COLORS[Math.abs(hash) % BOOK_COVER_COLORS.length];
+}
+
+// 书影配色：固定深灰褐，与被点封面无关。
+
+// 书籍卡片：竖版书封 + 书脊，悬停微掀，信息排于书封之下。
+function ProjectCard({
+  project,
+  index,
+  totalWords,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  project: Project;
+  index: number;
+  totalWords?: number;
+  onOpen: (project: Project, rect: DOMRect | null) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const coverRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
+  const palette = coverColor(project.id);
+
+  return (
+    <div
+      onClick={() => onOpen(project, coverRef.current?.getBoundingClientRect() ?? null)}
+      style={{ "--inkwell-card-delay": `${Math.min(index, 8) * 45}ms` } as React.CSSProperties}
+      className="inkwell-card-enter group cursor-pointer"
+    >
+      {/* 书封：3:4 竖版 + 左侧书脊 + 竖排书名 */}
+      <div
+        ref={coverRef}
+        style={{ perspective: "1000px" }}
+        className="relative mx-auto w-full max-w-44"
+      >
+        <div
+          style={{
+            background: `linear-gradient(150deg, ${palette.soft} 0%, ${palette.base} 38%, ${palette.deep} 100%)`,
+            transformOrigin: "left center",
+          }}
+          className="relative aspect-[3/4] overflow-hidden rounded-r-lg rounded-l-[3px] shadow-[0_10px_24px_-10px_rgba(0,0,0,0.45)] transition-all duration-300 ease-out group-hover:-translate-y-2 group-hover:shadow-[0_24px_44px_-14px_rgba(0,0,0,0.55)] group-hover:[transform:translateY(-8px)_rotateY(-11deg)]"
+        >
+          {/* 书脊：两道压痕 + 纵深阴影 */}
+          <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/35 via-black/15 to-transparent" />
+          <div className="absolute inset-y-0 left-3 w-px bg-white/25" />
+          <div className="absolute inset-y-0 left-[13px] w-px bg-black/15" />
+          {/* 封面光泽：上亮下暗的基础光影 */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/25" />
+          {/* 悬停高光扫过（reduced-motion 下不播放） */}
+          <div className="inkwell-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-80" style={{ transform: "translateX(-120%) skewX(-18deg)" }} />
+          {/* 上下装饰线：精装书封的框线感 */}
+          <div className="absolute inset-x-4 top-3 h-px bg-white/25" />
+          <div className="absolute inset-x-4 bottom-3 h-px bg-white/25" />
+          {/* 竖排书名与作者 */}
+          <div className="absolute inset-y-0 right-0 flex flex-col items-center gap-3 px-4 py-6 [writing-mode:vertical-rl]">
+            <span className="max-h-[70%] overflow-hidden text-lg font-semibold tracking-[0.22em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+              {project.name}
+            </span>
+            {project.author && (
+              <span className="max-h-[22%] overflow-hidden text-[11px] tracking-[0.18em] text-white/75">
+                {project.author} 著
+              </span>
+            )}
+          </div>
+        </div>
+        <ProjectMenu menuRef={menuRef} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onEdit={onEdit} onDelete={onDelete} />
+      </div>
+
+      {/* 书下信息：简介 / 进度 / 更新时间 */}
+      <div className="mt-3.5 px-1">
+        <h3 className="truncate text-center text-sm font-semibold text-ink transition-colors group-hover:text-accent dark:text-ink-dark">
+          {project.name}
+        </h3>
+        <p className="mt-1 line-clamp-2 min-h-[2.5em] text-center text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+          {project.description || "暂无简介"}
+        </p>
+        <div className="mt-2.5">
+          <ProgressBar totalWords={totalWords} targetWords={project.targetWords} />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[11px] text-ink-muted dark:text-ink-muted-dark">
+          <span className="font-medium text-accent opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            翻开阅读 →
+          </span>
+          <span>{formatDateTime(project.updatedAt)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 翻书打开动效：书影留在原位放大淡出，封面从被点位置掀起（绕左缘
+// rotateY）并放大铺满屏幕，纸色遮罩在后半段接管画面，700ms 后由调用方
+// 完成项目切换。
+function BookOpenOverlay({
+  rect,
+  title,
+  palette,
+}: {
+  rect: DOMRect;
+  title: string;
+  palette: (typeof BOOK_COVER_COLORS)[number];
+}) {
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[70]">
+      {/* 纸色遮罩：封面放大到失焦后接管画面，衔接编辑器视图 */}
+      <div className="inkwell-book-page-overlay absolute inset-0 bg-paper opacity-0 dark:bg-paper-dark" />
+      {/* 书影：封面掀开后留在原位的封底 */}
+      <div
+        className="inkwell-book-open-shadow absolute rounded-r-lg rounded-l-[3px] bg-black/30 blur-md"
+        style={{
+          left: cx,
+          top: cy,
+          width: rect.width,
+          height: rect.height,
+          transform: "translate(-50%, -50%)",
+        }}
+      />
+      <div className="absolute inset-0" style={{ perspective: "1600px" }}>
+        <div
+          className="inkwell-book-open-cover absolute rounded-r-lg rounded-l-[3px] shadow-2xl"
+          style={{
+            left: cx,
+            top: cy,
+            width: rect.width,
+            height: rect.height,
+            background: `linear-gradient(150deg, ${palette.soft} 0%, ${palette.base} 38%, ${palette.deep} 100%)`,
+            transformOrigin: "left center",
+          }}
+        >
+          <div className="absolute inset-y-0 left-0 w-3.5 bg-gradient-to-r from-black/35 via-black/15 to-transparent" />
+          <div className="absolute inset-y-0 left-3.5 w-px bg-white/25" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/25" />
+          <div className="absolute inset-x-5 top-4 h-px bg-white/25" />
+          <div className="absolute inset-x-5 bottom-4 h-px bg-white/25" />
+          <div className="absolute inset-y-0 right-0 flex items-center px-5 py-7 [writing-mode:vertical-rl]">
+            <span className="max-h-full overflow-hidden text-xl font-semibold tracking-[0.25em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+              {title}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 紧凑列表行：图标 + 名称/作者/简介 + 内嵌进度条 + 更新时间，与卡片共享菜单交互。
+function ProjectRow({
+  project,
+  index,
+  totalWords,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  project: Project;
+  index: number;
+  totalWords?: number;
+  onOpen: (project: Project, rect: DOMRect | null) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
+
+  return (
+    <div
+      onClick={() => onOpen(project, null)}
+      style={{ "--inkwell-card-delay": `${Math.min(index, 8) * 40}ms` } as React.CSSProperties}
+      className="inkwell-card-enter group flex cursor-pointer items-center gap-4 rounded-xl border border-warm-gray bg-paper px-4 py-3 transition-all duration-200 hover:border-accent/60 hover:shadow-md dark:border-warm-gray-dark dark:bg-paper-dark"
+    >
+      <div
+        className="flex h-11 w-9 shrink-0 items-center justify-center rounded-r-md rounded-l-[2px] shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5"
+        style={{ background: `linear-gradient(150deg, ${coverColor(project.id).soft}, ${coverColor(project.id).deep})` }}
+      >
+        <BookOpen size={16} className="text-white/90" />
+      </div>
+
+      <div className="w-48 min-w-0 shrink-0">
+        <h3 className="truncate text-sm font-semibold text-ink transition-colors group-hover:text-accent dark:text-ink-dark">
+          {project.name}
+        </h3>
+        <p className="flex items-center gap-1 text-xs text-ink-muted dark:text-ink-muted-dark">
+          <Feather size={9} className="shrink-0" />
+          <span className="truncate">{project.author ? `${project.author} 著` : "未署名"}</span>
+        </p>
+      </div>
+
+      <p className="hidden min-w-0 flex-1 truncate text-sm text-ink-muted md:block dark:text-ink-muted-dark">
+        {project.description || "暂无简介"}
+      </p>
+
+      <div className="hidden w-40 shrink-0 sm:block">
+        <ProgressBar totalWords={totalWords} targetWords={project.targetWords} />
+      </div>
+
+      <span className="hidden shrink-0 text-xs text-ink-muted lg:block dark:text-ink-muted-dark">
+        {formatDateTime(project.updatedAt)}
+      </span>
+
+      <ProjectMenu menuRef={menuRef} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  );
+}
+
+// 卡片 / 列表行共用的「⋯」菜单（编辑信息 / 删除）。
+function ProjectMenu({
+  menuRef,
+  menuOpen,
+  setMenuOpen,
+  onEdit,
+  onDelete,
+}: {
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  menuOpen: boolean;
+  setMenuOpen: (open: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen(!menuOpen);
+        }}
+        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+      >
+        <MoreVertical size={16} />
+      </button>
+      {menuOpen && (
+        <div className="absolute right-0 top-9 z-10 w-32 rounded-lg border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+              setMenuOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark"
+          >
+            <PencilLine size={12} />
+            编辑信息
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+              setMenuOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 transition-colors hover:bg-red-500/10 dark:text-red-400"
+          >
+            <Trash2 size={12} />
+            删除
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { ArrowLeft, BookMarked, Check, Plus, Search, Trash2, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { ArrowLeft, BookMarked, Check, ChevronDown, Plus, Search, Trash2, X } from "lucide-react";
 import { useAppStore } from "../../store";
 import { cn } from "../../lib/utils";
 import { DICT_CATEGORIES } from "../../types";
@@ -7,9 +7,9 @@ import type { DictEntry } from "../../types";
 import { ConfirmDialog } from "../ConfirmDialog";
 
 // 设定词典：小说世界观设定库（人物卡、地点、势力……）。
-// 列表 ↔ 详情两级导航：列表页占满侧栏（搜索 + 分类筛选 + 词条行），
-// 点词条进入全高度详情编辑（返回键回到列表）。输入即防抖自动保存，
-// 存储于 dictionary/<projectId>.json。
+// 列表按分类分组折叠展示，分类行即快捷目录——点分类跳转/收起，「全部」
+// 一键展开；搜索时自动命中词名/别名/内容并展开所在分组。点词条进入
+// 全高度详情编辑（返回键回到列表），输入即防抖自动保存。
 export function DictionaryView() {
   const {
     dictEntries,
@@ -20,8 +20,11 @@ export function DictionaryView() {
     removeDictEntry,
   } = useAppStore();
   const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  // 收起的分类集合：默认全部展开，点分类名收起/展开。
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  // 分类锚点：点顶部分类 chip 滚动定位到对应分组（快捷跳转）。
+  const groupRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const active = dictEntries.find((e) => e.id === activeDictId) || null;
 
@@ -36,19 +39,58 @@ export function DictionaryView() {
     return [...DICT_CATEGORIES, ...custom];
   }, [dictEntries]);
 
+  const searching = query.trim().length > 0;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return dictEntries
-      .filter((e) => (categoryFilter ? e.category === categoryFilter : true))
-      .filter((e) => {
-        if (!q) return true;
-        return (
-          e.term.toLowerCase().includes(q) ||
-          e.aliases.some((a) => a.toLowerCase().includes(q)) ||
-          e.content.toLowerCase().includes(q)
-        );
+    if (!q) return dictEntries;
+    return dictEntries.filter(
+      (e) =>
+        e.term.toLowerCase().includes(q) ||
+        e.aliases.some((a) => a.toLowerCase().includes(q)) ||
+        e.content.toLowerCase().includes(q),
+    );
+  }, [dictEntries, query]);
+
+  // 分组：按分类聚合，组内按更新时间倒序；空分类不显示。
+  const groups = useMemo(() => {
+    const map = new Map<string, DictEntry[]>();
+    for (const e of filtered) {
+      const key = e.category || "未分类";
+      const list = map.get(key);
+      if (list) list.push(e);
+      else map.set(key, [e]);
+    }
+    const order = [...allCategories, "未分类"].filter((c) => map.has(c));
+    return order.map((c) => ({
+      category: c,
+      entries: map.get(c)!.sort((a, b) => b.updatedAt - a.updatedAt),
+    }));
+  }, [filtered, allCategories]);
+
+  const toggleGroup = (category: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
+
+  // 快捷跳转：滚动到分组并确保展开；已展开且在视野内时切换为收起。
+  const jumpToGroup = (category: string) => {
+    if (collapsed.has(category)) {
+      toggleGroup(category);
+      requestAnimationFrame(() => {
+        groupRefs.current.get(category)?.scrollIntoView({ block: "start", behavior: "smooth" });
       });
-  }, [dictEntries, query, categoryFilter]);
+      return;
+    }
+    const el = groupRefs.current.get(category);
+    if (el) {
+      el.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  };
 
   // 详情视图：词条占满侧栏剩余高度，编辑不再被列表挤压。
   if (active) {
@@ -94,7 +136,7 @@ export function DictionaryView() {
           />
         </div>
         <button
-          onClick={addDictEntry}
+          onClick={() => addDictEntry()}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-warm-gray hover:text-accent dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
           title="新建词条"
         >
@@ -102,25 +144,21 @@ export function DictionaryView() {
         </button>
       </div>
 
-      {/* 分类筛选 */}
+      {/* 分类快捷目录：点击跳转并展开；「全部」一键展开所有分组 */}
       {dictEntries.length > 0 && (
         <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-warm-gray px-3 py-1.5 scrollbar-hide dark:border-warm-gray-dark">
-          <FilterChip active={categoryFilter === null} onClick={() => setCategoryFilter(null)}>
+          <FilterChip active={collapsed.size === 0} onClick={() => setCollapsed(new Set())}>
             全部
           </FilterChip>
-          {allCategories.map((c) => (
-            <FilterChip
-              key={c}
-              active={categoryFilter === c}
-              onClick={() => setCategoryFilter(categoryFilter === c ? null : c)}
-            >
-              {c}
+          {groups.map((g) => (
+            <FilterChip key={g.category} active={!collapsed.has(g.category)} onClick={() => jumpToGroup(g.category)}>
+              {g.category}
             </FilterChip>
           ))}
         </div>
       )}
 
-      {/* 词条列表：占满剩余空间 */}
+      {/* 分组词条列表：占满剩余空间 */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
@@ -138,7 +176,7 @@ export function DictionaryView() {
             </p>
             {dictEntries.length === 0 && (
               <button
-                onClick={addDictEntry}
+                onClick={() => addDictEntry()}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-light"
               >
                 <Plus size={14} />
@@ -147,27 +185,71 @@ export function DictionaryView() {
             )}
           </div>
         ) : (
-          filtered.map((e) => (
-            <button
-              key={e.id}
-              onClick={() => setActiveDict(e.id)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-warm-gray dark:hover:bg-warm-gray-dark"
-            >
-              <span className="shrink-0 rounded bg-warm-gray px-1 py-0.5 text-[10px] text-ink-muted dark:bg-warm-gray-dark dark:text-ink-muted-dark">
-                {e.category || "未分类"}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-ink dark:text-ink-dark">
-                  {e.term || "未命名词条"}
-                </span>
-                {e.aliases.length > 0 && (
-                  <span className="block truncate text-[11px] text-ink-muted dark:text-ink-muted-dark">
-                    {e.aliases.join(" / ")}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))
+          groups.map((g) => {
+            const isCollapsed = !searching && collapsed.has(g.category);
+            return (
+              <div
+                key={g.category}
+                ref={(el) => {
+                  if (el) groupRefs.current.set(g.category, el);
+                  else groupRefs.current.delete(g.category);
+                }}
+              >
+                {/* 分组头：分类名 + 数量 + 组内新建 + 折叠开关 */}
+                <div className="sticky top-0 z-10 flex items-center gap-1 border-b border-warm-gray/60 bg-paper px-3 py-1.5 dark:border-warm-gray-dark/60 dark:bg-paper-dark">
+                  <button
+                    onClick={() => toggleGroup(g.category)}
+                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                  >
+                    <ChevronDown
+                      size={13}
+                      className={cn(
+                        "shrink-0 text-ink-muted transition-transform dark:text-ink-muted-dark",
+                        isCollapsed && "-rotate-90",
+                      )}
+                    />
+                    <span className="truncate text-xs font-medium text-ink dark:text-ink-dark">
+                      {g.category}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-ink-muted dark:text-ink-muted-dark">
+                      {g.entries.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => addDictEntry(g.category === "未分类" ? undefined : g.category)}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-muted transition-colors hover:bg-warm-gray hover:text-accent dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+                    title={`在「${g.category}」下新建词条`}
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+                {!isCollapsed &&
+                  g.entries.map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => setActiveDict(e.id)}
+                      className="flex w-full flex-col gap-0.5 border-b border-warm-gray/40 px-3 py-2 text-left transition-colors hover:bg-warm-gray dark:border-warm-gray-dark/40 dark:hover:bg-warm-gray-dark"
+                    >
+                      <span className="flex items-baseline gap-2">
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink dark:text-ink-dark">
+                          {e.term || "未命名词条"}
+                        </span>
+                        {e.aliases.length > 0 && (
+                          <span className="shrink-0 truncate text-[11px] text-ink-muted dark:text-ink-muted-dark">
+                            {e.aliases.join(" / ")}
+                          </span>
+                        )}
+                      </span>
+                      {e.content.trim() && (
+                        <span className="line-clamp-1 text-[11px] leading-relaxed text-ink-muted/80 dark:text-ink-muted-dark/80">
+                          {e.content.trim()}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

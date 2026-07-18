@@ -1,4 +1,4 @@
-# 墨池 InkWell
+# 墨池
 
 一款基于 Tauri 2.0 + React 的 Windows 本地优先小说写作工具。
 

@@ -179,7 +179,7 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
             className={cn(
               "rounded-md px-2 py-3 text-center text-xs text-ink-muted transition-colors dark:text-ink-muted-dark",
               activeDrop?.volumeId === volumeId && activeDrop?.index === 0
-                ? "bg-accent/10 text-accent dark:bg-accent/20"
+                ? "bg-warm-gray text-ink dark:bg-warm-gray-dark dark:text-ink-dark"
                 : "",
             )}
           >

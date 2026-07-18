@@ -5,17 +5,17 @@ import { Save, AlertCircle, X, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
-  const {
-    currentProject,
-    chapters,
-    currentChapter,
-    appSettings,
-    lastSavedAt,
-    saveError,
-    dismissSaveError,
-    updateChapterContent,
-    saveCurrentProject,
-  } = useAppStore();
+  // Selector subscriptions — the word-count drip must only re-render the
+  // spans that actually display it, not the whole workspace tree.
+  const currentProject = useAppStore((s) => s.currentProject);
+  const chapters = useAppStore((s) => s.chapters);
+  const currentChapter = useAppStore((s) => s.currentChapter);
+  const appSettings = useAppStore((s) => s.appSettings);
+  const lastSavedAt = useAppStore((s) => s.lastSavedAt);
+  const saveError = useAppStore((s) => s.saveError);
+  const dismissSaveError = useAppStore((s) => s.dismissSaveError);
+  const updateChapterContent = useAppStore((s) => s.updateChapterContent);
+  const saveCurrentProject = useAppStore((s) => s.saveCurrentProject);
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [retrying, setRetrying] = useState(false);
 

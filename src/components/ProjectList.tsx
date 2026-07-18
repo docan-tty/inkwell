@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, BookOpen, MoreVertical, Trash2, FileText, Settings, PencilLine, Feather, LayoutGrid, Rows3 } from "lucide-react";
 import { useAppStore } from "../store";
 import type { Project } from "../types";
-import { formatNumber, formatDateTime } from "../lib/utils";
 import { GlobalSettingsModal } from "./GlobalSettingsModal";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ProjectEditDialog } from "./ProjectEditDialog";
@@ -11,16 +10,14 @@ import { loadProjectFromLocal } from "../lib/storage";
 import { cn } from "../lib/utils";
 
 export function ProjectList() {
-  const {
-    projects,
-    loadProjects,
-    createProject,
-    openProject,
-    deleteProject,
-    updateProject,
-    appSettings,
-    updateAppSettings,
-  } = useAppStore();
+  const projects = useAppStore((s) => s.projects);
+  const loadProjects = useAppStore((s) => s.loadProjects);
+  const createProject = useAppStore((s) => s.createProject);
+  const openProject = useAppStore((s) => s.openProject);
+  const deleteProject = useAppStore((s) => s.deleteProject);
+  const updateProject = useAppStore((s) => s.updateProject);
+  const appSettings = useAppStore((s) => s.appSettings);
+  const updateAppSettings = useAppStore((s) => s.updateAppSettings);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState("");
@@ -28,41 +25,19 @@ export function ProjectList() {
   const [deleting, setDeleting] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingChapterCount, setDeletingChapterCount] = useState(0);
-  // Total word count per project, aggregated from each project file so the
-  // cards can show live progress without opening the project.
-  const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
   // 书籍打开动效：点击书封 → 播放翻页动画 → 动画结束后真正进入作品。
   const [opening, setOpening] = useState<{ id: string; rect: DOMRect } | null>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (openTimer.current) clearTimeout(openTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
-
-  // Aggregate per-project word counts for the progress display. Reads each
-  // project file once per registry change — cheap JSON, no chapter content.
-  // Each project is loaded independently: one corrupt file must not take
-  // down the progress bars of every other card.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const settings = useAppStore.getState().appSettings;
-      const counts: Record<string, number> = {};
-      await Promise.all(
-        projects.map(async (p) => {
-          try {
-            const loaded = await loadProjectFromLocal(p.id, settings);
-            counts[p.id] = (loaded?.chapters || []).reduce((sum, c) => sum + c.wordCount, 0);
-          } catch {
-            counts[p.id] = 0;
-          }
-        }),
-      );
-      if (!cancelled) setWordCounts(counts);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [projects]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -102,6 +77,7 @@ export function ProjectList() {
   const viewMode = appSettings.projectViewMode ?? "grid";
 
   // 点击书封：记录封面位置播放「翻书打开」动效，结束后进入作品。
+  // 守卫覆盖所有入口（卡片与列表行），防止双击交错打开两个作品。
   const handleOpen = useCallback(
     (project: Project, rect: DOMRect | null) => {
       if (opening) return; // 动画进行中忽略重复点击
@@ -110,7 +86,9 @@ export function ProjectList() {
         return;
       }
       setOpening({ id: project.id, rect });
-      window.setTimeout(() => {
+      if (openTimer.current) clearTimeout(openTimer.current);
+      openTimer.current = window.setTimeout(() => {
+        openTimer.current = null;
         setOpening(null);
         openProject(project);
       }, 700);
@@ -228,7 +206,6 @@ export function ProjectList() {
                 key={project.id}
                 project={project}
                 index={idx}
-                totalWords={wordCounts[project.id]}
                 onOpen={handleOpen}
                 onEdit={() => setEditingProject(project)}
                 onDelete={() => requestDelete(project)}
@@ -242,7 +219,6 @@ export function ProjectList() {
                 key={project.id}
                 project={project}
                 index={idx}
-                totalWords={wordCounts[project.id]}
                 onOpen={handleOpen}
                 onEdit={() => setEditingProject(project)}
                 onDelete={() => requestDelete(project)}
@@ -270,8 +246,11 @@ export function ProjectList() {
       <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ProjectEditDialog
         project={editingProject}
-        onSave={(data) => {
-          if (editingProject) updateProject(editingProject.id, data);
+        onSave={async (data) => {
+          // Await (and let failures propagate into the dialog): renaming a
+          // work moves its folder on disk — a failed move must not close the
+          // dialog looking like a successful save.
+          if (editingProject) await updateProject(editingProject.id, data);
         }}
         onClose={() => setEditingProject(null)}
       />
@@ -288,28 +267,6 @@ export function ProjectList() {
         onCancel={() => setDeleting(null)}
       />
     </div>
-  );
-}
-
-// 卡片与列表行共用的进度条：当前字数 / 目标字数 + 百分比。
-function ProgressBar({ totalWords, targetWords }: { totalWords?: number; targetWords: number }) {
-  if (totalWords === undefined || targetWords <= 0) return null;
-  const progress = Math.min(100, Math.round((totalWords / targetWords) * 100));
-  return (
-    <>
-      <div className="mb-1 flex items-center justify-between text-[11px]">
-        <span className="text-ink-muted dark:text-ink-muted-dark">
-          {formatNumber(totalWords)} / {formatNumber(targetWords)} 字
-        </span>
-        <span className="font-medium text-accent">{progress}%</span>
-      </div>
-      <div className="h-1 overflow-hidden rounded-full bg-warm-gray dark:bg-warm-gray-dark">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </>
   );
 }
 
@@ -335,14 +292,12 @@ function coverColor(id: string): (typeof BOOK_COVER_COLORS)[number] {
 function ProjectCard({
   project,
   index,
-  totalWords,
   onOpen,
   onEdit,
   onDelete,
 }: {
   project: Project;
   index: number;
-  totalWords?: number;
   onOpen: (project: Project, rect: DOMRect | null) => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -383,13 +338,14 @@ function ProjectCard({
           {/* 上下装饰线：精装书封的框线感 */}
           <div className="absolute inset-x-4 top-3 h-px bg-white/25" />
           <div className="absolute inset-x-4 bottom-3 h-px bg-white/25" />
-          {/* 竖排书名与作者 */}
-          <div className="absolute inset-y-0 right-0 flex flex-col items-center gap-3 px-4 py-6 [writing-mode:vertical-rl]">
-            <span className="max-h-[70%] overflow-hidden text-lg font-semibold tracking-[0.22em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+          {/* 竖排书名与作者：放宽高度、允许换到第二竖列，长书名不再被单列
+              max-h 截掉开头 */}
+          <div className="absolute inset-y-0 right-0 flex max-w-full flex-col flex-wrap items-center justify-center gap-x-1.5 gap-y-3 overflow-hidden px-3 py-5 [writing-mode:vertical-rl]">
+            <span className="max-h-[82%] overflow-hidden text-base font-semibold leading-snug tracking-[0.2em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
               {project.name}
             </span>
             {project.author && (
-              <span className="max-h-[22%] overflow-hidden text-[11px] tracking-[0.18em] text-white/75">
+              <span className="max-h-[40%] overflow-hidden text-[11px] tracking-[0.18em] text-white/75">
                 {project.author} 著
               </span>
             )}
@@ -398,7 +354,7 @@ function ProjectCard({
         <ProjectMenu menuRef={menuRef} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onEdit={onEdit} onDelete={onDelete} />
       </div>
 
-      {/* 书下信息：简介 / 进度 / 更新时间 */}
+      {/* 书下信息：简介 */}
       <div className="mt-3.5 px-1">
         <h3 className="truncate text-center text-sm font-semibold text-ink transition-colors group-hover:text-accent dark:text-ink-dark">
           {project.name}
@@ -406,15 +362,6 @@ function ProjectCard({
         <p className="mt-1 line-clamp-2 min-h-[2.5em] text-center text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
           {project.description || "暂无简介"}
         </p>
-        <div className="mt-2.5">
-          <ProgressBar totalWords={totalWords} targetWords={project.targetWords} />
-        </div>
-        <div className="mt-2 flex items-center justify-between text-[11px] text-ink-muted dark:text-ink-muted-dark">
-          <span className="font-medium text-accent opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-            翻开阅读 →
-          </span>
-          <span>{formatDateTime(project.updatedAt)}</span>
-        </div>
       </div>
     </div>
   );
@@ -481,14 +428,12 @@ function BookOpenOverlay({
 function ProjectRow({
   project,
   index,
-  totalWords,
   onOpen,
   onEdit,
   onDelete,
 }: {
   project: Project;
   index: number;
-  totalWords?: number;
   onOpen: (project: Project, rect: DOMRect | null) => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -523,14 +468,6 @@ function ProjectRow({
       <p className="hidden min-w-0 flex-1 truncate text-sm text-ink-muted md:block dark:text-ink-muted-dark">
         {project.description || "暂无简介"}
       </p>
-
-      <div className="hidden w-40 shrink-0 sm:block">
-        <ProgressBar totalWords={totalWords} targetWords={project.targetWords} />
-      </div>
-
-      <span className="hidden shrink-0 text-xs text-ink-muted lg:block dark:text-ink-muted-dark">
-        {formatDateTime(project.updatedAt)}
-      </span>
 
       <ProjectMenu menuRef={menuRef} menuOpen={menuOpen} setMenuOpen={setMenuOpen} onEdit={onEdit} onDelete={onDelete} />
     </div>

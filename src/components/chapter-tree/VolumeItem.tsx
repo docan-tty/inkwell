@@ -99,7 +99,7 @@ export function VolumeItem({
       onDrop={handleDrop}
       className={cn(
         "rounded-md border border-transparent transition-all duration-150",
-        dragOver && "border-accent/50 bg-accent/10 dark:bg-accent/20",
+        dragOver && "border-ink/20 bg-warm-gray dark:bg-warm-gray-dark",
         selfDragging && "opacity-40",
       )}
     >
@@ -129,7 +129,7 @@ export function VolumeItem({
         >
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        <BookOpen size={14} className="shrink-0 text-accent" />
+        <BookOpen size={14} className="shrink-0 text-ink-muted dark:text-ink-muted-dark" />
         <EditableLabel
           value={volume.title}
           onSave={(title) => onUpdate(volume.id, { title })}

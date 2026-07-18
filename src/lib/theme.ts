@@ -11,7 +11,7 @@
  */
 
 export type AccentKey = "brown" | "blue" | "green" | "red" | "purple" | "teal";
-export type PaperKey = "plain" | "parchment" | "eye" | "celadon";
+export type PaperKey = "plain" | "white" | "parchment" | "eye" | "celadon";
 export type ThemeMode = "light" | "dark" | "system";
 
 interface Palette {
@@ -92,7 +92,7 @@ export const ACCENTS: Record<
   },
 };
 
-export const PAPER_ORDER: PaperKey[] = ["plain", "parchment", "eye", "celadon"];
+export const PAPER_ORDER: PaperKey[] = ["plain", "white", "parchment", "eye", "celadon"];
 
 export const PAPERS: Record<PaperKey, { label: string; hint: string; base: Omit<Palette, "accent" | "accentLight"> }> = {
   plain: {
@@ -105,6 +105,19 @@ export const PAPERS: Record<PaperKey, { label: string; hint: string; base: Omit<
       warmGray: "#e8e4de",
       scrollbarThumb: "rgba(0,0,0,0.15)",
       scrollbarThumbHover: "rgba(0,0,0,0.25)",
+      placeholder: "rgba(0,0,0,0.25)",
+    },
+  },
+  white: {
+    label: "纯白",
+    hint: "干净亮白",
+    base: {
+      paper: "#ffffff",
+      ink: "#1a1a1a",
+      inkMuted: "#6b6b6b",
+      warmGray: "#ececec",
+      scrollbarThumb: "rgba(0,0,0,0.14)",
+      scrollbarThumbHover: "rgba(0,0,0,0.24)",
       placeholder: "rgba(0,0,0,0.25)",
     },
   },

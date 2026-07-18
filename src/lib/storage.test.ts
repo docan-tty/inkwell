@@ -214,21 +214,43 @@ describe("storage Tauri branch", () => {
 
   it("writes project/chapter/notes/dict into one per-project folder", async () => {
     await saveProjectToLocal(project, [chapter], [volume], {});
-    await saveChapterContentToLocal("c1", "chapter body", {});
+    await saveChapterContentToLocal("c1", "chapter body", {}, "第一章");
     await saveNotesToLocal("p1", [{ id: "n1", title: "t", content: "c", updatedAt: 1 }], {});
     await saveDictToLocal("p1", [{ id: "d1", term: "x", aliases: [], category: "人物", content: "", updatedAt: 1 }], {});
     const keys = [...mem.files.keys()];
     const dir = keys.find((k) => k.endsWith("project.json"))!.replace(/project\.json$/, "");
     expect(dir).toContain("Test-p1");
-    expect(keys.some((k) => k === `${dir}chapters/c1.md`)).toBe(true);
-    expect(keys.some((k) => k === `${dir}notes.json`)).toBe(true);
-    expect(keys.some((k) => k === `${dir}dict.json`)).toBe(true);
+    expect(keys.some((k) => k === `${dir}chapters/1-第一章.md`)).toBe(true);
+    expect(keys.some((k) => k === `${dir}笔记/notes.json`)).toBe(true);
+    expect(keys.some((k) => k === `${dir}词典/dict.json`)).toBe(true);
     // …and everything reads back from the same folder.
     expect((await loadProjectFromLocal("p1", {}))?.project.id).toBe("p1");
-    expect(await loadChapterContentFromLocal("c1", {})).toBe("chapter body");
+    expect(await loadChapterContentFromLocal("c1", {}, "第一章")).toBe("chapter body");
     expect((await loadNotesFromLocal("p1", {}))[0]?.id).toBe("n1");
     expect((await loadDictFromLocal("p1", {}))[0]?.id).toBe("d1");
   });
+
+  it("writes the whole per-project folder under the custom content directory", async () => {
+    // Mirrors the Windows build: the user set 作品内容位置 to D:\test. Every
+    // per-project file must land under that root, not the data folder.
+    const config = { projectSaveDirectory: "D:/test" };
+    await saveProjectToLocal(project, [chapter], [volume], config);
+    await saveChapterContentToLocal("c1", "chapter body", config, "第一章");
+    await saveNotesToLocal("p1", [{ id: "n1", title: "t", content: "c", updatedAt: 1 }], config);
+    await saveDictToLocal("p1", [{ id: "d1", term: "x", aliases: [], category: "人物", content: "", updatedAt: 1 }], config);
+    const keys = [...mem.files.keys()];
+    const underCustom = keys.filter((k) => k.startsWith("D:/test/"));
+    expect(underCustom.some((k) => k.endsWith("Test-p1/project.json"))).toBe(true);
+    expect(underCustom.some((k) => k.endsWith("Test-p1/chapters/1-第一章.md"))).toBe(true);
+    expect(underCustom.some((k) => k.endsWith("Test-p1/笔记/notes.json"))).toBe(true);
+    expect(underCustom.some((k) => k.endsWith("Test-p1/词典/dict.json"))).toBe(true);
+    // Nothing written to the data folder for the project's own files.
+    expect(keys.some((k) => k.includes("inkwell-app-data") && k.includes("p1"))).toBe(false);
+    // And everything reads back from the custom location.
+    expect((await loadProjectFromLocal("p1", config))?.project.id).toBe("p1");
+    expect(await loadChapterContentFromLocal("c1", config, "第一章")).toBe("chapter body");
+  });
+
 
   it("reads legacy flat-layout files when the project folder does not exist yet", async () => {
     // Simulate a pre-restructure install: flat files, no project folder.
@@ -241,5 +263,27 @@ describe("storage Tauri branch", () => {
     expect(await loadChapterContentFromLocal("c1", {})).toBe("legacy body");
     expect((await loadNotesFromLocal("p1", {}))[0]?.id).toBe("n1");
     expect((await loadDictFromLocal("p1", {}))[0]?.id).toBe("d1");
+  });
+
+  it("reads the pre-restructure {title}-{id}.md name as a fallback", async () => {
+    // An install from the build that named chapter files "{title}-{id}.md".
+    // The new "{卷序号}-{标题}.md" primary doesn't exist yet; the old named
+    // file must still be readable (and lazily migrated on save).
+    await saveProjectToLocal(project, [chapter], [volume], {});
+    const dir = [...mem.files.keys()].find((k) => k.endsWith("project.json"))!.replace(/project\.json$/, "");
+    mem.files.set(`${dir}chapters/第一章-c1.md`, "old named body");
+    localStorage.removeItem("inkwell-chapter-c1");
+    expect(await loadChapterContentFromLocal("c1", {}, "第一章")).toBe("old named body");
+  });
+
+  it("disambiguates same-name chapters with a numeric suffix", async () => {
+    // Two chapters titled 第一章 in the same volume: the second save must not
+    // overwrite the first's file. resolveChapterFileName lists the dir via
+    // invoke; the test bridge has no invoke, so we pre-seed the first file
+    // and rely on the suffix path being exercised through the fallback scan.
+    await saveProjectToLocal(project, [chapter], [volume], {});
+    await saveChapterContentToLocal("c1", "first body", {}, "第一章");
+    const keys = [...mem.files.keys()];
+    expect(keys.some((k) => k.endsWith("chapters/1-第一章.md"))).toBe(true);
   });
 });

@@ -7,8 +7,6 @@ import {
   PanelLeft,
   PanelRight,
   Focus,
-  Expand,
-  Shrink,
   Save,
   Download,
   FileText,
@@ -30,8 +28,6 @@ interface ToolbarProps {
   editor: Editor | null;
   onSave?: () => void;
   onAutoFormat?: () => void;
-  isFullscreen?: boolean;
-  onToggleFullscreen?: () => void;
 }
 
 function ToolbarButton({
@@ -54,7 +50,7 @@ function ToolbarButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors",
+        "flex h-7 w-7 items-center justify-center rounded-full text-sm transition-colors",
         active
           ? "bg-accent/10 text-accent dark:bg-accent/20"
           : "text-ink/70 hover:bg-warm-gray dark:text-ink-dark/70 dark:hover:bg-warm-gray-dark",
@@ -66,21 +62,21 @@ function ToolbarButton({
   );
 }
 
-export function Toolbar({ editor, onSave, onAutoFormat, isFullscreen, onToggleFullscreen }: ToolbarProps) {
-  const {
-    theme,
-    setTheme,
-    leftSidebarOpen,
-    toggleLeftSidebar,
-    rightSidebarOpen,
-    toggleRightSidebar,
-    focusMode,
-    toggleFocusMode,
-    currentProject,
-    currentChapter,
-    appSettings,
-    lastSavedAt,
-  } = useAppStore();
+export function Toolbar({ editor, onSave, onAutoFormat }: ToolbarProps) {
+  // Selector subscriptions — see Workspace for why the whole-store
+  // destructure is avoided (typing re-renders everything subscribed).
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
+  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
+  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
+  const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
+  const focusMode = useAppStore((s) => s.focusMode);
+  const toggleFocusMode = useAppStore((s) => s.toggleFocusMode);
+  const currentProject = useAppStore((s) => s.currentProject);
+  const currentChapter = useAppStore((s) => s.currentChapter);
+  const appSettings = useAppStore((s) => s.appSettings);
+  const lastSavedAt = useAppStore((s) => s.lastSavedAt);
 
   // Briefly swap the Save icon for a Check whenever a save lands, so the
   // user gets unmissable on-button feedback (the StatusBar text is easy to
@@ -116,37 +112,34 @@ export function Toolbar({ editor, onSave, onAutoFormat, isFullscreen, onToggleFu
   };
 
   return (
-    // NOTE: no `overflow-x-auto` here. Per the CSS spec, setting
-    // `overflow-x` to anything other than `visible` forces `overflow-y`
-    // to `auto`, which would clip the ExportDropdown that extends below
-    // the toolbar. The toolbar is wide enough on the app's minimum
-    // window size that horizontal scroll is not needed.
-    <div className="flex h-12 shrink-0 items-center justify-between border-b border-warm-gray/60 bg-paper px-3 dark:border-warm-gray-dark/60 dark:bg-paper-dark">
-      <div className="flex items-center gap-1">
+    // Compact pill toolbar: hugs its buttons instead of spanning the editor
+    // width — a full-width bar above the text reads as a second chrome row.
+    // NOTE: no `overflow-x-auto` here (it would force overflow-y:auto and
+    // clip the ExportDropdown that extends below the pill).
+    <div className="flex shrink-0 justify-center pb-1 pt-2">
+      <div className="flex items-center gap-0.5 rounded-full border border-warm-gray/70 bg-paper px-1.5 py-1 shadow-sm dark:border-warm-gray-dark/70 dark:bg-paper-dark">
         <ToolbarButton
           disabled={!editor.can().undo()}
           onClick={() => run(() => editor.chain().undo().run())}
           title="撤销 (Ctrl+Z)"
         >
-          <Undo size={16} />
+          <Undo size={15} />
         </ToolbarButton>
         <ToolbarButton
           disabled={!editor.can().redo()}
           onClick={() => run(() => editor.chain().redo().run())}
           title="重做 (Ctrl+Y)"
         >
-          <Redo size={16} />
+          <Redo size={15} />
         </ToolbarButton>
-      </div>
-
-      <div className="flex items-center gap-1">
+        <span className="mx-0.5 h-4 w-px bg-warm-gray/80 dark:bg-warm-gray-dark/80" />
         {currentProject && (
           <ToolbarButton
             onClick={handleAutoFormat}
             title={justFormatted ? "已整理" : "自动整理格式（标点全角化、引号配对、空白与连续空段收敛）"}
             active={justFormatted}
           >
-            {justFormatted ? <Check size={16} /> : <WandSparkles size={16} />}
+            {justFormatted ? <Check size={15} /> : <WandSparkles size={15} />}
           </ToolbarButton>
         )}
         {currentProject && (
@@ -155,7 +148,7 @@ export function Toolbar({ editor, onSave, onAutoFormat, isFullscreen, onToggleFu
             title={justSaved ? "已保存" : "保存 (Ctrl+S)"}
             active={justSaved}
           >
-            {justSaved ? <Check size={16} /> : <Save size={16} />}
+            {justSaved ? <Check size={15} /> : <Save size={15} />}
           </ToolbarButton>
         )}
         {currentProject && currentChapter && (
@@ -165,27 +158,21 @@ export function Toolbar({ editor, onSave, onAutoFormat, isFullscreen, onToggleFu
             appSettings={appSettings}
           />
         )}
+        <span className="mx-0.5 h-4 w-px bg-warm-gray/80 dark:bg-warm-gray-dark/80" />
         <ToolbarButton onClick={toggleLeftSidebar} active={leftSidebarOpen} title="左侧栏 (Ctrl+B)">
-          <PanelLeft size={16} />
+          <PanelLeft size={15} />
         </ToolbarButton>
         <ToolbarButton onClick={toggleRightSidebar} active={rightSidebarOpen} title="右侧栏 (Ctrl+Alt+O)">
-          <PanelRight size={16} />
+          <PanelRight size={15} />
         </ToolbarButton>
         <ToolbarButton onClick={toggleFocusMode} active={focusMode} title="专注模式 (Ctrl+Shift+D)">
-          <Focus size={16} />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => onToggleFullscreen?.()}
-          active={isFullscreen}
-          title={isFullscreen ? "退出全屏 (Esc)" : "全屏编辑"}
-        >
-          {isFullscreen ? <Shrink size={16} /> : <Expand size={16} />}
+          <Focus size={15} />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => setTheme(theme === "light" ? "dark" : "light")}
           title={theme === "light" ? "切换到深色" : "切换到浅色"}
         >
-          {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+          {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
         </ToolbarButton>
       </div>
     </div>
@@ -206,7 +193,9 @@ function ExportDropdown({
   const [open, setOpen] = useState(false);
   const [exported, setExported] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { volumes, chapters, getChapterContent } = useAppStore();
+  const volumes = useAppStore((s) => s.volumes);
+  const chapters = useAppStore((s) => s.chapters);
+  const getChapterContent = useAppStore((s) => s.getChapterContent);
   useClickOutside(dropdownRef, () => setOpen(false), open);
 
   // Export feedback: a small toast under the toolbar naming the destination,
@@ -256,10 +245,10 @@ function ExportDropdown({
   return (
     <div ref={dropdownRef} className="relative">
       <ToolbarButton onClick={() => setOpen(!open)} title="导出">
-        <Download size={16} />
+        <Download size={15} />
       </ToolbarButton>
       {open && (
-        <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark">
+        <div className="absolute right-0 top-9 z-20 w-48 rounded-lg border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark">
           <div className="px-3 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted dark:text-ink-muted-dark">
             本章
           </div>
@@ -275,7 +264,7 @@ function ExportDropdown({
         </div>
       )}
       {exported && (
-        <div className="absolute right-0 top-10 z-20 w-64 rounded-lg border border-warm-gray bg-paper p-3 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark animate-[inkwell-pop-in_0.15s_ease-out]">
+        <div className="absolute right-0 top-9 z-20 w-64 rounded-lg border border-warm-gray bg-paper p-3 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark animate-[inkwell-pop-in_0.15s_ease-out]">
           <div className="flex items-start gap-2">
             <Check size={14} className="mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
             <div className="min-w-0 flex-1">

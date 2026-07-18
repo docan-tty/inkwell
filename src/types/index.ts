@@ -74,6 +74,15 @@ export interface AppSettings {
   themeColor?: string;
   /** 纸张质感（米白/羊皮纸/护眼绿），仅浅色模式生效。 */
   paperTexture?: string;
+  /** 应用级快捷键自定义：动作 id → 按键串（如 "Ctrl+Shift+D"），缺项用默认。 */
+  shortcuts?: Record<string, string>;
+  /** 自动整理格式规则开关（默认全开）。 */
+  formatOptions?: {
+    removeEmptyLines?: boolean;
+    collapseInlineWhitespace?: boolean;
+    punctuationToFullWidth?: boolean;
+    normalizeQuotes?: boolean;
+  };
   // Custom location for the user's novel content (project JSON files and
   // chapter `.md` files). When unset, content falls back to the data folder.
   // The data folder itself holds app-level data only — settings and the

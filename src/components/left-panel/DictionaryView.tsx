@@ -11,14 +11,12 @@ import { ConfirmDialog } from "../ConfirmDialog";
 // 一键展开；搜索时自动命中词名/别名/内容并展开所在分组。点词条进入
 // 全高度详情编辑（返回键回到列表），输入即防抖自动保存。
 export function DictionaryView() {
-  const {
-    dictEntries,
-    activeDictId,
-    setActiveDict,
-    addDictEntry,
-    updateDictEntry,
-    removeDictEntry,
-  } = useAppStore();
+  const dictEntries = useAppStore((s) => s.dictEntries);
+  const activeDictId = useAppStore((s) => s.activeDictId);
+  const setActiveDict = useAppStore((s) => s.setActiveDict);
+  const addDictEntry = useAppStore((s) => s.addDictEntry);
+  const updateDictEntry = useAppStore((s) => s.updateDictEntry);
+  const removeDictEntry = useAppStore((s) => s.removeDictEntry);
   const [query, setQuery] = useState("");
   // 收起的分类集合：默认全部展开，点分类名收起/展开。
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());

@@ -38,8 +38,8 @@ npm run build      # 类型检查 + 前端构建
 
 ## 数据存储
 
-- 应用数据（设置 + 作品索引 `registry.json`）：系统数据目录
-- 作品内容（`projects/<id>.json`、`chapters/<id>.md`）：数据目录，或在设置中自定义
-- 写作笔记：`notes/<作品id>.json`；设定词典：`dictionary/<作品id>.json`（均随作品一同迁移）
-- 历史快照：`chapters/<id>.snapshots/<时间戳>.html`
+- 应用数据（设置 + 作品索引 registry.json）：系统数据目录
+- 作品内容（projects/<id>.json、chapters/<id>.md）：数据目录，或在设置中自定义
+- 写作笔记：notes/<作品id>.json；设定词典：dictionary/<作品id>.json（均随作品一同迁移）
+- 历史快照：chapters/<id>.snapshots/<时间戳>.html
 - 草稿缓冲与写作统计：localStorage（随写随存，落盘后自动清理）

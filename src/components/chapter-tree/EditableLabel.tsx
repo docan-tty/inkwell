@@ -36,10 +36,22 @@ export function EditableLabel({
     if (!editing) setText(value);
   }, [value, editing]);
 
+  const committedOnce = useRef(false);
+
   const commit = () => {
-    onSave(text.trim() || value);
+    // Enter triggers commit and the subsequent blur would commit again —
+    // guard the double-fire, and skip the save entirely when nothing changed
+    // (every save is a full project.json write).
+    if (committedOnce.current) return;
+    committedOnce.current = true;
+    const next = text.trim();
+    if (next && next !== value) onSave(next);
     setEditing(false);
   };
+
+  useEffect(() => {
+    if (editing) committedOnce.current = false;
+  }, [editing]);
 
   if (editing) {
     return (

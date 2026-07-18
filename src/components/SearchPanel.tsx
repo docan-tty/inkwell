@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, FileText, ChevronRight, ChevronDown, Replace, ReplaceAll, CaseSensitive } from "lucide-react";
 import { useAppStore } from "../store";
+import type { Chapter } from "../types";
 import { stripHtml } from "../lib/export";
-import { cn } from "../lib/utils";
+import { cn, sortChaptersByTreeOrder } from "../lib/utils";
 
 interface SearchResult {
   chapterId: string;
@@ -14,6 +15,9 @@ interface SearchResult {
   before?: string;
   match?: string;
   after?: string;
+  /** Plain-text offset of the match inside the chapter body — the stable
+   *  identity replaceInChapter("at") validates against before writing. */
+  offset?: number;
 }
 
 const MAX_RESULTS = 200;
@@ -35,14 +39,21 @@ function excerpt(text: string, idx: number, matchLength: number) {
  * The replace row rewrites chapter HTML through lib/replace (text-node
  * level — tags are never touched), then reloads the open editor.
  */
-export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const {
-    chapters,
-    volumes,
-    setCurrentChapter,
-    getChapterContent,
-    replaceInChapter,
-  } = useAppStore();
+export function SearchPanel({
+  open,
+  onClose,
+  onSelectChapter,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Workspace 的章节切换路径（先保存并统计旧章节）；缺省时退回 store 直切。 */
+  onSelectChapter?: (chapter: Chapter) => void;
+}) {
+  const chapters = useAppStore((s) => s.chapters);
+  const volumes = useAppStore((s) => s.volumes);
+  const setCurrentChapter = useAppStore((s) => s.setCurrentChapter);
+  const getChapterContent = useAppStore((s) => s.getChapterContent);
+  const replaceInChapter = useAppStore((s) => s.replaceInChapter);
   const [query, setQuery] = useState("");
   const [replacement, setReplacement] = useState("");
   const [replaceOpen, setReplaceOpen] = useState(false);
@@ -106,13 +117,7 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
     const timer = setTimeout(async () => {
       const volumesNow = volumesRef.current;
       const chaptersNow = chaptersRef.current;
-      const volumeOrder = new Map(volumesNow.map((v) => [v.id, v.order]));
-      const sorted = [...chaptersNow].sort((a, b) => {
-        const va = volumeOrder.get(a.parentId || "") ?? Number.MAX_SAFE_INTEGER;
-        const vb = volumeOrder.get(b.parentId || "") ?? Number.MAX_SAFE_INTEGER;
-        if (va !== vb) return va - vb;
-        return a.order - b.order;
-      });
+      const sorted = sortChaptersByTreeOrder(chaptersNow, volumesNow);
       const needle = caseSensitive ? q : q.toLowerCase();
       const found: SearchResult[] = [];
       for (const chapter of sorted) {
@@ -142,6 +147,7 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
             chapterTitle: chapter.title,
             volumeId: chapter.parentId,
             inTitle: false,
+            offset: hit,
             ...excerpt(text, hit, q.length),
           });
           idx = hit + q.length;
@@ -179,7 +185,8 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
   const jump = (result: SearchResult) => {
     const chapter = chaptersRef.current.find((c) => c.id === result.chapterId);
     if (chapter) {
-      setCurrentChapter(chapter);
+      // 走 Workspace 的切换路径：保存旧章、重算字数、写入失败有告警。
+      (onSelectChapter ?? ((c: Chapter) => void setCurrentChapter(c)))(chapter);
     }
     onClose();
   };
@@ -189,26 +196,35 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
   const bodyResults = useMemo(() => results.filter((r) => !r.inTitle), [results]);
 
   const replaceOne = async (result: SearchResult) => {
-    if (replacing || result.inTitle) return;
+    if (replacing || result.inTitle || result.offset === undefined) return;
     setReplacing(true);
     setReplaceNotice(null);
     try {
-      const perChapter = bodyResults.filter((r) => r.chapterId === result.chapterId);
-      const ordinalInChapter = perChapter.findIndex((r) => r === result);
-      const { replaced, skipped } = await replaceInChapter(
+      // Offset + content validation: the store re-checks that this exact
+      // offset still holds the query on disk, so a chapter edited after the
+      // search can't silently redirect the replacement to the wrong match.
+      const { replaced, skipped, stale } = await replaceInChapter(
         result.chapterId,
         query.trim(),
         replacement,
         caseSensitive,
-        { type: "one", ordinal: ordinalInChapter },
+        { type: "at", offset: result.offset },
       );
+      if (stale) {
+        setReplaceNotice("该章内容在搜索后已被修改，请重新搜索再替换");
+        return;
+      }
       if (replaced === 0 && skipped > 0) {
         setReplaceNotice("该匹配跨越格式标签，无法安全替换，已跳过");
       }
-      // 本地移除该条结果；其余匹配在磁盘上已位移，但序号是随搜随算的，
-      // 下一次替换会重新从磁盘取内容计算，不受影响。
-      setResults((prev) => prev.filter((r) => r !== result));
+      // 同章其余匹配的绝对偏移会随这次替换漂移——一并移除并提示重搜，
+      // 保守但绝不改错地方；其他章的结果不受影响。
+      const sameChapterOthers = results.some((r) => r !== result && r.chapterId === result.chapterId);
+      setResults((prev) => prev.filter((r) => r !== result && r.chapterId !== result.chapterId));
       setActiveIndex((i) => Math.max(0, Math.min(i, results.length - 2)));
+      if (sameChapterOthers) {
+        setReplaceNotice("已替换 1 处；该章其余匹配位置已变化，请重新搜索");
+      }
     } finally {
       setReplacing(false);
     }

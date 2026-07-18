@@ -24,19 +24,24 @@ describe("formatHtmlTextNodes", () => {
     expect(formatHtmlTextNodes(html)).toBe(html);
   });
 
-  it("collapses runs of 3+ empty paragraphs into one", () => {
+  it("removes empty paragraphs between text blocks", () => {
     const html = `<p>一</p><p></p><p></p><p></p><p></p><p>二</p>`;
-    expect(formatHtmlTextNodes(html)).toBe(`<p>一</p><p></p><p>二</p>`);
+    expect(formatHtmlTextNodes(html)).toBe(`<p>一</p><p>二</p>`);
   });
 
-  it("keeps runs of 2 empty paragraphs untouched", () => {
+  it("removes runs of 2 empty paragraphs too", () => {
     const html = `<p>一</p><p></p><p></p><p>二</p>`;
-    expect(formatHtmlTextNodes(html)).toBe(html);
+    expect(formatHtmlTextNodes(html)).toBe(`<p>一</p><p>二</p>`);
   });
 
-  it("treats br-only paragraphs as empty", () => {
+  it("treats br-only paragraphs as empty and removes them", () => {
     const html = `<p>一</p><p><br></p><p><br></p><p><br></p><p>二</p>`;
-    expect(formatHtmlTextNodes(html)).toBe(`<p>一</p><p><br></p><p>二</p>`);
+    expect(formatHtmlTextNodes(html)).toBe(`<p>一</p><p>二</p>`);
+  });
+
+  it("keeps empty paragraphs when removeEmptyLines is off", () => {
+    const html = `<p>一</p><p></p><p>二</p>`;
+    expect(formatHtmlTextNodes(html, { removeEmptyLines: false })).toBe(html);
   });
 
   it("returns non-matching HTML unchanged", () => {

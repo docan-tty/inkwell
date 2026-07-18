@@ -2,6 +2,13 @@
 // fallback for browser/dev mode. Split out of storage.ts so vitest can mock
 // this single seam (module-level mocking of storage.ts from inside itself
 // is not possible).
+//
+// The default bridge talks to the Rust `read_text_file` / `write_text_file`
+// commands when the app runs inside Tauri, and falls back to a namespaced
+// localStorage entry only in plain browser/dev mode (no __TAURI_INTERNALS__).
+// Tests replace the bridge wholesale via setFsBridge.
+
+import { invoke } from "@tauri-apps/api/core";
 
 export interface FsBridge {
   writeText(path: string, content: string): Promise<void>;
@@ -19,7 +26,12 @@ export function isNotFoundError(err: unknown): boolean {
   );
 }
 
-let bridge: FsBridge = {
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+// LocalStorage-backed bridge used only outside Tauri (browser dev / SSR).
+const localStorageBridge: FsBridge = {
   async writeText(path, content) {
     localStorage.setItem(`inkwell-fs:${path}`, content);
   },
@@ -30,24 +42,33 @@ let bridge: FsBridge = {
   },
 };
 
+// Tauri bridge: routes through the path-whitelisted Rust commands.
+const tauriBridge: FsBridge = {
+  async writeText(path, content) {
+    await invoke("write_text_file", { path, content });
+  },
+  async readText(path) {
+    return await invoke<string>("read_text_file", { path });
+  },
+};
+
+function defaultBridge(): FsBridge {
+  return isTauri() ? tauriBridge : localStorageBridge;
+}
+
+// When set (tests), overrides the auto-detected bridge entirely.
+let override: FsBridge | null = null;
+
 // Test seam: storage tests install a mock bridge (see storage.test.ts).
+// Passing null restores auto-detection.
 export function setFsBridge(next: FsBridge | null) {
-  bridge = next ?? {
-    async writeText(path, content) {
-      localStorage.setItem(`inkwell-fs:${path}`, content);
-    },
-    async readText(path) {
-      const value = localStorage.getItem(`inkwell-fs:${path}`);
-      if (value === null) throw new Error(`File not found: ${path}`);
-      return value;
-    },
-  };
+  override = next;
 }
 
 export async function atomicWriteTextFile(path: string, content: string): Promise<void> {
-  await bridge.writeText(path, content);
+  await (override ?? defaultBridge()).writeText(path, content);
 }
 
 export async function bridgeReadTextFile(path: string): Promise<string> {
-  return bridge.readText(path);
+  return (override ?? defaultBridge()).readText(path);
 }

@@ -9,6 +9,7 @@ import { Toolbar } from "./Toolbar";
 import { ContextMenu, type CtxMenuState } from "./ContextMenu";
 import { cn } from "../lib/utils";
 import { modKey } from "../lib/platform";
+import { matchesKeys, shortcutFor } from "../lib/shortcuts";
 
 interface EditorProps {
   content: string;
@@ -17,8 +18,6 @@ interface EditorProps {
   onAutoFormat?: () => void;
   /** 强制同步通道：挂载后可用 canonical HTML 直接重写编辑器内容（跳过比对）。 */
   syncRef?: React.MutableRefObject<((canonical: string) => void) | null>;
-  isFullscreen?: boolean;
-  onToggleFullscreen?: () => void;
   showToolbar?: boolean;
   onToolbarEnter?: () => void;
   onToolbarLeave?: () => void;
@@ -30,13 +29,14 @@ export function Editor({
   onSave,
   onAutoFormat,
   syncRef,
-  isFullscreen = false,
-  onToggleFullscreen,
   showToolbar = false,
   onToolbarEnter,
   onToolbarLeave,
 }: EditorProps) {
-  const { currentProject, focusMode, updateAppSettings, appSettings } = useAppStore();
+  const currentProject = useAppStore((s) => s.currentProject);
+  const focusMode = useAppStore((s) => s.focusMode);
+  const updateAppSettings = useAppStore((s) => s.updateAppSettings);
+  const appSettings = useAppStore((s) => s.appSettings);
   const typography = appSettings.editorTypography;
   const editorFontFamily = appSettings.editorFontFamily || "";
   // 编辑区最大宽度：设置里可调，默认 880px。宽屏下给足阅读宽度。
@@ -128,27 +128,17 @@ export function Editor({
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullscreen && onToggleFullscreen) {
-        e.preventDefault();
-        onToggleFullscreen();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen, onToggleFullscreen]);
-
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+      // 保存键可在设置里自定义；默认 Ctrl/⌘+S。
+      if (matchesKeys(e.nativeEvent, shortcutFor("save", appSettings.shortcuts))) {
         e.preventDefault();
         // localContent is already kept in sync by onUpdate -> onChange on every
         // keystroke, so onSave (handleManualSave) reads the latest content.
         onSave?.();
       }
     },
-    [onSave],
+    [onSave, appSettings.shortcuts],
   );
 
   const handleWheel = useCallback(
@@ -157,15 +147,33 @@ export function Editor({
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -1 : 1;
-        const newSize = Math.min(32, Math.max(12, typography.fontSize + delta));
-        if (newSize !== typography.fontSize) {
-          updateAppSettings({
-            editorTypography: { ...typography, fontSize: newSize },
-          });
-        }
+        const typographyNow = useAppStore.getState().appSettings.editorTypography;
+        const newSize = Math.min(32, Math.max(12, typographyNow.fontSize + delta));
+        if (newSize === typographyNow.fontSize) return;
+        // Live-preview via a transient store write, debounce the persistence
+        // (updateAppSettings writes the whole settings blob to localStorage on
+        // every call — once per wheel tick would thrash it).
+        useAppStore.setState({
+          appSettings: {
+            ...useAppStore.getState().appSettings,
+            editorTypography: { ...typographyNow, fontSize: newSize },
+          },
+        });
+        if (wheelZoomTimer.current) clearTimeout(wheelZoomTimer.current);
+        wheelZoomTimer.current = setTimeout(() => {
+          const latest = useAppStore.getState().appSettings.editorTypography;
+          updateAppSettings({ editorTypography: latest });
+        }, 400);
       }
     },
-    [editor, currentProject, typography, updateAppSettings],
+    [editor, currentProject, updateAppSettings],
+  );
+  const wheelZoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (wheelZoomTimer.current) clearTimeout(wheelZoomTimer.current);
+    },
+    [],
   );
 
   // 写作区右键菜单：常用排版与编辑操作，替换 webview 默认菜单。
@@ -252,19 +260,12 @@ export function Editor({
       editor={editor}
       onSave={onSave}
       onAutoFormat={onAutoFormat}
-      isFullscreen={isFullscreen}
-      onToggleFullscreen={onToggleFullscreen}
     />
   );
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-1 flex-col min-h-0",
-        isFullscreen && "fixed inset-0 z-50",
-      )}
-    >
-      {isFullscreen || focusMode ? (
+    <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+      {focusMode ? (
         <div
           className="relative shrink-0"
           onMouseEnter={focusMode ? onToolbarEnter : undefined}
@@ -284,11 +285,7 @@ export function Editor({
       )}
       <div
         ref={containerRef}
-        className={cn(
-          "inkwell-editor flex-1 w-full min-h-0 overflow-y-auto bg-paper dark:bg-paper-dark transition-all duration-300",
-          focusMode ? "opacity-100" : "",
-          isFullscreen && "bg-paper dark:bg-paper-dark",
-        )}
+        className="inkwell-editor min-h-0 w-full flex-1 overflow-y-auto bg-paper transition-all duration-300 dark:bg-paper-dark"
         style={{ padding: `0 ${appSettings.editorPadding}px` }}
         onKeyDown={handleKeyDown}
         onWheel={handleWheel}

@@ -80,6 +80,44 @@ export function findMatches(text: string, query: string, caseSensitive: boolean)
 }
 
 /**
+ * 替换 HTML 内容中纯文本偏移 `targetOffset` 处的匹配。
+ * 替换前校验该处的文本确实等于 query（大小写按 caseSensitive）——搜索结果
+ * 之后章节若被编辑过，偏移可能已指向别处；校验失败时不做任何替换并报告
+ * stale，由调用方重新搜索而不是默默改错地方。
+ */
+export function replaceMatchAtOffset(
+  html: string,
+  query: string,
+  replacement: string,
+  targetOffset: number,
+  caseSensitive: boolean,
+): { html: string; stale?: boolean } & ReplaceSummary {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const { spans, text } = collectTextNodeSpans(doc);
+  const slice = text.slice(targetOffset, targetOffset + query.length);
+  const matchesQuery = caseSensitive
+    ? slice === query
+    : slice.toLowerCase() === query.toLowerCase();
+  if (!matchesQuery) return { html, replaced: 0, skipped: 0, stale: true };
+
+  const hitEnd = targetOffset + query.length;
+  const involved = spans.filter((s) => s.end > targetOffset && s.start < hitEnd);
+  if (involved.length !== 1) {
+    // 跨越多个文本节点（标签边界或换行）——跳过，不冒损坏结构的风险。
+    return { html, replaced: 0, skipped: 1 };
+  }
+  const span = involved[0];
+  const localStart = targetOffset - span.start;
+  const value = span.node.nodeValue ?? "";
+  span.node.nodeValue = value.slice(0, localStart) + replacement + value.slice(localStart + query.length);
+
+  const wrapper = doc.createElement("div");
+  Array.from(doc.body.childNodes).forEach((child) => wrapper.appendChild(child));
+  return { html: wrapper.innerHTML, replaced: 1, skipped: 0 };
+}
+
+/**
  * 替换 HTML 内容中纯文本第 `targetOrdinal` 个匹配（0 起）。
  * 返回新的 HTML 与该次替换的摘要；未找到对应匹配时 replaced 为 0。
  */
@@ -115,8 +153,10 @@ export function replaceMatchInHtml(
 
 /**
  * 替换 HTML 内容中的全部可替换匹配。
- * 逐次「替换当前第一个匹配」直到没有可替换的匹配为止；不可替换的匹配
- * （跨标签）会计入 skipped 并在统计时跳过，不会死循环。
+ * 单遍扫描 + 游标推进：先一次性找出纯文本中的所有匹配，再从后往前改写
+ * 文本节点（后方偏移不受前方改写影响，一次 DOM 解析即可）。替换文本中
+ * 即使包含查询串（"他"→"他们"）也不会被重复命中——匹配的是旧文本坐标，
+ * 不存在死循环。跨文本节点的匹配计入 skipped。
  */
 export function replaceAllInHtml(
   html: string,
@@ -124,38 +164,29 @@ export function replaceAllInHtml(
   replacement: string,
   caseSensitive: boolean,
 ): { html: string } & ReplaceSummary {
-  let current = html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const { spans, text } = collectTextNodeSpans(doc);
+  const hits = findMatches(text, query, caseSensitive);
   let replaced = 0;
   let skipped = 0;
-  // 每轮都从头找第一个「可替换」的匹配：跨节点的匹配被跳过并计数，
-  // 但跳过是纯文本视角的跳过——为避免死循环，统计每轮的总匹配数，
-  // 当一轮里 replaced === 0 时说明剩余匹配全部不可替换，结束。
-  for (;;) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(current, "text/html");
-    const { spans, text } = collectTextNodeSpans(doc);
-    const hits = findMatches(text, query, caseSensitive);
-    if (hits.length === 0) break;
-    let didReplace = false;
-    for (const hit of hits) {
-      const hitEnd = hit.index + hit.length;
-      const involved = spans.filter((s) => s.end > hit.index && s.start < hitEnd);
-      if (involved.length !== 1) {
-        skipped += 1;
-        continue;
-      }
-      const span = involved[0];
-      const localStart = hit.index - span.start;
-      const value = span.node.nodeValue ?? "";
-      span.node.nodeValue = value.slice(0, localStart) + replacement + value.slice(localStart + hit.length);
-      replaced += 1;
-      didReplace = true;
-      break; // 文本已变，重新解析下一轮
+  // 从后往前：每个命中的坐标都指向原始文本，前方改写不会使其漂移。
+  for (let i = hits.length - 1; i >= 0; i--) {
+    const hit = hits[i];
+    const hitEnd = hit.index + hit.length;
+    const involved = spans.filter((s) => s.end > hit.index && s.start < hitEnd);
+    if (involved.length !== 1) {
+      skipped += 1;
+      continue;
     }
-    if (!didReplace) break;
-    const wrapper = doc.createElement("div");
-    Array.from(doc.body.childNodes).forEach((child) => wrapper.appendChild(child));
-    current = wrapper.innerHTML;
+    const span = involved[0];
+    const localStart = hit.index - span.start;
+    const value = span.node.nodeValue ?? "";
+    span.node.nodeValue = value.slice(0, localStart) + replacement + value.slice(localStart + hit.length);
+    replaced += 1;
   }
-  return { html: current, replaced, skipped };
+  if (replaced === 0) return { html, replaced, skipped };
+  const wrapper = doc.createElement("div");
+  Array.from(doc.body.childNodes).forEach((child) => wrapper.appendChild(child));
+  return { html: wrapper.innerHTML, replaced, skipped };
 }

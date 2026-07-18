@@ -61,11 +61,27 @@ export async function registerContentRoot(path: string): Promise<void> {
   }
 }
 
+// Grants a one-shot write authorization for an exact file the user picked in
+// the OS save dialog (export flow). The grant is consumed by the first write
+// and never widens into a directory root. No-op outside Tauri.
+export async function grantExportPath(path: string): Promise<void> {
+  if (!isTauri() || !path) return;
+  try {
+    await invoke("grant_export_path", { path });
+  } catch {
+    // best-effort — the subsequent write will surface its own error if rejected
+  }
+}
+
 async function getContentBaseDir(config?: StorageConfig): Promise<string> {
   // Single base directory for the user's novel content (both project files
   // and chapter `.md` files). Falls back to the data folder when the user
-  // hasn't set a custom location.
-  if (config?.projectSaveDirectory) return config.projectSaveDirectory;
+  // hasn't set a custom location. A Windows verbatim prefix (\\?\) picked up
+  // from a previous canonicalized write would confuse every downstream path
+  // join, so strip it here.
+  if (config?.projectSaveDirectory) {
+    return config.projectSaveDirectory.replace(/^\\\\\?\\/, "");
+  }
   return getAppDataDir();
 }
 
@@ -154,16 +170,42 @@ async function getProjectDir(projectId: string, nameHint: string | undefined, co
 // store to avoid an import cycle). Entries for deleted chapters are kept in
 // a short grace window so delete-time cleanup (snapshot removal) still
 // resolves the right project folder.
-const chapterOwnerMap = new Map<string, string>();
+const chapterOwnerMap = new Map<string, { projectId: string; volumeSeq: number }>();
 const projectNameMap = new Map<string, string>();
-const orphanChapterOwners = new Map<string, { projectId: string; at: number }>();
+const orphanChapterOwners = new Map<string, { projectId: string; volumeSeq: number; at: number }>();
 const ORPHAN_GRACE_MS = 60_000;
 
-/** Called by the store whenever the open project's data changes. */
-export function registerChapterOwners(chapterIds: string[], projectId: string, projectName?: string): void {
-  for (const id of chapterIds) {
-    chapterOwnerMap.set(id, projectId);
-    orphanChapterOwners.delete(id);
+// 1-based position of a chapter's volume within the project (volumes sorted
+// by `order`); 0 = unfiled (no parent volume). Drives the "{卷序号}-" prefix
+// of on-disk chapter file names.
+function computeVolumeSeqs(
+  chapters: { id: string; parentId: string | null }[],
+  volumes: { id: string; order: number }[],
+): Map<string, number> {
+  const seqByVolumeId = new Map<string, number>();
+  [...volumes]
+    .sort((a, b) => a.order - b.order)
+    .forEach((v, idx) => seqByVolumeId.set(v.id, idx + 1));
+  const out = new Map<string, number>();
+  for (const c of chapters) {
+    out.set(c.id, c.parentId ? (seqByVolumeId.get(c.parentId) ?? 0) : 0);
+  }
+  return out;
+}
+
+/** Called by the store whenever the open project's data changes. Accepts the
+ *  chapters + volumes so each chapter's volume sequence (file-name prefix)
+ *  can be derived. */
+export function registerChapterOwners(
+  chapters: { id: string; parentId: string | null }[],
+  volumes: { id: string; order: number }[],
+  projectId: string,
+  projectName?: string,
+): void {
+  const seqs = computeVolumeSeqs(chapters, volumes);
+  for (const c of chapters) {
+    chapterOwnerMap.set(c.id, { projectId, volumeSeq: seqs.get(c.id) ?? 0 });
+    orphanChapterOwners.delete(c.id);
   }
   if (projectName) projectNameMap.set(projectId, projectName);
 }
@@ -174,7 +216,7 @@ export function unregisterChapterOwners(chapterIds: string[]): void {
   for (const id of chapterIds) {
     const owner = chapterOwnerMap.get(id);
     chapterOwnerMap.delete(id);
-    if (owner) orphanChapterOwners.set(id, { projectId: owner, at: now });
+    if (owner) orphanChapterOwners.set(id, { ...owner, at: now });
   }
 }
 
@@ -185,12 +227,25 @@ export function getProjectNameHint(projectId: string): string | undefined {
 
 /** Resolves the owning project of a chapter (live registry first, then the
  *  post-delete grace window). Used by chapter content and snapshot paths. */
-export function resolveChapterOwner(chapterId: string): { projectId: string; projectName?: string } | null {
+export function resolveChapterOwner(
+  chapterId: string,
+): { projectId: string; projectName?: string; volumeSeq: number } | null {
   const live = chapterOwnerMap.get(chapterId);
-  if (live) return { projectId: live, projectName: projectNameMap.get(live) };
+  if (live) {
+    return { projectId: live.projectId, projectName: projectNameMap.get(live.projectId), volumeSeq: live.volumeSeq };
+  }
+  // Sweep expired grace entries on read so the map can't grow unbounded.
+  const now = Date.now();
+  for (const [id, orphan] of orphanChapterOwners) {
+    if (now - orphan.at >= ORPHAN_GRACE_MS) orphanChapterOwners.delete(id);
+  }
   const orphan = orphanChapterOwners.get(chapterId);
-  if (orphan && Date.now() - orphan.at < ORPHAN_GRACE_MS) {
-    return { projectId: orphan.projectId, projectName: projectNameMap.get(orphan.projectId) };
+  if (orphan) {
+    return {
+      projectId: orphan.projectId,
+      projectName: projectNameMap.get(orphan.projectId),
+      volumeSeq: orphan.volumeSeq,
+    };
   }
   return null;
 }
@@ -238,21 +293,31 @@ async function getLegacyDictFilePath(projectId: string, config?: StorageConfig):
   return buildPath([dir, "dictionary", `${projectId}.json`]);
 }
 
-// Moves a file to a new location, then removes the source. Best-effort: a
-// failed migration leaves the legacy file in place (reads still find it).
+// Moves a file to a new location via rename (same-volume move), falling back
+// to copy+delete only when rename is unavailable. Best-effort callers use the
+// void return; critical paths (lazy project-file migration) await it so a
+// save can never race a stale copy over the migrated bytes.
 async function moveFile(src: string, dest: string): Promise<void> {
   if (!isTauri() || src === dest) return;
   try {
-    const content = await bridgeReadTextFile(src);
-    await atomicWriteTextFile(dest, content);
-    await invoke("remove_file", { path: src }).catch(() => {});
+    await invoke("move_path", { src, dest });
   } catch {
-    // best-effort — legacy path remains as fallback
+    // Rename failed (cross-volume, or dest exists) — fall back to copy+delete.
+    try {
+      const content = await bridgeReadTextFile(src);
+      await atomicWriteTextFile(dest, content);
+      await invoke("remove_file", { path: src }).catch(() => {});
+    } catch {
+      // best-effort — legacy path remains as fallback
+    }
   }
 }
 
-/** Renames (moves) a project's folder. Returns the new folder path, or null
- *  when the move was not possible/pointed at the same place. */
+/** Renames (moves) a project's folder. The in-memory name hint is updated
+ *  only AFTER the move succeeds — updating it first would send chapter reads
+ *  to a folder that doesn't exist yet (and make the old folder unreachable).
+ *  Returns the new folder path on success; throws when the folder exists but
+ *  could not be moved so callers can roll back and surface the failure. */
 export async function renameProjectFolder(
   oldName: string,
   projectId: string,
@@ -261,17 +326,23 @@ export async function renameProjectFolder(
 ): Promise<string | null> {
   const oldDir = await getProjectDir(projectId, oldName, config);
   const newDir = await getProjectDir(projectId, newName, config);
-  if (oldDir === newDir) return null;
-  projectNameMap.set(projectId, newName);
-  if (!isTauri()) return null;
-  try {
-    await invoke("move_path", { src: oldDir, dest: newDir });
-    return newDir;
-  } catch {
-    // Folder missing or move failed — the next save recreates the layout
-    // under the new name; legacy fallbacks keep old data reachable.
+  if (oldDir === newDir) {
+    projectNameMap.set(projectId, newName);
     return null;
   }
+  if (!isTauri()) {
+    projectNameMap.set(projectId, newName);
+    return null;
+  }
+  if (!(await invoke<boolean>("file_exists", { path: oldDir }).catch(() => false))) {
+    // No folder on disk yet (fresh/legacy-layout project) — nothing to move;
+    // the next save creates the layout under the new name.
+    projectNameMap.set(projectId, newName);
+    return null;
+  }
+  await invoke("move_path", { src: oldDir, dest: newDir });
+  projectNameMap.set(projectId, newName);
+  return newDir;
 }
 
 /** Deletes a project's whole folder (project.json + chapters + notes + dict
@@ -329,11 +400,20 @@ export async function getLocalProjectRegistry(
       throw new Error(`作品索引文件损坏，无法读取。请检查${hint}（可尝试用 registry.json.tmp 恢复）。`);
     }
   };
-  // Lenient read: any failure (missing or unreadable) falls back to the
-  // localStorage mirror — a stale list is better than a broken library.
+  // Strict read, mirroring chapter reads: only a genuinely missing registry
+  // falls back to the localStorage mirror. Any other failure (locked file,
+  // permissions, corrupt JSON) must surface — silently serving the stale
+  // mirror would let the next registry write atomically clobber the real
+  // index with an outdated project list (works vanish from the library while
+  // their folders remain on disk).
   let primary: string | null = null;
   if (isTauri()) {
-    primary = await bridgeReadTextFile(await getProjectRegistryPath()).catch(() => localStorageFallback());
+    try {
+      primary = await bridgeReadTextFile(await getProjectRegistryPath());
+    } catch (err) {
+      if (!isNotFoundError(err)) throw err;
+      primary = localStorageFallback();
+    }
   } else {
     primary = localStorageFallback();
   }
@@ -346,9 +426,17 @@ export async function getLocalProjectRegistry(
   const legacyDir = config?.projectSaveDirectory;
   if (legacyDir) {
     const legacyPath = await buildPath([legacyDir, "registry.json"]);
-    const legacyRaw = isTauri()
-      ? await bridgeReadTextFile(legacyPath).catch(() => localStorageFallback())
-      : localStorageFallback();
+    let legacyRaw: string | null = null;
+    if (isTauri()) {
+      try {
+        legacyRaw = await bridgeReadTextFile(legacyPath);
+      } catch (err) {
+        if (!isNotFoundError(err)) throw err;
+        legacyRaw = localStorageFallback();
+      }
+    } else {
+      legacyRaw = localStorageFallback();
+    }
     if (legacyRaw) {
       const projects = parseRegistry(legacyRaw, "作品内容位置中的 registry.json");
       for (const p of projects) projectNameMap.set(p.id, p.name);
@@ -403,10 +491,12 @@ async function readProjectFileRaw(
   if (hit) {
     if (hit.path === candidates[1]) {
       // Legacy location — adopt the name from the payload and migrate.
+      // AWAIT the move: firing it off un-awaited let a concurrent save race
+      // stale migration bytes over the fresher project.json.
       const parsed = parseProjectFile(hit.raw);
       if (parsed) {
         const target = await buildPath([await getProjectDir(projectId, parsed.project.name, config), "project.json"]);
-        moveFile(hit.path, target).catch(() => {});
+        await moveFile(hit.path, target);
       }
     }
     return { raw: hit.raw, projectName: parseProjectFile(hit.raw)?.project.name ?? nameHint };
@@ -437,7 +527,7 @@ export async function inspectProjectFile(
   if (parsed) {
     // Register chapter → project ownership so chapter/snapshot paths resolve
     // into this project's folder.
-    registerChapterOwners(parsed.chapters.map((c) => c.id), parsed.project.id, parsed.project.name);
+    registerChapterOwners(parsed.chapters, parsed.volumes, parsed.project.id, parsed.project.name);
     return { kind: "ok", ...parsed };
   }
 
@@ -452,7 +542,7 @@ export async function inspectProjectFile(
     const tmpHit = await readFirstExisting(tmpCandidates, false).catch(() => null);
     const tmpParsed = tmpHit ? parseProjectFile(tmpHit.raw) : null;
     if (tmpParsed) {
-      registerChapterOwners(tmpParsed.chapters.map((c) => c.id), tmpParsed.project.id, tmpParsed.project.name);
+      registerChapterOwners(tmpParsed.chapters, tmpParsed.volumes, tmpParsed.project.id, tmpParsed.project.name);
       return { kind: "ok", ...tmpParsed };
     }
   }
@@ -483,7 +573,7 @@ export async function saveProjectToLocal(
   config?: StorageConfig,
 ): Promise<void> {
   const raw = JSON.stringify({ project, chapters, volumes });
-  registerChapterOwners(chapters.map((c) => c.id), project.id, project.name);
+  registerChapterOwners(chapters, volumes, project.id, project.name);
   if (!isTauri()) {
     writeMirror(getProjectStorageKey(project.id), raw);
     return;
@@ -495,50 +585,182 @@ export async function saveProjectToLocal(
 
 // Resolves the chapter file path: inside the owning project's folder when
 // the owner is known, plus the legacy flat path as read fallback.
-async function chapterPathCandidates(chapterId: string, config?: StorageConfig): Promise<{ primary: string; legacy: string }> {
+// Chapter files are named "{卷序号}-{章节名}.md" (volumeSeq from the owner
+// map; 0 = unfiled) so the user can find "1-第 1 章.md" in the file manager.
+// The chapter id is no longer embedded; same-name chapters are disambiguated
+// by a numeric suffix (see resolveChapterFileName).
+function chapterFileBase(volumeSeq: number, title: string): string {
+  const base = sanitizeFileName(title) || "chapter";
+  return `${volumeSeq}-${base}`;
+}
+
+function chapterFileName(volumeSeq: number, title: string): string {
+  return `${chapterFileBase(volumeSeq, title)}.md`;
+}
+
+// Picks a collision-free file name inside the project's chapters/ dir. When
+// "{seq}-{title}.md" is already taken (by another chapter — e.g. two chapters
+// both titled 第 1 章 in the same volume), appends -2, -3, … Best-effort:
+// a directory-listing failure yields the base name (the write then just
+// overwrites, same as the pre-disambiguation behavior).
+async function resolveChapterFileName(
+  chaptersDir: string,
+  volumeSeq: number,
+  title: string,
+): Promise<string> {
+  const base = chapterFileBase(volumeSeq, title);
+  const primary = `${base}.md`;
+  if (!isTauri()) return primary;
+  let existing: Set<string>;
+  try {
+    existing = new Set(await invoke<string[]>("list_files", { dir: chaptersDir }));
+  } catch {
+    return primary;
+  }
+  if (!existing.has(primary)) return primary;
+  for (let n = 2; ; n++) {
+    const candidate = `${base}-${n}.md`;
+    if (!existing.has(candidate)) return candidate;
+  }
+}
+
+async function chapterPathCandidates(
+  chapterId: string,
+  config?: StorageConfig,
+  title?: string,
+): Promise<{ primary: string; legacy: string; legacyNamed: string }> {
   assertSafeId(chapterId, "章节");
   const owner = resolveChapterOwner(chapterId);
   const legacy = await getLegacyChapterFilePath(chapterId, config);
-  if (!owner) return { primary: legacy, legacy };
+  if (!owner) return { primary: legacy, legacy, legacyNamed: legacy };
   const dir = await getProjectDir(owner.projectId, owner.projectName ?? projectNameMap.get(owner.projectId), config);
-  return { primary: await buildPath([dir, "chapters", `${chapterId}.md`]), legacy };
+  const chaptersDir = await buildPath([dir, "chapters"]);
+  const name = chapterFileName(owner.volumeSeq, title || "chapter");
+  // Pre-restructure files were named "{title}-{id}.md"; keep that as a read
+  // fallback + lazy-migration source so upgrading doesn't orphan existing
+  // chapters.
+  const legacyNamed = await buildPath([chaptersDir, `${sanitizeFileName(title || "chapter") || "chapter"}-${chapterId}.md`]);
+  return { primary: await buildPath([chaptersDir, name]), legacy, legacyNamed };
 }
 
-export async function loadChapterContentFromLocal(chapterId: string, config?: StorageConfig): Promise<string> {
+export async function loadChapterContentFromLocal(
+  chapterId: string,
+  config?: StorageConfig,
+  title?: string,
+): Promise<string> {
   // Strict read: only a genuinely missing file falls back to the mirror.
   // A transient read failure must propagate — silently serving an old mirror
   // here would later be saved back over the real (newer) file.
   if (!isTauri()) {
     return readMirror(getChapterStorageKey(chapterId)) ?? "";
   }
-  const { primary, legacy } = await chapterPathCandidates(chapterId, config);
-  const hit = await readFirstExisting([primary, legacy], false);
+  const { primary, legacy, legacyNamed } = await chapterPathCandidates(chapterId, config, title);
+  const hit = await readFirstExisting([primary, legacyNamed, legacy], false);
   if (hit) {
-    if (hit.path === legacy && legacy !== primary) {
-      moveFile(legacy, primary).catch(() => {});
+    if (hit.path !== primary) {
+      moveFile(hit.path, primary).catch(() => {});
     }
     return hit.raw;
+  }
+  // Cross-volume moves change the "{卷序号}-" prefix, but the on-disk file is
+  // only renamed on the next title edit — until then it sits under the OLD
+  // volume's prefix. Scan the chapters dir for any same-title file with a
+  // different sequence prefix so the content stays reachable after a move.
+  const owner = resolveChapterOwner(chapterId);
+  if (owner && title) {
+    const dir = await getProjectDir(owner.projectId, owner.projectName ?? projectNameMap.get(owner.projectId), config);
+    const chaptersDir = await buildPath([dir, "chapters"]);
+    const titlePart = sanitizeFileName(title) || "chapter";
+    try {
+      const names = await invoke<string[]>("list_files", { dir: chaptersDir });
+      const moved = names.find(
+        (n) => n.endsWith(`-${titlePart}.md`) || n === `${titlePart}.md`,
+      );
+      if (moved) {
+        const movedPath = await buildPath([chaptersDir, moved]);
+        const raw = await bridgeReadTextFile(movedPath);
+        moveFile(movedPath, primary).catch(() => {});
+        return raw;
+      }
+    } catch {
+      // fall through to the mirror
+    }
   }
   return readMirror(getChapterStorageKey(chapterId)) ?? "";
 }
 
-export async function saveChapterContentToLocal(chapterId: string, content: string, config?: StorageConfig): Promise<void> {
+export async function saveChapterContentToLocal(
+  chapterId: string,
+  content: string,
+  config?: StorageConfig,
+  title?: string,
+): Promise<void> {
   if (!isTauri()) {
     writeMirror(getChapterStorageKey(chapterId), content);
     return;
   }
-  const { primary } = await chapterPathCandidates(chapterId, config);
-  await atomicWriteTextFile(primary, content);
+  const owner = resolveChapterOwner(chapterId);
+  const dir = owner
+    ? await getProjectDir(owner.projectId, owner.projectName ?? projectNameMap.get(owner.projectId), config)
+    : await getContentBaseDir(config);
+  const chaptersDir = await buildPath([dir, "chapters"]);
+  const name = await resolveChapterFileName(chaptersDir, owner?.volumeSeq ?? 0, title || "chapter");
+  await atomicWriteTextFile(await buildPath([chaptersDir, name]), content);
   writeMirror(getChapterStorageKey(chapterId), content);
 }
 
-export async function removeChapterContentFromLocal(chapterId: string, config?: StorageConfig): Promise<void> {
-  const { primary, legacy } = isTauri()
-    ? await chapterPathCandidates(chapterId, config)
-    : { primary: "", legacy: "" };
+/** Renames (moves) a chapter's content file. The file name embeds the volume
+ *  sequence + chapter title so the user can find it in the file manager;
+ *  renaming a chapter moves the file to match. Returns the new path on
+ *  success; throws when the file exists but could not be moved so callers can
+ *  roll back and surface the failure. */
+export async function renameChapterFile(
+  chapterId: string,
+  oldTitle: string,
+  newTitle: string,
+  config?: StorageConfig,
+): Promise<string | null> {
+  if (!isTauri() || oldTitle === newTitle) return null;
+  const owner = resolveChapterOwner(chapterId);
+  if (!owner) return null;
+  const dir = await getProjectDir(owner.projectId, owner.projectName ?? projectNameMap.get(owner.projectId), config);
+  const chaptersDir = await buildPath([dir, "chapters"]);
+  // Locate the existing file under any of the historical names, then move it
+  // to the new (disambiguated) name.
+  const oldCandidates = [
+    await buildPath([chaptersDir, chapterFileName(owner.volumeSeq, oldTitle)]),
+    await buildPath([chaptersDir, `${sanitizeFileName(oldTitle) || "chapter"}-${chapterId}.md`]),
+  ];
+  let oldPath: string | null = null;
+  for (const candidate of oldCandidates) {
+    if (await invoke<boolean>("file_exists", { path: candidate }).catch(() => false)) {
+      oldPath = candidate;
+      break;
+    }
+  }
+  if (!oldPath) {
+    // No file on disk yet (fresh/legacy-layout chapter) — nothing to move;
+    // the next save creates the layout under the new name.
+    return null;
+  }
+  const newName = await resolveChapterFileName(chaptersDir, owner.volumeSeq, newTitle);
+  const newPath = await buildPath([chaptersDir, newName]);
+  if (oldPath === newPath) return null;
+  await invoke("move_path", { src: oldPath, dest: newPath });
+  return newPath;
+}
+
+export async function removeChapterContentFromLocal(
+  chapterId: string,
+  config?: StorageConfig,
+  title?: string,
+): Promise<void> {
+  const { primary, legacy, legacyNamed } = isTauri()
+    ? await chapterPathCandidates(chapterId, config, title)
+    : { primary: "", legacy: "", legacyNamed: "" };
   unregisterChapterOwners([chapterId]);
   if (isTauri()) {
-    for (const path of new Set([primary, legacy])) {
+    for (const path of new Set([primary, legacy, legacyNamed])) {
       try {
         await invoke("remove_file", { path });
       } catch {
@@ -594,9 +816,9 @@ export async function getDefaultExportDirectory(config?: StorageConfig): Promise
 
 // --- Notes (写作笔记) -----------------------------------------------------
 // Per-project scratch notes (人物设定、灵感、伏笔). Live inside the project
-// folder (notes.json) so they travel with the work; legacy notes/{id}.json
-// files are migrated on first read. Debounced autosave in the UI calls
-// saveNotesToLocal; reads fall back to [] when absent.
+// folder under 笔记/notes.json so they travel with the work; legacy
+// notes/{id}.json files are migrated on first read. Debounced autosave in the
+// UI calls saveNotesToLocal; reads fall back to [] when absent.
 export async function loadNotesFromLocal(projectId: string, config?: StorageConfig): Promise<Note[]> {
   const mirrorKey = `inkwell-notes-${projectId}`;
   let raw: string | null;
@@ -604,7 +826,7 @@ export async function loadNotesFromLocal(projectId: string, config?: StorageConf
     raw = readMirror(mirrorKey);
   } else {
     const dir = await resolveProjectDirForRead(projectId, config);
-    const primary = await buildPath([dir, "notes.json"]);
+    const primary = await buildPath([dir, "笔记", "notes.json"]);
     const legacy = await getLegacyNotesFilePath(projectId, config);
     const hit = await readFirstExisting([primary, legacy], true);
     if (hit) {
@@ -630,13 +852,13 @@ export async function saveNotesToLocal(projectId: string, notes: Note[], config?
     return;
   }
   const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
-  await atomicWriteTextFile(await buildPath([dir, "notes.json"]), raw);
+  await atomicWriteTextFile(await buildPath([dir, "笔记", "notes.json"]), raw);
   writeMirror(`inkwell-notes-${projectId}`, raw);
 }
 
 // --- Dictionary (设定词典) -------------------------------------------------
 // Per-project worldbuilding entries (人物卡 / 地点 / 势力 …). Same storage
-// pattern as notes: dict.json inside the project folder, legacy
+// pattern as notes: 词典/dict.json inside the project folder, legacy
 // dictionary/<id>.json migrated on first read, localStorage mirror for the
 // browser dev mode.
 export async function loadDictFromLocal(projectId: string, config?: StorageConfig): Promise<DictEntry[]> {
@@ -646,7 +868,7 @@ export async function loadDictFromLocal(projectId: string, config?: StorageConfi
     raw = readMirror(mirrorKey);
   } else {
     const dir = await resolveProjectDirForRead(projectId, config);
-    const primary = await buildPath([dir, "dict.json"]);
+    const primary = await buildPath([dir, "词典", "dict.json"]);
     const legacy = await getLegacyDictFilePath(projectId, config);
     const hit = await readFirstExisting([primary, legacy], true);
     if (hit) {
@@ -672,7 +894,7 @@ export async function saveDictToLocal(projectId: string, entries: DictEntry[], c
     return;
   }
   const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
-  await atomicWriteTextFile(await buildPath([dir, "dict.json"]), raw);
+  await atomicWriteTextFile(await buildPath([dir, "词典", "dict.json"]), raw);
   writeMirror(`inkwell-dict-${projectId}`, raw);
 }
 

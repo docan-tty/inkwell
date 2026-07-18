@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 // ---------------------------------------------------------------------------
 // Path authorization
@@ -18,40 +18,63 @@ use tauri::Manager;
 // rejected. `open_path` is additionally restricted to directories so it can
 // never be used to launch a written payload.
 
-fn content_roots_file() -> Option<PathBuf> {
-    dirs_next::data_dir().map(|d| {
-        d.join(env!("CARGO_PKG_NAME"))
-            .join("inkwell-content-roots.txt")
-    })
+fn content_roots_file(app: &tauri::AppHandle) -> Option<PathBuf> {
+    // Marker file lives in the app data dir itself (%APPDATA%/com.inkwell.app)
+    // — alongside the settings/registry it authorizes, not the shared
+    // dirs_next::data_dir() root that other apps also use.
+    //
+    // Threat model: this file is the persistence of the "user picked a
+    // content folder" consent. A local attacker who can rewrite it can widen
+    // the webview's write scope to arbitrary directories — an accepted risk:
+    // such an attacker already has full user-level file access without the
+    // app. The whitelist exists to stop *webview-reachable* path injection,
+    // not a local adversary.
+    app.path().app_data_dir().ok().map(|d| d.join("inkwell-content-roots.txt"))
 }
 
-fn registered_roots() -> &'static Mutex<Vec<PathBuf>> {
-    static ROOTS: OnceLock<Mutex<Vec<PathBuf>>> = OnceLock::new();
-    ROOTS.get_or_init(|| {
-        let mut roots = Vec::new();
-        if let Some(file) = content_roots_file() {
-            if let Ok(raw) = std::fs::read_to_string(&file) {
-                for line in raw.lines() {
-                    let line = line.trim();
-                    if !line.is_empty() {
-                        roots.push(PathBuf::from(line));
-                    }
+fn registered_roots(app: &tauri::AppHandle) -> Vec<PathBuf> {
+    static CACHE: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
+    // The marker path is a per-app constant; OnceLock just caches the read.
+    let _ = CACHE.get_or_init(|| Mutex::new(content_roots_file(app)));
+    let file = CACHE.get().unwrap().lock().unwrap().clone();
+    let mut roots = Vec::new();
+    if let Some(file) = file {
+        if let Ok(raw) = std::fs::read_to_string(&file) {
+            for line in raw.lines() {
+                let line = line.trim();
+                if !line.is_empty() {
+                    // Roots may have been persisted in verbatim form by an
+                    // older build — normalize on read so comparisons work.
+                    roots.push(strip_verbatim(Path::new(line)));
                 }
             }
         }
-        Mutex::new(roots)
-    })
+    }
+    roots
+}
+
+// Strips the Windows verbatim-path prefix (\\?\) that `canonicalize` adds.
+// `starts_with` on verbatim vs. plain paths never matches, which would make a
+// canonicalized root fail to authorize paths under itself. Normalizing both
+// sides keeps the comparison honest.
+fn strip_verbatim(p: &Path) -> PathBuf {
+    let s = p.to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(rest)
+    } else {
+        p.to_path_buf()
+    }
 }
 
 fn is_under(path: &Path, root: &Path) -> bool {
     path == root || path.starts_with(root)
 }
 
-fn push_root(root: PathBuf) {
-    let mut roots = registered_roots().lock().unwrap();
+fn push_root(app: &tauri::AppHandle, root: PathBuf) {
+    let mut roots = registered_roots(app);
     if !roots.contains(&root) {
         roots.push(root);
-        if let Some(file) = content_roots_file() {
+        if let Some(file) = content_roots_file(app) {
             if let Some(parent) = file.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
@@ -65,39 +88,83 @@ fn push_root(root: PathBuf) {
     }
 }
 
-// Authorize `path` for file I/O: it must live under the app data dir or a
-// registered content root. Existing paths are canonicalized first so `..`
-// segments and symlink escapes are caught; new paths are checked against
-// their canonicalized parent.
+// Authorize `path` for file I/O: it must live under the app data dir, a
+// registered content root, or a one-shot export grant (see `grant_export_path`).
 fn authorize_path(app: &tauri::AppHandle, path: &str) -> Result<PathBuf, String> {
     let p = PathBuf::from(path);
     let mut roots: Vec<PathBuf> = Vec::new();
+    // The app data dir is always a root (settings, registry, default content).
+    // Strip any verbatim prefix so `starts_with` compares like-for-like.
     if let Ok(dir) = app.path().app_data_dir() {
-        roots.push(dir);
+        roots.push(strip_verbatim(&dir));
     }
-    roots.extend(registered_roots().lock().unwrap().iter().cloned());
+    roots.extend(registered_roots(app));
 
     let canonical_roots: Vec<PathBuf> = roots
         .iter()
-        .filter_map(|r| r.canonicalize().ok().or_else(|| Some(r.clone())))
+        // Fail closed: a root that cannot be canonicalized (missing, dangling
+        // symlink) must not authorize anything — do NOT fall back to the raw
+        // path, which `..` segments could spoof. The verbatim prefix is
+        // stripped so `starts_with` compares like-for-like.
+        .filter_map(|r| r.canonicalize().ok())
+        .map(|r| strip_verbatim(&r))
         .collect();
 
     if p.exists() {
-        let canon = p
-            .canonicalize()
-            .map_err(|e| format!("路径解析失败 ({}): {}", path, e))?;
-        if canonical_roots.iter().any(|r| is_under(&canon, r)) {
+        let canon = strip_verbatim(
+            &p.canonicalize()
+                .map_err(|e| format!("路径解析失败 ({}): {}", path, e))?,
+        );
+        // MSIX-packaged builds redirect the app's private data root
+        // (%APPDATA%\<id>) to a Packages\...\LocalCache location at the
+        // filesystem layer. `canonicalize` follows that redirect, so a
+        // whitelist entry for the reported path never matches the
+        // canonicalized one. When the redirect is detected, authorize by the
+        // pre-canonicalization path instead — the whitelist already vetted
+        // that exact path, and the redirect only ever rewrites the app's own
+        // data root (it cannot widen the scope to user content).
+        let redirected = !is_under(&p, &canon) && !is_under(&canon, &p);
+        let matches = canonical_roots.iter().any(|r| {
+            is_under(&canon, r) || (redirected && is_under(&p, r))
+        });
+        if matches {
+            return Ok(canon);
+        }
+        // One-shot export grant: the exact file the user picked in the save
+        // dialog. Consumed on use so it cannot be reused for other files.
+        if take_export_grant(&canon) {
             return Ok(canon);
         }
     } else {
-        let parent = p.parent().unwrap_or(Path::new(""));
-        if let Ok(canon_parent) = parent.canonicalize() {
-            if canonical_roots
-                .iter()
-                .any(|r| is_under(&canon_parent, r))
-            {
-                return Ok(p.to_path_buf());
+        // The target file does not exist yet (a new project/chapter). The
+        // whitelist check must look at the nearest existing ancestor: the
+        // immediate parent often doesn't exist either (write_text_file
+        // auto-creates it), and canonicalizing a missing path fails.
+        // MSIX may still redirect that ancestor at the filesystem layer, so
+        // fall back to the raw lexical path when the canonicalized form is
+        // unrelated to every root.
+        let mut ancestor = p.parent();
+        let mut canon_ancestor: Option<PathBuf> = None;
+        while let Some(dir) = ancestor {
+            if dir.as_os_str().is_empty() {
+                break;
             }
+            if let Ok(c) = dir.canonicalize() {
+                canon_ancestor = Some(strip_verbatim(&c));
+                break;
+            }
+            ancestor = dir.parent();
+        }
+        let raw_match = canonical_roots.iter().any(|r| is_under(&p, r));
+        let canon_match = canon_ancestor
+            .as_ref()
+            .map(|c| canonical_roots.iter().any(|r| is_under(c, r)))
+            .unwrap_or(false);
+        if raw_match || canon_match {
+            return Ok(p.to_path_buf());
+        }
+        if take_export_grant(&p) {
+            return Ok(p.to_path_buf());
         }
     }
     Err(format!("路径不在允许的目录范围内: {}", path))
@@ -106,10 +173,46 @@ fn authorize_path(app: &tauri::AppHandle, path: &str) -> Result<PathBuf, String>
 // Called by JS on startup (and whenever the content location changes) to
 // register the user's chosen content directory as an allowed root.
 #[tauri::command]
-fn register_content_root(path: String) -> Result<(), String> {
+fn register_content_root(app: tauri::AppHandle, path: String) -> Result<(), String> {
     let p = PathBuf::from(&path);
     std::fs::create_dir_all(&p).map_err(|e| format!("创建目录失败 ({}): {}", path, e))?;
-    push_root(p.canonicalize().unwrap_or(p));
+    // Persist in normalized (non-verbatim) form so a later read → canonicalize
+    // → strip round-trips to the same string and doesn't accumulate variants.
+    let normalized = strip_verbatim(&p.canonicalize().unwrap_or_else(|_| p.clone()));
+    push_root(&app, normalized);
+    Ok(())
+}
+
+// One-shot export grants: the user explicitly picked this exact file in the
+// OS save dialog, so writing THAT file is authorized — once. Grants are
+// consumed by authorize_path and never widen into a directory root.
+fn export_grants() -> &'static Mutex<Vec<PathBuf>> {
+    static GRANTS: OnceLock<Mutex<Vec<PathBuf>>> = OnceLock::new();
+    GRANTS.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+fn take_export_grant(path: &Path) -> bool {
+    let mut grants = export_grants().lock().unwrap();
+    if let Some(idx) = grants.iter().position(|g| g == path) {
+        grants.remove(idx);
+        true
+    } else {
+        false
+    }
+}
+
+/// Registers an exact file path the user just picked in a save dialog as a
+/// one-shot write grant. Called by the export flow right after the dialog
+/// resolves and before `write_text_file`.
+#[tauri::command]
+fn grant_export_path(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    let grant = if p.exists() {
+        p.canonicalize().map_err(|e| format!("路径解析失败 ({}): {}", path, e))?
+    } else {
+        p
+    };
+    export_grants().lock().unwrap().push(grant);
     Ok(())
 }
 
@@ -311,6 +414,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             register_content_root,
+            grant_export_path,
             open_path,
             read_text_file,
             write_text_file,
@@ -322,6 +426,32 @@ pub fn run() {
             copy_file,
             copy_dir_recursive,
         ])
+        .on_window_event(|window, event| {
+            // Own the close path: when the user clicks X, notify the webview
+            // (so it can fire off a best-effort content flush) and then tear
+            // the window down. Doing this in Rust — instead of a JS
+            // onCloseRequested handler — guarantees the X button can never be
+            // blocked by a pending JS promise or a hung invoke.
+            match event {
+                tauri::WindowEvent::CloseRequested { .. } => {
+                    let _ = window.emit("inkwell:closing", ());
+                }
+                // The window is gone but the process would otherwise linger
+                // (Windows keeps the event loop alive after the last window
+                // closes). Exit explicitly so closing the main window actually
+                // quits the app. exit() is deferred one tick off the event
+                // handler — called synchronously it races the Destroyed
+                // dispatch and gets swallowed.
+                tauri::WindowEvent::Destroyed => {
+                    let handle = window.app_handle().clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                        handle.exit(0);
+                    });
+                }
+                _ => {}
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

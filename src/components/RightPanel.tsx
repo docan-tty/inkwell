@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, ListTree, History, RotateCcw, Eye, FileClock } from "lucide-react";
 import { useAppStore } from "../store";
+import type { Chapter } from "../types";
 import { listSnapshots, readSnapshot, type SnapshotInfo } from "../lib/snapshots";
 import { stripHtml, sanitizeHtml } from "../lib/export";
-import { formatDateTime, cn } from "../lib/utils";
+import { formatDateTime, cn, sortChaptersByTreeOrder } from "../lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-export function RightPanel() {
-  const { rightPanelTab, setRightPanelTab } = useAppStore();
+export function RightPanel({ onSelectChapter }: { onSelectChapter?: (chapter: Chapter) => void }) {
+  const rightPanelTab = useAppStore((s) => s.rightPanelTab);
+  const setRightPanelTab = useAppStore((s) => s.setRightPanelTab);
 
   if (rightPanelTab === "none") return null;
 
@@ -39,7 +41,7 @@ export function RightPanel() {
       <div className="flex-1 overflow-hidden">
         {rightPanelTab === "outline" && (
           <div className="h-full overflow-y-auto p-4">
-            <OutlineView />
+            <OutlineView onSelectChapter={onSelectChapter} />
           </div>
         )}
         {rightPanelTab === "history" && (
@@ -79,19 +81,18 @@ function PanelTab({
   );
 }
 
-function OutlineView() {
-  const { chapters, volumes, currentChapter, setCurrentChapter } = useAppStore();
+function OutlineView({ onSelectChapter }: { onSelectChapter?: (chapter: Chapter) => void }) {
+  const chapters = useAppStore((s) => s.chapters);
+  const volumes = useAppStore((s) => s.volumes);
+  const currentChapter = useAppStore((s) => s.currentChapter);
+  const setCurrentChapter = useAppStore((s) => s.setCurrentChapter);
+  // Prefer the workspace's select path (saves + word-counts the outgoing
+  // chapter and surfaces write failures); fall back to the raw store action.
+  const select = onSelectChapter ?? ((c: Chapter) => void setCurrentChapter(c));
 
   // Display chapters grouped by volume order, then chapter order — matching
   // the left-hand chapter tree instead of the raw insertion order.
-  const volumeOrder = new Map(volumes.map((v) => [v.id, v.order]));
-  const sorted = [...chapters].sort((a, b) => {
-    // Volume-less chapters sort after all volumes, like the chapter tree.
-    const va = volumeOrder.get(a.parentId || "") ?? Number.MAX_SAFE_INTEGER;
-    const vb = volumeOrder.get(b.parentId || "") ?? Number.MAX_SAFE_INTEGER;
-    if (va !== vb) return va - vb;
-    return a.order - b.order;
-  });
+  const sorted = sortChaptersByTreeOrder(chapters, volumes);
 
   return (
     <div className="space-y-1">
@@ -101,7 +102,7 @@ function OutlineView() {
       {sorted.map((chapter) => (
         <button
           key={chapter.id}
-          onClick={() => setCurrentChapter(chapter)}
+          onClick={() => select(chapter)}
           className={cn(
             "w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors",
             currentChapter?.id === chapter.id
@@ -123,7 +124,9 @@ function OutlineView() {
 // saving (one every few minutes when content changed). Preview shows the
 // snapshot's plain text; restore overwrites the chapter file with it.
 function HistoryView() {
-  const { currentChapter, appSettings, restoreChapterContent } = useAppStore();
+  const currentChapter = useAppStore((s) => s.currentChapter);
+  const appSettings = useAppStore((s) => s.appSettings);
+  const restoreChapterContent = useAppStore((s) => s.restoreChapterContent);
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<{ timestamp: number; text: string } | null>(null);

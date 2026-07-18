@@ -1,6 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile, isTauri, getDefaultExportDirectory } from "./storage";
-import { sanitizeFileName } from "./utils";
+import { writeTextFile, isTauri, getDefaultExportDirectory, grantExportPath } from "./storage";
+import { sanitizeFileName, sortChaptersByTreeOrder } from "./utils";
 import type { AppSettings, Chapter, Project, Volume } from "../types";
 
 const BLOCK_TAGS = new Set([
@@ -182,6 +182,11 @@ async function pickSavePath(
   const defaultPath = await getExportDefaultPath(defaultName, config);
   const path = await save({ defaultPath, filters });
   if (!path) return { canceled: true as const, path: undefined, fallback: false as const };
+  // The save dialog returns an arbitrary location (Desktop / Documents /
+  // D:\...) that the write-path whitelist would reject. The user's pick IS
+  // the consent, so register that exact file as a one-shot write grant —
+  // without widening any directory into a permanent root.
+  await grantExportPath(path);
   return { canceled: false as const, path, fallback: false as const };
 }
 
@@ -316,15 +321,7 @@ function sortChaptersForExport(
   chapters: Chapter[],
 ): { sorted: Chapter[]; volumeMap: Map<string, Volume> } {
   const volumeMap = new Map(volumes.map((v) => [v.id, v]));
-  const sorted = [...chapters].sort((a, b) => {
-    // Chapters without a volume sort AFTER all volumes, matching the
-    // chapter tree's "未分类章节" section at the bottom.
-    const va = volumeMap.get(a.parentId || "")?.order ?? Number.MAX_SAFE_INTEGER;
-    const vb = volumeMap.get(b.parentId || "")?.order ?? Number.MAX_SAFE_INTEGER;
-    if (va !== vb) return va - vb;
-    return a.order - b.order;
-  });
-  return { sorted, volumeMap };
+  return { sorted: sortChaptersByTreeOrder(chapters, volumes), volumeMap };
 }
 
 // Whole-book plain-text / Markdown export. Chapters are grouped under their

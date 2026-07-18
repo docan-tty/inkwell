@@ -21,6 +21,7 @@ import {
   loadNotesFromLocal,
   loadProjectFromLocal,
   registerChapterOwners,
+  renameChapterFile,
   renameProjectFolder,
   saveChapterContentToLocal,
   saveDictToLocal,
@@ -33,7 +34,7 @@ import {
 } from "../lib/storage";
 import { countWords, generateId } from "../lib/utils";
 import { stripHtml } from "../lib/export";
-import { replaceAllInHtml, replaceMatchInHtml } from "../lib/replace";
+import { replaceAllInHtml, replaceMatchAtOffset, replaceMatchInHtml } from "../lib/replace";
 import { clearDraft } from "../lib/draft";
 import { createSnapshot, removeSnapshots } from "../lib/snapshots";
 import { computeThemeVars, type AccentKey, type PaperKey } from "../lib/theme";
@@ -99,10 +100,12 @@ export function setPendingChapterContent(chapterId: string, content: string): nu
 export async function flushPendingChapterContents(
   settings: Parameters<typeof saveChapterContentToLocal>[2],
 ): Promise<void> {
+  const chapters = useAppStore.getState().chapters;
+  const titleOf = (id: string) => chapters.find((c) => c.id === id)?.title;
   const entries = [...pendingChapterContent.entries()];
   await Promise.all(
     entries.map(async ([chapterId, { content }]) => {
-      await saveChapterContentToLocal(chapterId, content, settings);
+      await saveChapterContentToLocal(chapterId, content, settings, titleOf(chapterId));
       clearDraft(chapterId);
       pendingChapterContent.delete(chapterId);
     }),
@@ -157,7 +160,7 @@ interface AppState {
   createChapter: (volumeId: string | null, title: string) => Promise<Chapter>;
   updateChapter: (chapterId: string, data: Partial<Chapter>) => Promise<void>;
   updateChapterWordCount: (chapterId: string, wordCount: number) => void;
-  /** 把新的默认章节目标字数应用到所有「跟随默认」的章节。 */
+  /** 把「跟随默认」的章节目标字数重置为 0（随新默认值自动生效）。 */
   applyChapterTargetWords: (targetWords: number, previousDefault: number) => void;
   updateChapterContent: (chapterId: string, content: string) => Promise<void>;
   deleteChapter: (chapterId: string) => Promise<void>;
@@ -168,16 +171,17 @@ interface AppState {
    *  restore a draft over the on-disk version. */
   restoreChapterContent: (chapterId: string, content: string) => Promise<void>;
   /** Find-and-replace inside one chapter's content (HTML). The `mode`
-   *  selects either the Nth match (replace-one, stepping through results)
-   *  or every replaceable match (replace-all). Matches spanning tag
+   *  selects the Nth match (legacy ordinal), the match at an exact plain-text
+   *  offset (validated against the query — preferred, immune to result-list
+   *  drift), or every replaceable match (replace-all). Matches spanning tag
    *  boundaries are reported as skipped, never half-replaced. */
   replaceInChapter: (
     chapterId: string,
     query: string,
     replacement: string,
     caseSensitive: boolean,
-    mode: { type: "one"; ordinal: number } | { type: "all" },
-  ) => Promise<{ replaced: number; skipped: number }>;
+    mode: { type: "one"; ordinal: number } | { type: "at"; offset: number } | { type: "all" },
+  ) => Promise<{ replaced: number; skipped: number; stale?: boolean }>;
   /** Monotonic counter bumped whenever chapter content is restored from a
    *  snapshot/draft. The Workspace load effect depends on it so a restore
    *  actually refreshes the open editor (and can't be re-overwritten by the
@@ -262,7 +266,12 @@ const loadAppSettings = (): AppSettings => {
 };
 
 const persistAppSettings = (settings: AppSettings) => {
-  localStorage.setItem("inkwell-settings", JSON.stringify(settings));
+  try {
+    localStorage.setItem("inkwell-settings", JSON.stringify(settings));
+  } catch {
+    // Settings persistence is best-effort (quota / private-mode failures must
+    // not crash the app) — the in-memory state keeps working this session.
+  }
 };
 
 // Timestamp of the latest snapshot per chapter — module-level so it survives
@@ -271,6 +280,12 @@ const lastSnapshotAt = new Map<string, number>();
 
 // Layout snapshot taken when entering focus mode, restored on exit.
 let preFocusLayout: { left: boolean; right: boolean; tab: RightPanelTab } | null = null;
+
+// Monotonic token guarding openProject: a slower async load must never win
+// over a newer open (double-clicking two projects interleaves their loads;
+// without the token the FIRST project's chapters/notes could overwrite the
+// SECOND project's state).
+let openProjectSeq = 0;
 
 export const useAppStore = create<AppState>((set, get) => ({
   view: "projects",
@@ -355,16 +370,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateProject: async (projectId, data) => {
     const { projects, currentProject } = get();
     const oldName = projects.find((p) => p.id === projectId)?.name;
+    // Renaming a work moves its folder ({旧名}-{id} → {新名}-{id}) BEFORE the
+    // registry/state update: if the move fails we throw here and nothing
+    // changes — the alternative (registry updated, folder stuck at the old
+    // name) splits the work across two folders and strands its chapters.
+    if (data.name && oldName && data.name !== oldName) {
+      await renameProjectFolder(oldName, projectId, data.name, get().appSettings);
+    }
     const nextProjects = projects.map((p) =>
       p.id === projectId ? { ...p, ...data, updatedAt: Date.now() } : p,
     );
     set({ projects: nextProjects });
     await setLocalProjectRegistry(nextProjects);
-    // Renaming a work moves its folder ({旧名}-{id} → {新名}-{id}) so the
-    // on-disk layout keeps matching the display name.
-    if (data.name && oldName && data.name !== oldName) {
-      await renameProjectFolder(oldName, projectId, data.name, get().appSettings).catch(() => {});
-    }
     if (currentProject?.id === projectId) {
       const updated = nextProjects.find((p) => p.id === projectId)!;
       set({ currentProject: updated });
@@ -381,7 +398,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         pendingChapterContent.delete(c.id);
         clearDraft(c.id);
         await removeSnapshots(c.id, appSettings);
-        await removeChapterContentFromLocal(c.id, appSettings);
+        await removeChapterContentFromLocal(c.id, appSettings, c.title);
       }),
     );
     unregisterChapterOwners(projectChapters.map((c) => c.id));
@@ -394,12 +411,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   currentProject: null,
   openProject: async (project) => {
+    const seq = ++openProjectSeq;
+    const stale = () => seq !== openProjectSeq;
     // Flush the outgoing project's notes/dict BEFORE swapping state — the
     // debounced meta-save timers would otherwise fire after the swap and
     // lose the last <800ms of edits (they read the NEW project's data).
     await flushPendingMetaSaves();
     cancelAutoSave();
     const loaded = await loadProjectFromLocal(project.id, get().appSettings);
+    if (stale()) return; // a newer openProject won the race — discard
     const chapters = loaded ? loaded.chapters || [] : [];
     const currentChapter =
       chapters.length > 0
@@ -431,13 +451,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Register chapter → project ownership so content/snapshot paths resolve
     // into this project's folder ({作品名}-{id}/chapters/…).
     const opened = get().currentProject;
-    if (opened) registerChapterOwners(chapters.map((c) => c.id), opened.id, opened.name);
+    if (opened) registerChapterOwners(chapters, get().volumes, opened.id, opened.name);
     // Load this project's writing notes alongside its chapters.
     const notes = await loadNotesFromLocal(project.id, appSettings).catch(() => []);
     const dictEntries = await loadDictFromLocal(project.id, appSettings).catch(() => []);
+    if (stale()) return;
     set({ notes, activeNoteId: notes[0]?.id ?? null, dictEntries, activeDictId: dictEntries[0]?.id ?? null });
   },
   closeProject: async () => {
+    // Invalidate any in-flight openProject so its late resolutions can't
+    // resurrect state after this close.
+    openProjectSeq++;
     // Capture references first, flush everything to disk, and only then
     // clear state. Relying on get() inside saveCurrentProject happening
     // before set() is evaluation-order luck — and any pending chapter
@@ -505,7 +529,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         pendingChapterContent.delete(c.id);
         clearDraft(c.id);
         await removeSnapshots(c.id, appSettings);
-        await removeChapterContentFromLocal(c.id, appSettings);
+        await removeChapterContentFromLocal(c.id, appSettings, c.title);
       }),
     );
     const nextChapters = reorderChaptersByVolume(chapters.filter((c) => c.parentId !== volumeId));
@@ -527,17 +551,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   // 章节目标字数：0/未设置 = 跟随全局默认；正数为该章自定义目标。
   // 老数据的章节目标是具体数值，改默认值时若本章目标恰好等于旧默认值，
   // 视为「跟随默认」一并更新——否则用户改了设置却看不到当前章节变化。
-  applyChapterTargetWords: (targetWords, previousDefault) => {
+  applyChapterTargetWords: (_targetWords, previousDefault) => {
     const follows = (c: Chapter) =>
       !c.targetWords || c.targetWords === previousDefault;
     const chapters = get().chapters.map((c) =>
-      follows(c) ? { ...c, targetWords } : c,
+      follows(c) ? { ...c, targetWords: 0 } : c,
     );
     const current = get().currentChapter;
     set({
       chapters,
       currentChapter:
-        current && follows(current) ? { ...current, targetWords } : current,
+        current && follows(current) ? { ...current, targetWords: 0 } : current,
     });
   },
 
@@ -562,18 +586,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     const nextChapters = [...chapters, chapter];
     set({ chapters: nextChapters, currentChapter: chapter });
-    registerChapterOwners([chapter.id], currentProject.id, currentProject.name);
-    await saveChapterContentToLocal(chapter.id, "", get().appSettings);
+    registerChapterOwners(nextChapters, get().volumes, currentProject.id, currentProject.name);
+    await saveChapterContentToLocal(chapter.id, "", get().appSettings, chapter.title);
     await get().saveCurrentProject();
     return chapter;
   },
   updateChapter: async (chapterId, data) => {
+    const oldChapter = get().chapters.find((c) => c.id === chapterId);
     const nextChapters = get().chapters.map((c) =>
       c.id === chapterId ? { ...c, ...data, updatedAt: Date.now() } : c,
     );
     set({ chapters: nextChapters });
     if (get().currentChapter?.id === chapterId) {
       set({ currentChapter: nextChapters.find((c) => c.id === chapterId)! });
+    }
+    // 章节改名 → 同步移动磁盘上的章节文件（标题即文件名）。
+    if (data.title && oldChapter && oldChapter.title !== data.title) {
+      await renameChapterFile(chapterId, oldChapter.title, data.title, get().appSettings);
     }
     await get().saveCurrentProject();
   },
@@ -596,8 +625,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Deliberately does NOT call saveCurrentProject — that is the
     // responsibility of chapter switch / close / manual save, so typing does
     // not rewrite the whole project JSON.
-    const { appSettings } = get();
-    await saveChapterContentToLocal(chapterId, content, appSettings);
+    const { appSettings, chapters } = get();
+    const title = chapters.find((c) => c.id === chapterId)?.title;
+    await saveChapterContentToLocal(chapterId, content, appSettings, title);
     // The content is safe on disk now: drop the crash-recovery draft and the
     // pending-close copy so they can never overwrite it with stale data.
     clearDraft(chapterId);
@@ -628,7 +658,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     pendingChapterContent.delete(chapterId);
     clearDraft(chapterId);
     await removeSnapshots(chapterId, appSettings);
-    await removeChapterContentFromLocal(chapterId, appSettings);
+    const title = chapters.find((c) => c.id === chapterId)?.title;
+    await removeChapterContentFromLocal(chapterId, appSettings, title);
     await get().saveCurrentProject();
   },
   setCurrentChapter: async (chapter) => {
@@ -659,7 +690,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().saveCurrentProject();
   },
   getChapterContent: async (chapterId) => {
-    return loadChapterContentFromLocal(chapterId, get().appSettings);
+    const title = get().chapters.find((c) => c.id === chapterId)?.title;
+    return loadChapterContentFromLocal(chapterId, get().appSettings, title);
   },
   replaceInChapter: async (chapterId, query, replacement, caseSensitive, mode) => {
     if (!query) return { replaced: 0, skipped: 0 };
@@ -667,14 +699,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     // pending keystroke buffer would be written back over the replacement.
     cancelAutoSave();
     await flushPendingChapterContents(get().appSettings).catch(() => {});
-    const html = await loadChapterContentFromLocal(chapterId, get().appSettings);
+    const title = get().chapters.find((c) => c.id === chapterId)?.title;
+    const html = await loadChapterContentFromLocal(chapterId, get().appSettings, title);
     const result =
       mode.type === "one"
         ? replaceMatchInHtml(html, query, replacement, mode.ordinal, caseSensitive)
-        : replaceAllInHtml(html, query, replacement, caseSensitive);
+        : mode.type === "at"
+          ? replaceMatchAtOffset(html, query, replacement, mode.offset, caseSensitive)
+          : replaceAllInHtml(html, query, replacement, caseSensitive);
+    // Stale offset: the chapter changed since the search result was produced.
+    // Report it (no write) so the caller can re-search instead of silently
+    // replacing a different match.
+    if ("stale" in result && result.stale) {
+      return { replaced: 0, skipped: 0, stale: true };
+    }
     if (result.replaced === 0) return { replaced: 0, skipped: result.skipped };
     const { appSettings } = get();
-    await saveChapterContentToLocal(chapterId, result.html, appSettings);
+    await saveChapterContentToLocal(chapterId, result.html, appSettings, title);
     clearDraft(chapterId);
     pendingChapterContent.delete(chapterId);
     const wordCount = countWords(stripHtml(result.html), appSettings.includePunctuationInWordCount);
@@ -693,7 +734,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // re-reads the restored bytes (and can't re-overwrite them with the
     // stale in-memory buffer).
     const { appSettings } = get();
-    await saveChapterContentToLocal(chapterId, content, appSettings);
+    const title = get().chapters.find((c) => c.id === chapterId)?.title;
+    await saveChapterContentToLocal(chapterId, content, appSettings, title);
     clearDraft(chapterId);
     pendingChapterContent.delete(chapterId);
     const text = stripHtml(content);

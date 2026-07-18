@@ -20,11 +20,12 @@ import {
 } from "lucide-react";
 import { useAppStore } from "../store";
 import type { AppSettings, Chapter, EditorTypography } from "../types";
-import { RangeField, PathField, ShortcutItem } from "./settings/widgets";
+import { PathField, NumberField, ShortcutItem } from "./settings/widgets";
 import { revealInFolder, copyDirRecursive, exists, join, isTauri, listFiles, registerContentRoot } from "../lib/storage";
 import { ACCENT_ORDER, ACCENTS, PAPER_ORDER, PAPERS, THEME_PRESETS } from "../lib/theme";
 import { UI_FONT_PRESETS } from "../lib/fonts";
-import { modKey } from "../lib/platform";
+import { modKey, isMac } from "../lib/platform";
+import { SHORTCUT_DEFS, shortcutFor, displayKeys, keysFromEvent, parsedToString, normalizeKeys } from "../lib/shortcuts";
 import { cn } from "../lib/utils";
 
 interface GlobalSettingsModalProps {
@@ -44,7 +45,12 @@ const SECTIONS: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps) {
-  const { appSettings, updateAppSettings, setTheme, loadProjects, currentProject, currentChapter } = useAppStore();
+  const appSettings = useAppStore((s) => s.appSettings);
+  const updateAppSettings = useAppStore((s) => s.updateAppSettings);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const loadProjects = useAppStore((s) => s.loadProjects);
+  const currentProject = useAppStore((s) => s.currentProject);
+  const currentChapter = useAppStore((s) => s.currentChapter);
   const [activeSection, setActiveSection] = useState<SectionKey>("appearance");
   // Resolved absolute path of the data folder, filled in once the modal is
   // opened. Lets us show the user where data actually lives on disk and give
@@ -55,21 +61,30 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
   const [pendingMigration, setPendingMigration] = useState<{ from: string; to: string } | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [migrationResult, setMigrationResult] = useState<string | null>(null);
+  // 快捷键录入态：正在等待按键的动作 id；按键校验失败（如缺修饰键）的提示。
+  const [capturing, setCapturing] = useState<string | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const modifierKey = modKey();
   const redoShortcut = modifierKey === "⌘" ? "⌘+Shift+Z" : "Ctrl+Y";
+  const mac = isMac();
+  const shortcuts = appSettings.shortcuts;
 
-  // Escape closes the modal (same as the other dialogs).
+  // Escape closes the modal — but NOT while a shortcut is being captured:
+  // there Esc means "cancel recording". Both listeners sit on window in the
+  // capture phase, so stopPropagation alone can't keep the other one from
+  // firing; the capture handler owns the Esc while recording.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (capturing) return;
         e.stopPropagation();
         onClose();
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [open, onClose]);
+  }, [open, onClose, capturing]);
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +99,70 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
       cancelled = true;
     };
   }, [open]);
+
+  // 快捷键录入：等待按键期间捕获下一次组合键。Esc 取消；缺少修饰键的组合
+  // （会与正常打字冲突）拒绝录入并提示。相同按键被多个动作占用时以后录的
+  // 为准——清除其它动作的同名覆盖，界面冲突徽章即消失。
+  useEffect(() => {
+    if (!capturing) return;
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        setCapturing(null);
+        setCaptureError(null);
+        return;
+      }
+      const parsed = keysFromEvent(e);
+      if (!parsed) return; // 只按了修饰键，继续等
+      const def = SHORTCUT_DEFS.find((d) => d.id === capturing);
+      if (!def) return;
+      if (def.requireModifier && !parsed.ctrl && !parsed.meta && !parsed.alt) {
+        setCaptureError("该快捷键需要包含 Ctrl / ⌘ 或 Alt，避免与正常输入冲突");
+        return;
+      }
+      const keys = parsedToString(parsed);
+      const next = { ...(useAppStore.getState().appSettings.shortcuts || {}) };
+      for (const other of SHORTCUT_DEFS) {
+        if (other.id !== capturing && normalizeKeys(next[other.id] ?? "")?.key &&
+            parsedToString(normalizeKeys(next[other.id])!) === keys) {
+          delete next[other.id];
+        }
+      }
+      // 与默认值一致时落默认值（保持覆盖表干净）。
+      if (keys === def.defaultKeys) delete next[capturing];
+      else next[capturing] = keys;
+      updateAppSettings({ shortcuts: next });
+      setCapturing(null);
+      setCaptureError(null);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [capturing, updateAppSettings]);
+
+  const resetShortcut = (id: string) => {
+    const next = { ...(shortcuts || {}) };
+    delete next[id];
+    updateAppSettings({ shortcuts: next });
+  };
+
+  const resetAllShortcuts = () => {
+    updateAppSettings({ shortcuts: {} });
+    setCapturing(null);
+    setCaptureError(null);
+  };
+
+  // 冲突检测：两个动作归一化后的按键串相同即视为冲突（展示红色提示）。
+  const conflictOf = (id: string): string | undefined => {
+    const mine = shortcutFor(id, shortcuts);
+    const mineNorm = normalizeKeys(mine);
+    if (!mineNorm) return undefined;
+    const mineStr = parsedToString(mineNorm);
+    const other = SHORTCUT_DEFS.find(
+      (d) => d.id !== id && parsedToString(normalizeKeys(shortcutFor(d.id, shortcuts))!) === mineStr,
+    );
+    return other?.label;
+  };
 
   if (!open) return null;
 
@@ -192,7 +271,7 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
           <div className="min-w-0 flex-1 overflow-y-auto p-5">
             {activeSection === "appearance" && (
               <div className="space-y-4">
-                <Group title="主题预设" hint="一键应用整套搭配">
+                <Group title="主题预设">
                   <div className="grid grid-cols-3 gap-2">
                     {THEME_PRESETS.map((preset) => {
                       const active =
@@ -324,8 +403,8 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
                   />
                 </Group>
                 <div className="border-t border-warm-gray/60 pt-4 dark:border-warm-gray-dark/60">
-                  <div className="space-y-4">
-                    <RangeField
+                  <div className="space-y-3">
+                    <NumberField
                       label="字号"
                       value={appSettings.editorTypography.fontSize}
                       min={12}
@@ -333,7 +412,7 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
                       unit="px"
                       onChange={(v) => updateTypography({ fontSize: v })}
                     />
-                    <RangeField
+                    <NumberField
                       label="行高"
                       value={appSettings.editorTypography.lineHeight}
                       min={1.2}
@@ -341,7 +420,7 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
                       step={0.05}
                       onChange={(v) => updateTypography({ lineHeight: v })}
                     />
-                    <RangeField
+                    <NumberField
                       label="段间距"
                       value={appSettings.editorTypography.paragraphSpacing}
                       min={0}
@@ -369,27 +448,64 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
 
             {activeSection === "editor" && (
               <div className="space-y-4">
-                <RangeField
-                  label="编辑区宽度"
-                  value={appSettings.editorMaxWidth || 880}
-                  min={560}
-                  max={1280}
-                  step={40}
-                  unit="px"
-                  onChange={(v) => updateAppSettings({ editorMaxWidth: v })}
-                />
-                <RangeField
-                  label="编辑区边距"
-                  value={appSettings.editorPadding}
-                  min={24}
-                  max={160}
-                  step={8}
-                  unit="px"
-                  onChange={(v) => updateAppSettings({ editorPadding: v })}
-                />
-                <p className="text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
-                  宽度随窗口自适应收缩，不会超过此处设置的最大值；边距是正文与编辑区两侧的空隙。
-                </p>
+                <div className="space-y-3">
+                  <NumberField
+                    label="编辑区宽度"
+                    value={appSettings.editorMaxWidth || 880}
+                    min={560}
+                    max={1280}
+                    step={40}
+                    unit="px"
+                    onChange={(v) => updateAppSettings({ editorMaxWidth: v })}
+                  />
+                  <NumberField
+                    label="编辑区边距"
+                    value={appSettings.editorPadding}
+                    min={24}
+                    max={160}
+                    step={8}
+                    unit="px"
+                    onChange={(v) => updateAppSettings({ editorPadding: v })}
+                  />
+                  <p className="text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+                    宽度随窗口自适应收缩，不会超过此处设置的最大值；边距是正文与编辑区两侧的空隙。
+                  </p>
+                </div>
+                <div className="border-t border-warm-gray/60 pt-4 dark:border-warm-gray-dark/60">
+                  <div className="mb-2.5 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
+                    自动整理格式规则
+                  </div>
+                  <div className="space-y-2.5">
+                    {(
+                      [
+                        { key: "removeEmptyLines", label: "清除段落之间的空行" },
+                        { key: "collapseInlineWhitespace", label: "清除行内多余空白" },
+                        { key: "punctuationToFullWidth", label: "英文标点转全角" },
+                        { key: "normalizeQuotes", label: "双引号归一为「“”」" },
+                      ] as const
+                    ).map(({ key, label }) => (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between text-sm text-ink dark:text-ink-dark"
+                      >
+                        <span>{label}</span>
+                        <input
+                          type="checkbox"
+                          checked={appSettings.formatOptions?.[key] !== false}
+                          onChange={(e) =>
+                            updateAppSettings({
+                              formatOptions: { ...appSettings.formatOptions, [key]: e.target.checked },
+                            })
+                          }
+                          className="h-4 w-4 accent-accent"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+                    顶栏「自动整理格式」按钮按上述规则处理当前章节；带加粗/斜体等行内格式的段落跳过以保证无损。
+                  </p>
+                </div>
               </div>
             )}
 
@@ -507,9 +623,11 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
             {activeSection === "shortcuts" && (
               <div className="space-y-4">
                 <div>
-                  <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
-                    <Type size={12} />
-                    编辑器内
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
+                      <Type size={12} />
+                      编辑器内（由编辑器接管，不可自定义）
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <ShortcutItem label="加粗" shortcut={`${modifierKey}+B`} />
@@ -522,20 +640,43 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
                   </div>
                 </div>
                 <div>
-                  <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
-                    <AppWindow size={12} />
-                    应用
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
+                      <AppWindow size={12} />
+                      应用（点击「修改」后按下新组合键）
+                    </div>
+                    <button
+                      onClick={resetAllShortcuts}
+                      className="rounded px-1.5 py-0.5 text-[11px] text-ink-muted transition-colors hover:bg-warm-gray hover:text-ink dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark dark:hover:text-ink-dark"
+                    >
+                      全部恢复默认
+                    </button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <ShortcutItem label="保存" shortcut={`${modifierKey}+S`} />
-                    <ShortcutItem label="新建章节" shortcut={`${modifierKey}+N`} />
-                    <ShortcutItem label="全书搜索" shortcut={`${modifierKey}+Shift+F`} />
-                    <ShortcutItem label="目录侧栏" shortcut={`${modifierKey}+B`} />
-                    <ShortcutItem label="大纲面板" shortcut={`${modifierKey}+Alt+O`} />
-                    <ShortcutItem label="专注模式" shortcut={`${modifierKey}+Shift+D`} />
-                    <ShortcutItem label="编辑区全屏" shortcut="工具栏按钮 / Esc" />
+                    {SHORTCUT_DEFS.map((def) => (
+                      <ShortcutItem
+                        key={def.id}
+                        label={def.label}
+                        shortcut={displayKeys(shortcutFor(def.id, shortcuts), mac)}
+                        customizable
+                        capturing={capturing === def.id}
+                        conflict={conflictOf(def.id)}
+                        onCaptureStart={() => {
+                          setCapturing(capturing === def.id ? null : def.id);
+                          setCaptureError(null);
+                        }}
+                        onReset={shortcuts?.[def.id] ? () => resetShortcut(def.id) : undefined}
+                      />
+                    ))}
                     <ShortcutItem label="窗口全屏" shortcut="F11" />
+                    <ShortcutItem label="退出专注模式" shortcut="Esc" />
                   </div>
+                  {captureError && (
+                    <p className="mt-2 text-xs text-red-600 dark:text-red-400">{captureError}</p>
+                  )}
+                  <p className="mt-2 text-[11px] leading-relaxed text-ink-muted/80 dark:text-ink-muted-dark/80">
+                    自定义快捷键需包含 Ctrl / ⌘ 或 Alt；与其它动作重复时会自动解除另一方的自定义。
+                  </p>
                 </div>
               </div>
             )}
@@ -546,8 +687,8 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
   );
 }
 
-// 默认章节目标字数：滑杆选择档位。拖动只改本地预览（编辑器状态栏即时跟随），
-// 松手 400ms 后才真正写入设置并同步所有「跟随默认」的章节——连续拖动时不会
+// 默认章节目标字数：数值输入。输入即时改本地预览（编辑器状态栏即时跟随），
+// 停顿 400ms 后才真正写入设置并同步所有「跟随默认」的章节——连续修改时不会
 // 一路触发写入与章节同步。
 function ChapterTargetField({
   appSettings,
@@ -560,13 +701,7 @@ function ChapterTargetField({
 }) {
   const { applyChapterTargetWords } = useAppStore.getState();
   const saved = appSettings.defaultChapterTargetWords;
-  const [draft, setDraft] = useState(saved);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 外部改动（如另一处设置入口）回填本地预览；拖动期间以本地值为准。
-  useEffect(() => {
-    setDraft(saved);
-  }, [saved]);
 
   useEffect(
     () => () => {
@@ -576,44 +711,33 @@ function ChapterTargetField({
   );
 
   const commit = (v: number) => {
-    const prev = useAppStore.getState().appSettings.defaultChapterTargetWords;
+    // previousDefault 必须是「本次输入开始前的旧默认值」，而不是当前章节
+    // 的 targetWords——预览阶段可能已经把 currentChapter.targetWords 改掉。
     updateAppSettings({ defaultChapterTargetWords: v });
-    applyChapterTargetWords(v, prev);
+    applyChapterTargetWords(v, saved);
   };
 
-  const onSlide = (v: number) => {
-    setDraft(v);
-    // 预览只动当前章节（且它正跟随默认时），状态栏立刻反映新档位。
+  const onInput = (v: number) => {
+    // 预览只动当前章节（且它正跟随默认时），状态栏立刻反映新目标。
+    // 跟随默认的章节统一存 0，不写成具体数值——以后默认值再变也能跟走。
     if (currentChapter && (!currentChapter.targetWords || currentChapter.targetWords === saved)) {
-      useAppStore.setState({ currentChapter: { ...currentChapter, targetWords: v } });
+      useAppStore.setState({ currentChapter: { ...currentChapter, targetWords: 0 } });
     }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => commit(v), 400);
   };
 
-  // 滑杆两侧标注档位范围（2,000 ~ 20,000，每 500 一档）。
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs text-ink-muted dark:text-ink-muted-dark">
-        <span>默认章节目标字数</span>
-        <span className="text-sm font-medium text-ink dark:text-ink-dark">
-          {draft.toLocaleString("zh-CN")} 字
-        </span>
-      </div>
-      <input
-        type="range"
-        min={2000}
-        max={20000}
-        step={500}
-        value={draft}
-        onChange={(e) => onSlide(parseInt(e.target.value, 10))}
-        className="h-1 w-full cursor-pointer appearance-none rounded-full bg-warm-gray accent-accent dark:bg-warm-gray-dark"
-      />
-      <div className="flex justify-between text-[10px] text-ink-muted/70 dark:text-ink-muted-dark/70">
-        <span>2,000</span>
-        <span>20,000</span>
-      </div>
-    </div>
+    <NumberField
+      label="默认章节目标字数"
+      hint="新章节默认采用"
+      value={saved}
+      min={2000}
+      max={20000}
+      step={500}
+      unit="字"
+      onChange={onInput}
+    />
   );
 }
 

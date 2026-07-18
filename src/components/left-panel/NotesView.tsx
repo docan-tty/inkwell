@@ -29,18 +29,16 @@ const NOTE_DRAG_TYPE = "application/x-inkwell-note";
 // 类似章卷的汇聚方式），支持置顶、搜索、改名；列表区高度可通过分隔条
 // 拖拽调整；下方是当前笔记的编辑区，输入即防抖自动保存。
 export function NotesView() {
-  const {
-    notes,
-    activeNoteId,
-    setActiveNote,
-    addNote,
-    updateNote,
-    removeNote,
-    renameNoteFolder,
-    dissolveNoteFolder,
-    appSettings,
-    updateAppSettings,
-  } = useAppStore();
+  const notes = useAppStore((s) => s.notes);
+  const activeNoteId = useAppStore((s) => s.activeNoteId);
+  const setActiveNote = useAppStore((s) => s.setActiveNote);
+  const addNote = useAppStore((s) => s.addNote);
+  const updateNote = useAppStore((s) => s.updateNote);
+  const removeNote = useAppStore((s) => s.removeNote);
+  const renameNoteFolder = useAppStore((s) => s.renameNoteFolder);
+  const dissolveNoteFolder = useAppStore((s) => s.dissolveNoteFolder);
+  const appSettings = useAppStore((s) => s.appSettings);
+  const updateAppSettings = useAppStore((s) => s.updateAppSettings);
   const active = notes.find((n) => n.id === activeNoteId) || null;
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);

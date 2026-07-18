@@ -39,7 +39,7 @@ export function ChapterItem({ chapter, active, onSelect, onUpdate, onDelete, onD
         "group relative flex items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-150",
         dragging && "opacity-40",
         active
-          ? "bg-accent/10 text-accent dark:bg-accent/20"
+          ? "bg-warm-gray text-ink dark:bg-warm-gray-dark dark:text-ink-dark"
           : "hover:bg-warm-gray dark:hover:bg-warm-gray-dark",
       )}
     >
@@ -73,7 +73,7 @@ export function ChapterItem({ chapter, active, onSelect, onUpdate, onDelete, onD
         onEditingChange={setEditing}
         className={cn(
           "flex-1 text-sm",
-          active ? "font-medium text-accent" : "text-ink dark:text-ink-dark",
+          active ? "font-medium text-ink dark:text-ink-dark" : "text-ink dark:text-ink-dark",
         )}
       />
       <span className="shrink-0 text-xs tabular-nums text-ink-muted dark:text-ink-muted-dark">

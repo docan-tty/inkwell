@@ -5,7 +5,10 @@ import type { LeftSidebarTab } from "../../types";
 
 // 左侧栏页签头：目录 / 笔记 / 词典。点击已激活页签时折叠左栏。
 export function LeftSidebarTabs() {
-  const { leftSidebarTab, setLeftSidebarTab, leftSidebarOpen, toggleLeftSidebar } = useAppStore();
+  const leftSidebarTab = useAppStore((s) => s.leftSidebarTab);
+  const setLeftSidebarTab = useAppStore((s) => s.setLeftSidebarTab);
+  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
+  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
 
   const handleClick = (tab: LeftSidebarTab) => {
     if (leftSidebarOpen && leftSidebarTab === tab) {

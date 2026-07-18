@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findMatches, replaceAllInHtml, replaceMatchInHtml } from "./replace";
+import { findMatches, replaceAllInHtml, replaceMatchAtOffset, replaceMatchInHtml } from "./replace";
 
 describe("replace engine", () => {
   it("finds matches case-insensitively by default", () => {
@@ -78,5 +78,52 @@ describe("replace engine", () => {
   it("replacement may be longer/shorter than the match", () => {
     const { html } = replaceAllInHtml("<p>小猫钓鱼</p>", "猫", "咪和狗", false);
     expect(html).toBe("<p>小咪和狗钓鱼</p>");
+  });
+
+  // NC3 regression: the old loop re-scanned from the top after each
+  // replacement, so a replacement containing the query re-matched inside its
+  // own output forever. The single-pass engine terminates on old coordinates.
+  it("terminates when the replacement contains the query", () => {
+    const { html, replaced } = replaceAllInHtml("<p>他说他累了</p>", "他", "他们", false);
+    expect(html).toBe("<p>他们说他们累了</p>");
+    expect(replaced).toBe(2);
+  });
+
+  it("replaceAll re-parses the DOM once even with many matches", () => {
+    const src = `<p>${"a".repeat(1)}${"x".repeat(200)}</p>`;
+    const { replaced } = replaceAllInHtml(src, "x", "yz", false);
+    expect(replaced).toBe(200);
+  });
+
+  // NC4: offset-targeted replacement validates the text under the offset.
+  it("replaceMatchAtOffset replaces exactly at the offset", () => {
+    const { html, replaced } = replaceMatchAtOffset(
+      "<p>夜阑人静，夜阑更深。</p>",
+      "夜阑",
+      "夜深",
+      5,
+      false,
+    );
+    expect(replaced).toBe(1);
+    expect(html).toBe("<p>夜阑人静，夜深更深。</p>");
+  });
+
+  it("replaceMatchAtOffset reports stale when the offset no longer holds the query", () => {
+    const result = replaceMatchAtOffset("<p>夜阑人静。</p>", "夜阑", "夜深", 3, false);
+    expect(result.stale).toBe(true);
+    expect(result.replaced).toBe(0);
+    expect(result.html).toBe("<p>夜阑人静。</p>");
+  });
+
+  it("replaceMatchAtOffset skips matches spanning inline tags", () => {
+    const { replaced, skipped } = replaceMatchAtOffset(
+      "<p>铁<strong>血</strong>丹心</p>",
+      "铁血",
+      "铮铮",
+      0,
+      false,
+    );
+    expect(replaced).toBe(0);
+    expect(skipped).toBe(1);
   });
 });

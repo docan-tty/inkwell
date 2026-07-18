@@ -5,7 +5,9 @@ import { formatNumber } from "../lib/utils";
 
 interface ProjectEditDialogProps {
   project: Project | null;
-  onSave: (data: { name: string; author: string; description: string; targetWords: number }) => void;
+  // May throw (e.g. folder rename failed) — the dialog keeps itself open and
+  // shows the error so a failed move doesn't read as "saved".
+  onSave: (data: { name: string; author: string; description: string; targetWords: number }) => Promise<void> | void;
   onClose: () => void;
 }
 
@@ -16,6 +18,8 @@ export function ProjectEditDialog({ project, onSave, onClose }: ProjectEditDialo
   const [author, setAuthor] = useState("");
   const [description, setDescription] = useState("");
   const [targetWords, setTargetWords] = useState("4000");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (project) {
@@ -23,6 +27,7 @@ export function ProjectEditDialog({ project, onSave, onClose }: ProjectEditDialo
       setAuthor(project.author);
       setDescription(project.description);
       setTargetWords(String(project.targetWords));
+      setSaveError(null);
     }
   }, [project]);
 
@@ -41,17 +46,25 @@ export function ProjectEditDialog({ project, onSave, onClose }: ProjectEditDialo
 
   if (!project) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed || saving) return;
     const words = parseInt(targetWords.replace(/\D/g, ""), 10);
-    onSave({
-      name: trimmed,
-      author: author.trim(),
-      description: description.trim(),
-      targetWords: Number.isNaN(words) || words <= 0 ? project.targetWords : words,
-    });
-    onClose();
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSave({
+        name: trimmed,
+        author: author.trim(),
+        description: description.trim(),
+        targetWords: Number.isNaN(words) || words <= 0 ? project.targetWords : words,
+      });
+      onClose();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -122,7 +135,12 @@ export function ProjectEditDialog({ project, onSave, onClose }: ProjectEditDialo
           </label>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-warm-gray px-4 py-3 dark:border-warm-gray-dark">
+        <div className="flex items-center justify-end gap-2 border-t border-warm-gray px-4 py-3 dark:border-warm-gray-dark">
+          {saveError && (
+            <span className="mr-auto min-w-0 truncate text-xs text-red-600 dark:text-red-400" title={saveError}>
+              保存失败:{saveError}
+            </span>
+          )}
           <button
             onClick={onClose}
             className="rounded-lg px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
@@ -131,10 +149,10 @@ export function ProjectEditDialog({ project, onSave, onClose }: ProjectEditDialo
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim()}
+            disabled={!name.trim() || saving}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm text-white transition-colors hover:bg-accent-light disabled:opacity-50"
           >
-            保存
+            {saving ? "保存中…" : "保存"}
           </button>
         </div>
       </div>

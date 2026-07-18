@@ -99,26 +99,29 @@ function App() {
   }, []);
 
   // Flush any pending (not-yet-on-disk) chapter content before the window
-  // closes. The draft buffer already covers true crashes; this covers the
-  // normal close path inside the 3s autosave debounce. The queued autosave
-  // timer is cancelled first so it can't fire after the flush and rewrite
-  // with an older buffer.
+  // closes. Rust owns the close itself (on_window_event in lib.rs) and emits
+  // "inkwell:closing" first; we do a best-effort, fire-and-forget flush here.
+  // The handler NEVER blocks the close — the localStorage draft buffer
+  // (written on every keystroke) is the real safety net for anything not yet
+  // on disk, so the X button can never be frozen by a stuck invoke.
   useEffect(() => {
     if (!isTauri()) return;
     let unlisten: (() => void) | undefined;
     (async () => {
       try {
         const win = getCurrentWindow();
-        unlisten = await win.onCloseRequested(async () => {
+        unlisten = await win.listen("inkwell:closing", () => {
           const settings = useAppStore.getState().appSettings;
           cancelAutoSave();
-          try {
-            await flushPendingChapterContents(settings);
-          } catch {
-            // Keep the drafts — next launch's recovery scan will offer them.
-          }
-          await flushPendingMetaSaves();
-          await useAppStore.getState().saveCurrentProject().catch(() => {});
+          void (async () => {
+            try {
+              await flushPendingChapterContents(settings);
+            } catch {
+              // Keep the drafts — next launch's recovery scan will offer them.
+            }
+            await flushPendingMetaSaves().catch(() => {});
+            await useAppStore.getState().saveCurrentProject().catch(() => {});
+          })();
         });
       } catch {
         // Non-windowed environment — nothing to hook.

@@ -56,7 +56,7 @@ export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
   };
 
   return (
-    <div className="flex h-8 shrink-0 items-center justify-between bg-paper px-4 text-xs text-ink-muted dark:text-ink-muted-dark dark:bg-paper-dark">
+    <div className="flex h-7 shrink-0 items-center justify-between border-t border-warm-gray/80 bg-paper px-3 text-xs text-ink-muted dark:border-warm-gray-dark/80 dark:bg-paper-dark dark:text-ink-muted-dark">
       <div className="flex min-w-0 items-center gap-4">
         {currentProject && (
           <>

@@ -1,4 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// list_files 调用计数:文件名缓存生效时,连续保存不应重复列目录。
+const listFilesMock = vi.fn(async () => [] as string[]);
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string, _args?: unknown) => {
+    if (cmd === "list_files") return listFilesMock();
+    return Promise.resolve(null);
+  },
+}));
+
 import { setFsBridge, type FsBridge } from "./atomic";
 import {
   getLocalProjectRegistry,
@@ -13,6 +23,7 @@ import {
   saveDictToLocal,
   projectFolderName,
   assertSafeId,
+  registerChapterOwners,
 } from "./storage";
 import type { Project, Chapter, Volume } from "../types";
 
@@ -177,24 +188,21 @@ describe("storage Tauri branch", () => {
     await expect(loadChapterContentFromLocal("c1", {})).rejects.toThrow(/拒绝访问/);
   });
 
-  it("chapter reads serve the mirror when the file is NotFound", async () => {
+  it("chapter reads serve the mirror when the file is NotFound, then migrate it to disk", async () => {
     localStorage.setItem("inkwell-chapter-c1", "mirror copy");
     const content = await loadChapterContentFromLocal("c1", {});
     expect(content).toBe("mirror copy");
+    // The mirror is the only copy left: it gets written to disk and the
+    // localStorage key is released (quota reclaim).
+    expect(localStorage.getItem("inkwell-chapter-c1")).toBeNull();
+    expect([...mem.files.values()]).toContain("mirror copy");
   });
 
-  it("a mirror quota failure does not fail an otherwise-successful save", async () => {
-    const original = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (key: string, value: string) {
-      // The mirror write happens after the disk write — make only it throw.
-      if (key.startsWith("inkwell-chapter-")) throw new DOMException("full", "QuotaExceededError");
-      original.call(this, key, value);
-    };
-    try {
-      await expect(saveChapterContentToLocal("c1", "content", {})).resolves.toBeUndefined();
-    } finally {
-      Storage.prototype.setItem = original;
-    }
+  it("chapter saves write disk only — no localStorage body mirror", async () => {
+    await saveProjectToLocal(project, [chapter], [volume], {});
+    await saveChapterContentToLocal("c1", "content", {}, "第一章");
+    expect(localStorage.getItem("inkwell-chapter-c1")).toBeNull();
+    expect([...mem.files.values()]).toContain("content");
   });
 
   it("rejects ids that would traverse out of the content directory", () => {
@@ -285,5 +293,40 @@ describe("storage Tauri branch", () => {
     await saveChapterContentToLocal("c1", "first body", {}, "第一章");
     const keys = [...mem.files.keys()];
     expect(keys.some((k) => k.endsWith("chapters/1-第一章.md"))).toBe(true);
+  });
+
+  it("caches the resolved chapter file name across saves (no repeated dir listing)", async () => {
+    listFilesMock.mockClear();
+    await saveProjectToLocal(project, [chapter], [volume], {});
+    const before = listFilesMock.mock.calls.length;
+    await saveChapterContentToLocal("c1", "body v1", {}, "第一章");
+    await saveChapterContentToLocal("c1", "body v2", {}, "第一章");
+    await saveChapterContentToLocal("c1", "body v3", {}, "第一章");
+    // At most ONE dir listing for the three saves (first resolve; the rest
+    // hit the cache).
+    expect(listFilesMock.mock.calls.length - before).toBeLessThanOrEqual(1);
+    expect([...mem.files.values()]).toContain("body v3");
+  });
+
+  it("re-resolves the file name when the chapter title changes", async () => {
+    listFilesMock.mockClear();
+    await saveProjectToLocal(project, [chapter], [volume], {});
+    await saveChapterContentToLocal("c1", "body", {}, "第一章");
+    // Re-register the owner with the new title so the cache key (title)
+    // mismatches and a fresh resolve happens.
+    registerChapterOwners([{ id: "c1", parentId: "v1" }], [volume], "p1", "Test");
+    await saveChapterContentToLocal("c1", "body", {}, "第二章");
+    const keys = [...mem.files.keys()];
+    expect(keys.some((k) => k.endsWith("chapters/1-第二章.md"))).toBe(true);
+  });
+
+  it("re-resolves the file name when the volume sequence changes (cross-volume move)", async () => {
+    await saveProjectToLocal(project, [chapter], [volume], {});
+    await saveChapterContentToLocal("c1", "body", {}, "第一章");
+    // Chapter moved out of the volume → volumeSeq 1 → 0, cache must miss.
+    registerChapterOwners([{ id: "c1", parentId: null }], [volume], "p1", "Test");
+    await saveChapterContentToLocal("c1", "body", {}, "第一章");
+    const keys = [...mem.files.keys()];
+    expect(keys.some((k) => k.endsWith("chapters/0-第一章.md"))).toBe(true);
   });
 });

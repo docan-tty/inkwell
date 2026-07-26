@@ -2,14 +2,20 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
+import Highlight from "@tiptap/extension-highlight";
+import Superscript from "@tiptap/extension-superscript";
+import Subscript from "@tiptap/extension-subscript";
+import TextAlign from "@tiptap/extension-text-align";
 import { useEffect, useCallback, useRef, useState } from "react";
 import { Bold, ClipboardPaste, Copy, Italic, Minus, Redo, Save, Scissors, Undo, Type, WandSparkles } from "lucide-react";
 import { useAppStore } from "../store";
 import { Toolbar } from "./Toolbar";
 import { ContextMenu, type CtxMenuState } from "./ContextMenu";
+import { EditorSearchBar } from "./EditorSearchBar";
 import { cn } from "../lib/utils";
 import { modKey } from "../lib/platform";
 import { matchesKeys, shortcutFor } from "../lib/shortcuts";
+import { registerEditorContext } from "../lib/editor-context";
 
 interface EditorProps {
   content: string;
@@ -21,6 +27,120 @@ interface EditorProps {
   showToolbar?: boolean;
   onToolbarEnter?: () => void;
   onToolbarLeave?: () => void;
+}
+
+/** 切换当前段落行首前缀(注释「% 」/忽略「%~ 」)。 */
+function toggleLinePrefix(editor: NonNullable<ReturnType<typeof useEditor>>, prefix: string) {
+  const { state, view } = editor;
+  const { $from } = state.selection;
+  const start = $from.start($from.depth);
+  const lineText = $from.parent.textContent;
+  const has = lineText.startsWith(prefix.trimEnd()) && (lineText === prefix.trimEnd() || lineText.startsWith(prefix));
+  const tr = has
+    ? state.tr.delete(start, start + prefix.length)
+    : state.tr.insertText(prefix, start);
+  view.dispatch(tr);
+}
+
+/** 用成对符号环绕选区(无选区时环绕光标所在单词)。 */
+function wrapSelection(editor: NonNullable<ReturnType<typeof useEditor>>, pair: [string, string]) {
+  const { state, view } = editor;
+  let { from, to } = state.selection;
+  if (from === to) {
+    // 光标在单词中间:扩展到单词边界。
+    const $from = state.doc.resolve(from);
+    const text = $from.parent.textContent;
+    const offset = from - $from.start();
+    let s = offset, e = offset;
+    while (s > 0 && /\S/.test(text[s - 1])) s--;
+    while (e < text.length && /\S/.test(text[e])) e++;
+    from = $from.start() + s;
+    to = $from.start() + e;
+  }
+  const tr = state.tr.insertText(pair[1], to).insertText(pair[0], from);
+  view.dispatch(tr);
+}
+
+type TEditor = NonNullable<ReturnType<typeof useEditor>>;
+
+/** 从 .txt/.md 文件读入文本并插入当前光标处。 */
+async function importTextIntoEditor(editor: TEditor) {
+  try {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const { readTextFile } = await import("../lib/storage");
+    const path = await open({ filters: [{ name: "文本", extensions: ["txt", "md"] }], multiple: false });
+    if (!path || typeof path !== "string") return;
+    const text = await readTextFile(path);
+    if (text) editor.chain().focus().insertContent(text.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br/>")).run();
+  } catch (err) {
+    alert(`导入失败:${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/** 把选中文本移动到一个新文档(在同父级创建,正文搬过去,原处删除)。 */
+async function moveSelectionToNewDoc(editor: TEditor) {
+  const { state } = editor;
+  const { from, to, empty } = state.selection;
+  if (empty) {
+    alert("请先选中要移动的文本。");
+    return;
+  }
+  const selected = state.doc.textBetween(from, to, "\n");
+  const store = useAppStore.getState();
+  const parent = store.currentChapter?.parentId ?? null;
+  const title = selected.slice(0, 12).replace(/\n.*/s, "") || "新文档";
+  const created = await store.createChapter(parent, title, { parentDocId: parent ?? undefined });
+  await store.updateChapterContent(created.id, `<p>${selected.replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br/>")}</p>`);
+  editor.chain().focus().deleteSelection().run();
+}
+
+/** 菜单/命令层通用编辑器动作:格式切换与文本插入。 */
+function execEditorAction(editor: TEditor, action: string, arg?: string) {
+  if (editor.isDestroyed) return;
+  const chain = () => editor.chain().focus();
+  switch (action) {
+    case "bold": chain().toggleBold().run(); break;
+    case "italic": chain().toggleItalic().run(); break;
+    case "strike": chain().toggleStrike().run(); break;
+    case "underline": chain().toggleUnderline().run(); break;
+    case "highlight": chain().toggleHighlight().run(); break;
+    case "superscript": chain().toggleSuperscript().run(); break;
+    case "subscript": chain().toggleSubscript().run(); break;
+    case "h1": case "h2": case "h3": case "h4":
+      chain().toggleHeading({ level: parseInt(action[1], 10) as 1 | 2 | 3 | 4 }).run(); break;
+    case "paragraph": chain().setParagraph().run(); break;
+    case "blockquote": chain().toggleBlockquote().run(); break;
+    case "bulletList": chain().toggleBulletList().run(); break;
+    case "orderedList": chain().toggleOrderedList().run(); break;
+    case "alignLeft": chain().setTextAlign("left").run(); break;
+    case "alignCenter": chain().setTextAlign("center").run(); break;
+    case "alignRight": chain().setTextAlign("right").run(); break;
+    case "clearFormat": chain().setParagraph().unsetAllMarks().setTextAlign("left").run(); break;
+    case "hr": chain().setHorizontalRule().run(); break;
+    case "wrapDoubleQuote": wrapSelection(editor, ["“", "”"]); break;
+    case "wrapSingleQuote": wrapSelection(editor, ["‘", "’"]); break;
+    case "toggleComment": toggleLinePrefix(editor, "% "); break;
+    case "toggleIgnore": toggleLinePrefix(editor, "%~ "); break;
+    case "insertText":
+      if (arg) chain().insertContent(arg).run();
+      break;
+    case "insertKeyword":
+      if (arg) chain().insertContent(`@${arg}: `).run();
+      break;
+    case "insertComment":
+      if (arg) chain().insertContent(`%${arg}: `).run();
+      break;
+    case "insertField":
+      if (arg) chain().insertContent(`[field:${arg}]`).run();
+      break;
+    case "insertFootnote": {
+      const key = `fn${Date.now().toString(36)}`;
+      chain().insertContent(`[footnote:${key}]`).insertContent(`\n%Footnote.${key}: `).run();
+      break;
+    }
+    case "insertVspace": chain().insertContent(arg ? `[vspace:${arg}]` : "[vspace]").run(); break;
+    case "insertNewPage": chain().insertContent("[new page]").run(); break;
+  }
 }
 
 export function Editor({
@@ -44,16 +164,24 @@ export function Editor({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
+  const [searchBar, setSearchBar] = useState<{ open: boolean; mode: "find" | "replace" }>({ open: false, mode: "find" });
+  const searchRef = useRef<{ next: () => void; prev: () => void; replaceNext: () => void } | null>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
+        heading: { levels: [1, 2, 3, 4] },
       }),
       Placeholder.configure({
         placeholder: "从这里开始你的故事……",
       }),
       Typography,
+      Highlight,
+      Superscript,
+      Subscript,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -65,6 +193,9 @@ export function Editor({
     editorProps: {
       attributes: {
         class: "prose prose-stone dark:prose-invert max-w-none outline-none",
+        // 拼写检查:浏览器原生(contenteditable spellcheck),由设置开关。
+        spellcheck: appSettings.spellCheck ? "true" : "false",
+        lang: appSettings.spellCheckLang || "zh-CN",
       },
     },
   });
@@ -98,6 +229,47 @@ export function Editor({
     };
   }, [editor, syncRef, onChange]);
 
+  // 撤销/重做桥接给命令层(菜单栏「编辑」菜单);编辑器卸载后菜单项自然禁用。
+  useEffect(() => {
+    if (!editor) return;
+    return registerEditorContext({
+      undo: () => editor.chain().focus().undo().run(),
+      redo: () => editor.chain().focus().redo().run(),
+      canUndo: () => !editor.isDestroyed && editor.can().undo(),
+      canRedo: () => !editor.isDestroyed && editor.can().redo(),
+      exec: (action, arg) => {
+        if (action === "searchOpen") {
+          setSearchBar({ open: true, mode: arg === "replace" ? "replace" : "find" });
+        } else if (action === "searchNext") searchRef.current?.next();
+        else if (action === "searchPrev") searchRef.current?.prev();
+        else if (action === "searchReplaceNext") searchRef.current?.replaceNext();
+        else if (action === "selectAll") editor.chain().focus().selectAll().run();
+        else if (action === "selectParagraph") {
+          const { $from } = editor.state.selection;
+          editor.chain().focus().setTextSelection({ from: $from.start(), to: $from.end() }).run();
+        } else if (action === "bangHeading" && arg) {
+          // ! 变体标题:切到对应级别并在文本前加「! 」标记(解析层识别)。
+          const level = parseInt(arg, 10) as 1 | 2 | 3;
+          editor.chain().focus().setHeading({ level }).run();
+          const { $from } = editor.state.selection;
+          if (!$from.parent.textContent.startsWith("!")) {
+            editor.view.dispatch(editor.state.tr.insertText("! ", $from.start()));
+          }
+        } else if (action === "importText") {
+          void importTextIntoEditor(editor);
+        } else if (action === "moveToNew") {
+          void moveSelectionToNewDoc(editor);
+        } else if (action === "spellRerun") {
+          // 翻转 spellcheck 强制浏览器重跑。
+          const el = editor.view.dom as HTMLElement;
+          const cur = el.getAttribute("spellcheck") === "true";
+          el.setAttribute("spellcheck", "false");
+          void Promise.resolve().then(() => el.setAttribute("spellcheck", cur ? "true" : "false"));
+        } else execEditorAction(editor, action, arg);
+      },
+    });
+  }, [editor]);
+
   useEffect(() => {
     if (!editor) return;
     const editorEl = editor.view.dom as HTMLElement;
@@ -113,6 +285,18 @@ export function Editor({
       editorEl.style.removeProperty("--inkwell-editor-font");
     }
   }, [editor, typography, appSettings.firstLineIndent, editorFontFamily]);
+
+  // 拼写检查开关/语言变化时同步到 DOM(spellcheck 属性只在挂载时写入,
+  //  原生检查器需要重新挂载或手动翻转才能重跑)。
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const el = editor.view.dom as HTMLElement;
+    el.setAttribute("spellcheck", appSettings.spellCheck ? "true" : "false");
+    el.setAttribute("lang", appSettings.spellCheckLang || "zh-CN");
+    // 翻转一次强制浏览器重跑检查。
+    el.blur();
+    el.focus();
+  }, [editor, appSettings.spellCheck, appSettings.spellCheckLang]);
 
   // Track the actual editing-pane width so the text column can adapt: use the
   // full configured max width, but never leave absurdly wide empty margins on
@@ -136,9 +320,65 @@ export function Editor({
         // localContent is already kept in sync by onUpdate -> onChange on every
         // keystroke, so onSave (handleManualSave) reads the latest content.
         onSave?.();
+        return;
+      }
+      if (matchesKeys(e.nativeEvent, shortcutFor("findInDoc", appSettings.shortcuts))) {
+        e.preventDefault();
+        setSearchBar({ open: true, mode: "find" });
+        return;
+      }
+      if (matchesKeys(e.nativeEvent, shortcutFor("replaceInDoc", appSettings.shortcuts))) {
+        e.preventDefault();
+        setSearchBar({ open: true, mode: "replace" });
+        return;
+      }
+      if (e.nativeEvent.key === "F3" && searchBar.open) {
+        e.preventDefault();
+        if (e.nativeEvent.shiftKey) searchRef.current?.prev();
+        else searchRef.current?.next();
+        return;
+      }
+      if (!editor || editor.isDestroyed) return;
+      const ev = e.nativeEvent;
+      const mod = ev.ctrlKey || ev.metaKey;
+      if (!mod) return;
+      // novelWriter 格式快捷键:Ctrl+1-4 标题、Ctrl+5-7 对齐、Ctrl+8/9 缩进、
+      // Ctrl+0 移除块格式、Ctrl+B/I/D/M 行内格式、Ctrl+"/' 引号环绕、
+      // Ctrl+/ 切换注释、Ctrl+Shift+D 切换忽略文本。
+      const chain = () => editor.chain().focus();
+      if (/^[1-4]$/.test(ev.key)) {
+        e.preventDefault();
+        chain().toggleHeading({ level: parseInt(ev.key, 10) as 1 | 2 | 3 | 4 }).run();
+      } else if (ev.key === "5") {
+        e.preventDefault();
+        chain().setTextAlign("left").run();
+      } else if (ev.key === "6") {
+        e.preventDefault();
+        chain().setTextAlign("center").run();
+      } else if (ev.key === "7") {
+        e.preventDefault();
+        chain().setTextAlign("right").run();
+      } else if (ev.key === "0") {
+        e.preventDefault();
+        chain().setParagraph().unsetAllMarks().setTextAlign("left").run();
+      } else if (ev.key.toLowerCase() === "d" && ev.shiftKey) {
+        e.preventDefault();
+        toggleLinePrefix(editor, "%~ ");
+      } else if (ev.key.toLowerCase() === "d") {
+        e.preventDefault();
+        chain().toggleStrike().run();
+      } else if (ev.key.toLowerCase() === "m") {
+        e.preventDefault();
+        chain().toggleHighlight().run();
+      } else if (ev.key === "/") {
+        e.preventDefault();
+        toggleLinePrefix(editor, "% ");
+      } else if (ev.key === '"' || ev.key === "'") {
+        e.preventDefault();
+        wrapSelection(editor, ev.key === '"' ? ["“", "”"] : ["‘", "’"]);
       }
     },
-    [onSave, appSettings.shortcuts],
+    [onSave, appSettings.shortcuts, editor, searchBar.open],
   );
 
   const handleWheel = useCallback(
@@ -234,7 +474,7 @@ export function Editor({
             children: ([1, 2, 3] as const).map((level) => ({
               label: `标题 ${level}`,
               checked: blockChecked[`h${level}` as const],
-              shortcut: `${mod}+Alt+${level}`,
+              shortcut: `${mod}+${level}`,
               onClick: () => editor.chain().focus().toggleHeading({ level }).run(),
             })),
           },
@@ -285,12 +525,19 @@ export function Editor({
       )}
       <div
         ref={containerRef}
-        className="inkwell-editor min-h-0 w-full flex-1 overflow-y-auto bg-paper transition-all duration-300 dark:bg-paper-dark"
+        className="inkwell-editor relative min-h-0 w-full flex-1 overflow-y-auto bg-paper transition-all duration-300 dark:bg-paper-dark"
         style={{ padding: `0 ${appSettings.editorPadding}px` }}
         onKeyDown={handleKeyDown}
         onWheel={handleWheel}
         onContextMenuCapture={handleContextMenu}
       >
+        <EditorSearchBar
+          editor={editor}
+          open={searchBar.open}
+          mode={searchBar.mode}
+          onClose={() => setSearchBar({ open: false, mode: "find" })}
+          navRef={searchRef}
+        />
         <div
           className="min-h-full py-12"
           style={{

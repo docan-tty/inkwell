@@ -1,22 +1,32 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ArrowLeft, ListTree, Globe, Search, History, NotebookPen, FilePlus2 } from "lucide-react";
+import { FilePlus2 } from "lucide-react";
 import { useAppStore, scheduleAutoSave } from "../store";
 import { ChapterTree } from "./chapter-tree";
 import { Editor } from "./Editor";
 import { StatusBar } from "./StatusBar";
 import { RightPanel } from "./RightPanel";
-import { GlobalSettingsModal } from "./GlobalSettingsModal";
-import { SearchPanel } from "./SearchPanel";
-import { LeftSidebarTabs } from "./left-panel/LeftSidebarTabs";
+import { ActivityBar } from "./menu/ActivityBar";
 import { NotesView } from "./left-panel/NotesView";
 import { DictionaryView } from "./left-panel/DictionaryView";
 import { cn, countWords } from "../lib/utils";
+import { STATUS_LABELS } from "../types";
 import { matchesKeys, shortcutFor } from "../lib/shortcuts";
+import { runCommand } from "../lib/commands";
+import { registerEditorContext } from "../lib/editor-context";
 import { stripHtml, sanitizeHtml } from "../lib/export";
 import { formatHtmlTextNodes } from "../lib/format";
 import { saveDraft, getDraft } from "../lib/draft";
 import { useWritingTime } from "../hooks/useWritingTime";
 import { useAutoHideTopBars } from "../hooks/useAutoHideTopBars";
+
+// 这些快捷键在输入框/编辑区内不触发(避免与正常输入冲突)。
+const SHORTCUT_BLOCKED_IN_EDITABLE = new Set([
+  "openProject", "newChapter", "toggleLeftSidebar", "toggleRightSidebar",
+  "focusMode", "saveProject", "closeProject", "projectSettings",
+  "projectDetails", "renameItem", "trashItem", "quitApp", "docOpen",
+  "docClose", "docView", "docCloseView", "spellToggle", "spellRerun",
+  "rebuildIndex", "manuscript", "writingStats",
+]);
 
 export function Workspace() {
   // Selector subscriptions, not useAppStore() destructuring: typing bumps
@@ -27,29 +37,21 @@ export function Workspace() {
   const currentProject = useAppStore((s) => s.currentProject);
   const currentChapter = useAppStore((s) => s.currentChapter);
   const setCurrentChapter = useAppStore((s) => s.setCurrentChapter);
-  const closeProject = useAppStore((s) => s.closeProject);
   const getChapterContent = useAppStore((s) => s.getChapterContent);
   const updateChapterContent = useAppStore((s) => s.updateChapterContent);
   const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
-  const rightPanelTab = useAppStore((s) => s.rightPanelTab);
   const focusMode = useAppStore((s) => s.focusMode);
-  const setRightPanelTab = useAppStore((s) => s.setRightPanelTab);
   const leftSidebarTab = useAppStore((s) => s.leftSidebarTab);
-  const setLeftSidebarTab = useAppStore((s) => s.setLeftSidebarTab);
   const saveCurrentProject = useAppStore((s) => s.saveCurrentProject);
   const appSettings = useAppStore((s) => s.appSettings);
   const updateAppSettings = useAppStore((s) => s.updateAppSettings);
   const createChapter = useAppStore((s) => s.createChapter);
-  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
-  const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
   const toggleFocusMode = useAppStore((s) => s.toggleFocusMode);
   const volumes = useAppStore((s) => s.volumes);
   const contentVersion = useAppStore((s) => s.contentVersion);
 
   const [localContent, setLocalContent] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(appSettings.leftSidebarWidth || 256);
   const [draftNotice, setDraftNotice] = useState<{ draft: string } | null>(null);
   const [chapterLoadError, setChapterLoadError] = useState<string | null>(null);
@@ -121,6 +123,7 @@ export function Workspace() {
   // Application-level shortcuts (customizable in 设置 → 快捷键; defaults in
   // SHORTCUT_DEFS). Editor shortcuts (bold/italic/headings/undo) are handled
   // by TipTap inside the editing surface; these work anywhere in the workspace.
+  // 动作统一走命令层(runCommand),与菜单栏共享 enabled 守卫。
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // 专注模式下 Esc 直接退出（用户最常期望的退出方式）。
@@ -137,31 +140,50 @@ export function Workspace() {
 
       if (matchesKeys(e, keys("search"))) {
         e.preventDefault();
-        setSearchOpen(true);
-      } else if (matchesKeys(e, keys("newChapter"))) {
-        // Blocked while renaming / filling a field so the browser-style
-        // "new window" muscle memory doesn't fire mid-edit.
-        if (inEditable) return;
-        e.preventDefault();
-        const targetVolume = currentChapterRef.current?.parentId ?? (volumes[0]?.id || null);
-        createChapter(targetVolume, "");
-      } else if (matchesKeys(e, keys("toggleLeftSidebar"))) {
-        if (inEditable) return;
-        e.preventDefault();
-        toggleLeftSidebar();
-      } else if (matchesKeys(e, keys("toggleRightSidebar"))) {
-        if (inEditable) return;
-        e.preventDefault();
-        toggleRightSidebar();
-      } else if (matchesKeys(e, keys("focusMode"))) {
-        if (inEditable) return;
-        e.preventDefault();
-        toggleFocusMode();
+        runCommand("search");
+        return;
+      }
+      // 需要「不在输入态」的命令统一走命令层;表驱动,命令自带 enabled 守卫。
+      const table: [string, string][] = [
+        ["openProject", "project.open"],
+        ["newChapter", "newChapter"],
+        ["toggleLeftSidebar", "toggleLeftSidebar"],
+        ["toggleRightSidebar", "toggleRightSidebar"],
+        ["focusMode", "focusMode"],
+        ["saveProject", "project.save"],
+        ["closeProject", "project.close"],
+        ["projectSettings", "settings.open"],
+        ["projectDetails", "project.details"],
+        ["renameItem", "project.rename"],
+        ["trashItem", "project.trashItem"],
+        ["quitApp", "app.quit"],
+        ["docOpen", "doc.open"],
+        ["docClose", "doc.close"],
+        ["docView", "doc.view"],
+        ["docCloseView", "doc.closeView"],
+        ["spellToggle", "tools.spellToggle"],
+        ["spellRerun", "tools.spellRerun"],
+        ["rebuildIndex", "tools.rebuildIndex"],
+        ["manuscript", "tools.manuscript"],
+        ["writingStats", "tools.stats"],
+        ["openSettings", "settings.open"],
+        ["findNext", "search.findNext"],
+        ["findPrev", "search.findPrev"],
+        ["replaceNext", "search.replaceNext"],
+        ["selectParagraph", "edit.selectParagraph"],
+      ];
+      for (const [shortcutId, commandId] of table) {
+        if (matchesKeys(e, keys(shortcutId))) {
+          if (inEditable && SHORTCUT_BLOCKED_IN_EDITABLE.has(shortcutId)) return;
+          e.preventDefault();
+          runCommand(commandId);
+          return;
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createChapter, toggleLeftSidebar, toggleRightSidebar, toggleFocusMode, volumes, focusMode]);
+  }, [toggleFocusMode, focusMode]);
 
   const updateWordCount = useCallback(
     (chapterId: string, content: string) => {
@@ -177,11 +199,15 @@ export function Workspace() {
     (content: string) => {
       setLocalContent(content);
       if (currentChapter) {
-        // Crash-recovery: mirror every keystroke into the synchronous draft
+        // Crash-recovery: mirror every keystroke into the (debounced) draft
         // buffer and the close-flush map. Both are dropped the moment the
         // content lands on disk. (scheduleAutoSave writes the seq-tagged
-        // pending entry itself.)
-        saveDraft(currentChapter.id, content);
+        // pending entry itself.) The hint lets the launch recovery dialog
+        // name the chapter without scanning every project file.
+        saveDraft(currentChapter.id, content, {
+          projectId: currentProject?.id,
+          chapterTitle: currentChapter.title,
+        });
         noteTyping();
         scheduleAutoSave(currentChapter.id, content);
         if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
@@ -268,6 +294,15 @@ export function Workspace() {
     }
   }, [currentChapter, draftNotice, updateChapterContent]);
 
+  // 把依赖内部 ref 的动作注册进命令层桥接(菜单栏/快捷键共用),卸载时清空。
+  useEffect(() => {
+    return registerEditorContext({
+      save: handleManualSave,
+      autoFormat: handleAutoFormat,
+      selectChapter: handleSelectChapter,
+    });
+  }, [handleManualSave, handleAutoFormat, handleSelectChapter]);
+
   if (!currentProject) return null;
 
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -301,125 +336,45 @@ export function Workspace() {
   };
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col bg-warm-gray/60 p-1.5 dark:bg-warm-gray-dark/50",
-        // 专注模式：页面底色沉静下来，让稿纸成为画面里唯一的亮面。
-        focusMode ? "gap-0 bg-warm-gray dark:bg-warm-gray-dark" : "gap-1.5",
-      )}
-    >
-      {/* 顶栏（独立区块） */}
-      <div
-        className={cn(
-          "flex h-12 shrink-0 items-center justify-between border px-4 transition-opacity duration-300",
-          // 专注模式下顶栏悬浮为一颗药丸，不再是一条横贯的卡片。
-          focusMode
-            ? "absolute left-1/2 top-2.5 z-40 h-11 -translate-x-1/2 rounded-full border-warm-gray/60 bg-paper/90 shadow-lg backdrop-blur dark:border-warm-gray-dark/60 dark:bg-paper-dark/90"
-            : "rounded-xl border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark",
-          focusMode && !showTopBars && "pointer-events-none opacity-0",
-        )}
-        onMouseEnter={focusMode ? enterTopBars : undefined}
-        onMouseLeave={focusMode ? leaveTopBars : undefined}
-      >
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={closeProject}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
-            title="返回作品列表"
-          >
-            <ArrowLeft size={17} />
-          </button>
-          <div>
-            <h2 className="text-sm font-semibold text-ink dark:text-ink-dark">{currentProject.name}</h2>
-          </div>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
-            title="全书搜索 (Ctrl+Shift+F)"
-          >
-            <Search size={16} />
-          </button>
-          <button
-            onClick={() => {
-              if (leftSidebarOpen && leftSidebarTab === "notes") {
-                toggleLeftSidebar();
-              } else {
-                setLeftSidebarTab("notes");
-              }
-            }}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
-              leftSidebarOpen && leftSidebarTab === "notes"
-                ? "bg-accent/10 text-accent dark:bg-accent/20"
-                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
-            )}
-            title="写作笔记"
-          >
-            <NotebookPen size={16} />
-          </button>
-          <button
-            onClick={() => setRightPanelTab(rightSidebarOpen && rightPanelTab === "outline" ? "none" : "outline")}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
-              rightSidebarOpen && rightPanelTab === "outline"
-                ? "bg-accent/10 text-accent dark:bg-accent/20"
-                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
-            )}
-            title="大纲 (Ctrl+Alt+O)"
-          >
-            <ListTree size={17} />
-          </button>
-          <button
-            onClick={() => setRightPanelTab(rightSidebarOpen && rightPanelTab === "history" ? "none" : "history")}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
-              rightSidebarOpen && rightPanelTab === "history"
-                ? "bg-accent/10 text-accent dark:bg-accent/20"
-                : "text-ink-muted hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark",
-            )}
-            title="历史版本"
-          >
-            <History size={16} />
-          </button>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-warm-gray dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
-            title="全局设置"
-          >
-            <Globe size={17} />
-          </button>
-        </div>
-      </div>
-
-      <div className={cn("flex min-h-0 flex-1", focusMode ? "gap-0" : "gap-1.5 overflow-hidden")}>
+    <div className="flex h-full flex-col bg-paper dark:bg-paper-dark">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <ActivityBar />
         {leftSidebarOpen && !focusMode && (
           <>
-            {/* 左栏（独立区块）：目录 / 笔记 / 词典 */}
+            {/* 左侧面板:目录 / 笔记 / 词典(页签由图标栏切换) */}
             <div
-              className="flex shrink-0 flex-col overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark"
+              className="flex shrink-0 flex-col overflow-hidden border-r border-warm-gray/80 bg-paper dark:border-warm-gray-dark/80 dark:bg-paper-dark"
               style={{ width: sidebarWidth }}
             >
-              <LeftSidebarTabs />
               <div className="min-h-0 flex-1">
                 {leftSidebarTab === "chapters" && <ChapterTree onSelectChapter={handleSelectChapter} />}
                 {leftSidebarTab === "notes" && <NotesView />}
                 {leftSidebarTab === "dictionary" && <DictionaryView />}
               </div>
+              {/* 选中文档详情(novelWriter 式树底详情条) */}
+              {leftSidebarTab === "chapters" && currentChapter && (
+                <div className="shrink-0 border-t border-warm-gray/60 px-3 py-2 text-[11px] leading-relaxed text-ink-muted dark:border-warm-gray-dark/60 dark:text-ink-muted-dark">
+                  <div className="font-medium text-ink dark:text-ink-dark">{currentChapter.title}</div>
+                  <div className="mt-0.5 flex gap-3">
+                    <span>字数 {currentChapter.wordCount}</span>
+                    <span>{STATUS_LABELS[currentChapter.status]}</span>
+                    {currentChapter.inactive && <span>非激活</span>}
+                  </div>
+                </div>
+              )}
             </div>
             <div
               onMouseDown={handleResizeStart}
-              className="-mx-1.5 w-2 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/30 active:bg-accent/50"
+              className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent/30 active:bg-accent/50"
             />
           </>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {currentChapter ? (
             <>
               {draftNotice && (
-                <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200">
+                <div className="mx-1.5 mt-1.5 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200">
                   <span>检测到本章有未保存的草稿（可能因意外关闭未写入磁盘）。</span>
                   <span className="flex shrink-0 gap-2">
                     <button
@@ -438,7 +393,7 @@ export function Workspace() {
                 </div>
               )}
               {chapterLoadError ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-warm-gray/80 bg-paper px-8 text-center shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark">
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-paper px-8 text-center dark:bg-paper-dark">
                   <p className="text-sm text-red-600 dark:text-red-400">章节内容加载失败</p>
                   <p className="max-w-md break-all text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
                     {chapterLoadError}
@@ -448,14 +403,7 @@ export function Workspace() {
                   </p>
                 </div>
               ) : (
-                <div
-                  className={cn(
-                    "flex min-h-0 flex-1 flex-col overflow-hidden transition-all duration-300",
-                    focusMode
-                      ? "bg-paper dark:bg-paper-dark"
-                      : "rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark",
-                  )}
-                >
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-paper transition-all duration-300 dark:bg-paper-dark">
                   <Editor
                     content={localContent}
                     onChange={handleContentChange}
@@ -470,7 +418,7 @@ export function Workspace() {
               )}
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark">
+            <div className="flex flex-1 items-center justify-center overflow-hidden bg-paper dark:bg-paper-dark">
               <div className="text-center">
                 <p className="mb-4 text-ink-muted dark:text-ink-muted-dark">选择或创建一个章节开始写作</p>
                 <button
@@ -483,17 +431,14 @@ export function Workspace() {
               </div>
             </div>
           )}
-          {!focusMode && (
-            <div className="shrink-0 overflow-hidden rounded-xl border border-warm-gray/80 shadow-sm dark:border-warm-gray-dark/80">
-              <StatusBar writingSeconds={writingSeconds} />
-            </div>
-          )}
         </div>
 
         {rightSidebarOpen && !focusMode && <RightPanel onSelectChapter={handleSelectChapter} />}
       </div>
 
-      {/* 专注模式：右下只留一个退出入口，写作数据不再打扰 */}
+      {!focusMode && <StatusBar writingSeconds={writingSeconds} />}
+
+      {/* 专注模式:右下只留一个退出入口,写作数据不再打扰 */}
       {focusMode && currentChapter && (
         <div
           onMouseEnter={enterTopBars}
@@ -511,8 +456,6 @@ export function Workspace() {
           </button>
         </div>
       )}
-      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onSelectChapter={handleSelectChapter} />
     </div>
   );
 }

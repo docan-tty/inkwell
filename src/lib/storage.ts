@@ -170,9 +170,9 @@ async function getProjectDir(projectId: string, nameHint: string | undefined, co
 // store to avoid an import cycle). Entries for deleted chapters are kept in
 // a short grace window so delete-time cleanup (snapshot removal) still
 // resolves the right project folder.
-const chapterOwnerMap = new Map<string, { projectId: string; volumeSeq: number }>();
+const chapterOwnerMap = new Map<string, { projectId: string; volumeSeq: number; order: number }>();
 const projectNameMap = new Map<string, string>();
-const orphanChapterOwners = new Map<string, { projectId: string; volumeSeq: number; at: number }>();
+const orphanChapterOwners = new Map<string, { projectId: string; volumeSeq: number; order: number; at: number }>();
 const ORPHAN_GRACE_MS = 60_000;
 
 // 1-based position of a chapter's volume within the project (volumes sorted
@@ -193,18 +193,46 @@ function computeVolumeSeqs(
   return out;
 }
 
+/** The chapter id → in-volume order index (sorted by `order`). Drives the
+ *  file-name cache key: reordering chapters within a volume changes no
+ *  volumeSeq but SHOULD re-resolve names that embed order-dependent
+ *  disambiguation. */
+function computeChapterOrders(chapters: { id: string; parentId: string | null; order?: number }[]): Map<string, number> {
+  const byVolume = new Map<string, { id: string; order: number }[]>();
+  for (const c of chapters) {
+    const key = c.parentId ?? "";
+    if (!byVolume.has(key)) byVolume.set(key, []);
+    byVolume.get(key)!.push({ id: c.id, order: c.order ?? 0 });
+  }
+  const out = new Map<string, number>();
+  for (const list of byVolume.values()) {
+    list.sort((a, b) => a.order - b.order).forEach((c, idx) => out.set(c.id, idx));
+  }
+  return out;
+}
+
 /** Called by the store whenever the open project's data changes. Accepts the
  *  chapters + volumes so each chapter's volume sequence (file-name prefix)
- *  can be derived. */
+ *  can be derived. Re-registrations with a CHANGED volume sequence (cross-
+ *  volume move, volume reorder) invalidate the cached file name — otherwise
+ *  the next save would write under the old "{卷序号}-" prefix while reads
+ *  look under the new one. */
 export function registerChapterOwners(
-  chapters: { id: string; parentId: string | null }[],
+  chapters: { id: string; parentId: string | null; order?: number }[],
   volumes: { id: string; order: number }[],
   projectId: string,
   projectName?: string,
 ): void {
   const seqs = computeVolumeSeqs(chapters, volumes);
+  const orders = computeChapterOrders(chapters);
   for (const c of chapters) {
-    chapterOwnerMap.set(c.id, { projectId, volumeSeq: seqs.get(c.id) ?? 0 });
+    const nextSeq = seqs.get(c.id) ?? 0;
+    const nextOrder = orders.get(c.id) ?? -1;
+    const prev = chapterOwnerMap.get(c.id);
+    if (prev && (prev.volumeSeq !== nextSeq || prev.order !== nextOrder)) {
+      chapterFileNameCache.delete(c.id);
+    }
+    chapterOwnerMap.set(c.id, { projectId, volumeSeq: nextSeq, order: nextOrder });
     orphanChapterOwners.delete(c.id);
   }
   if (projectName) projectNameMap.set(projectId, projectName);
@@ -216,6 +244,7 @@ export function unregisterChapterOwners(chapterIds: string[]): void {
   for (const id of chapterIds) {
     const owner = chapterOwnerMap.get(id);
     chapterOwnerMap.delete(id);
+    chapterFileNameCache.delete(id);
     if (owner) orphanChapterOwners.set(id, { ...owner, at: now });
   }
 }
@@ -229,10 +258,10 @@ export function getProjectNameHint(projectId: string): string | undefined {
  *  post-delete grace window). Used by chapter content and snapshot paths. */
 export function resolveChapterOwner(
   chapterId: string,
-): { projectId: string; projectName?: string; volumeSeq: number } | null {
+): { projectId: string; projectName?: string; volumeSeq: number; order: number } | null {
   const live = chapterOwnerMap.get(chapterId);
   if (live) {
-    return { projectId: live.projectId, projectName: projectNameMap.get(live.projectId), volumeSeq: live.volumeSeq };
+    return { projectId: live.projectId, projectName: projectNameMap.get(live.projectId), volumeSeq: live.volumeSeq, order: live.order };
   }
   // Sweep expired grace entries on read so the map can't grow unbounded.
   const now = Date.now();
@@ -245,6 +274,7 @@ export function resolveChapterOwner(
       projectId: orphan.projectId,
       projectName: projectNameMap.get(orphan.projectId),
       volumeSeq: orphan.volumeSeq,
+      order: orphan.order,
     };
   }
   return null;
@@ -686,7 +716,48 @@ export async function loadChapterContentFromLocal(
       // fall through to the mirror
     }
   }
-  return readMirror(getChapterStorageKey(chapterId)) ?? "";
+  // Legacy localStorage mirror (pre-migration installs): it is the only copy
+  // left, so migrate it onto disk and release the quota. The key is removed
+  // ONLY after the disk write succeeds — a failed write keeps the mirror.
+  const mirror = readMirror(getChapterStorageKey(chapterId));
+  if (mirror !== null) {
+    try {
+      await atomicWriteTextFile(primary, mirror);
+      localStorage.removeItem(getChapterStorageKey(chapterId));
+    } catch {
+      // keep the mirror — migration retries on the next read
+    }
+    return mirror;
+  }
+  return "";
+}
+
+// Resolved chapter file names. resolveChapterFileName lists the chapters dir
+// (a Tauri invoke round-trip) to disambiguate same-title files; doing that on
+// EVERY autosave was the dominant write-path cost. The name only changes when
+// the chapter's title, volume sequence, or in-volume order changes, so cache
+// it keyed by those inputs and re-resolve on mismatch. Manual renames on disk
+// degrade gracefully: a stale cached name simply writes (or creates) that
+// file, same as the pre-cache fallback when the dir listing failed.
+const chapterFileNameCache = new Map<string, { volumeSeq: number; title: string; order: number; name: string }>();
+
+/** In-volume order used as part of the cache key. The store passes the
+ *  chapter's current order; callers that don't know it pass -1 (only the
+ *  volumeSeq/title participate in invalidation). */
+async function cachedChapterFileName(
+  chapterId: string,
+  chaptersDir: string,
+  volumeSeq: number,
+  title: string,
+  order: number,
+): Promise<string> {
+  const cached = chapterFileNameCache.get(chapterId);
+  if (cached && cached.volumeSeq === volumeSeq && cached.title === title && (order < 0 || cached.order === order)) {
+    return cached.name;
+  }
+  const name = await resolveChapterFileName(chaptersDir, volumeSeq, title);
+  chapterFileNameCache.set(chapterId, { volumeSeq, title, order, name });
+  return name;
 }
 
 export async function saveChapterContentToLocal(
@@ -704,9 +775,11 @@ export async function saveChapterContentToLocal(
     ? await getProjectDir(owner.projectId, owner.projectName ?? projectNameMap.get(owner.projectId), config)
     : await getContentBaseDir(config);
   const chaptersDir = await buildPath([dir, "chapters"]);
-  const name = await resolveChapterFileName(chaptersDir, owner?.volumeSeq ?? 0, title || "chapter");
+  const name = await cachedChapterFileName(chapterId, chaptersDir, owner?.volumeSeq ?? 0, title || "chapter", owner?.order ?? -1);
   await atomicWriteTextFile(await buildPath([chaptersDir, name]), content);
-  writeMirror(getChapterStorageKey(chapterId), content);
+  // No localStorage mirror for chapter bodies: drafts (lib/draft) are the
+  // crash-recovery channel; duplicating every chapter into localStorage
+  // doubled write cost and could exhaust the quota on large novels.
 }
 
 /** Renames (moves) a chapter's content file. The file name embeds the volume
@@ -747,6 +820,7 @@ export async function renameChapterFile(
   const newPath = await buildPath([chaptersDir, newName]);
   if (oldPath === newPath) return null;
   await invoke("move_path", { src: oldPath, dest: newPath });
+  chapterFileNameCache.set(chapterId, { volumeSeq: owner.volumeSeq, title: newTitle, order: owner.order ?? -1, name: newName });
   return newPath;
 }
 
@@ -854,6 +928,71 @@ export async function saveNotesToLocal(projectId: string, notes: Note[], config?
   const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
   await atomicWriteTextFile(await buildPath([dir, "笔记", "notes.json"]), raw);
   writeMirror(`inkwell-notes-${projectId}`, raw);
+}
+
+// --- Manuscript builds (手稿构建定义) --------------------------------------
+// 与 notes 同构:builds.json 存于作品文件夹根,localStorage 镜像兜底。
+export async function loadBuildsFromLocal<T>(projectId: string, config?: StorageConfig): Promise<T[]> {
+  const mirrorKey = `inkwell-builds-${projectId}`;
+  let raw: string | null;
+  if (!isTauri()) {
+    raw = readMirror(mirrorKey);
+  } else {
+    const dir = await resolveProjectDirForRead(projectId, config);
+    const primary = await buildPath([dir, "builds.json"]);
+    const hit = await readFirstExisting([primary], true);
+    raw = hit ? hit.raw : readMirror(mirrorKey);
+  }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveBuildsToLocal<T>(projectId: string, builds: T[], config?: StorageConfig): Promise<void> {
+  const raw = JSON.stringify(builds);
+  if (!isTauri()) {
+    writeMirror(`inkwell-builds-${projectId}`, raw);
+    return;
+  }
+  const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
+  await atomicWriteTextFile(await buildPath([dir, "builds.json"]), raw);
+  writeMirror(`inkwell-builds-${projectId}`, raw);
+}
+
+// --- Project word list (拼写自定义词典) ------------------------------------
+// 存于作品文件夹 wordlist.json(一行一词的 JSON 数组),与作品一起走。
+export async function loadProjectWords(projectId: string, config?: StorageConfig): Promise<string[]> {
+  const mirrorKey = `inkwell-words-${projectId}`;
+  let raw: string | null;
+  if (!isTauri()) {
+    raw = readMirror(mirrorKey);
+  } else {
+    const dir = await resolveProjectDirForRead(projectId, config);
+    const hit = await readFirstExisting([await buildPath([dir, "wordlist.json"])], true);
+    raw = hit ? hit.raw : readMirror(mirrorKey);
+  }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((w): w is string => typeof w === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveProjectWords(projectId: string, words: string[], config?: StorageConfig): Promise<void> {
+  const raw = JSON.stringify(words);
+  if (!isTauri()) {
+    writeMirror(`inkwell-words-${projectId}`, raw);
+    return;
+  }
+  const dir = await getProjectDir(projectId, projectNameMap.get(projectId), config);
+  await atomicWriteTextFile(await buildPath([dir, "wordlist.json"]), raw);
+  writeMirror(`inkwell-words-${projectId}`, raw);
 }
 
 // --- Dictionary (设定词典) -------------------------------------------------

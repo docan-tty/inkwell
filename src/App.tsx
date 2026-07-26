@@ -6,10 +6,26 @@ import {
   flushPendingChapterContents,
   flushPendingMetaSaves,
 } from "./store";
-import { ProjectList } from "./components/ProjectList";
 import { Workspace } from "./components/Workspace";
+import { MenuBar } from "./components/menu/MenuBar";
+import { WelcomeDialog } from "./components/WelcomeDialog";
+import { AboutDialog } from "./components/AboutDialog";
 import { RecoveryDialog } from "./components/RecoveryDialog";
-import { findRecoverableDrafts, clearDraft } from "./lib/draft";
+import { SearchPanel } from "./components/SearchPanel";
+import { GlobalSettingsModal } from "./components/GlobalSettingsModal";
+import { ProjectEditDialog } from "./components/ProjectEditDialog";
+import { ConfirmDialog } from "./components/ConfirmDialog";
+import { WritingStatsDialog } from "./components/WritingStatsDialog";
+import { SplitDialog } from "./components/SplitDialog";
+import { MergeDialog } from "./components/MergeDialog";
+import { ManuscriptDialog } from "./components/ManuscriptDialog";
+import { DocViewer } from "./components/DocViewer";
+import { DocDetailsDialog } from "./components/DocDetailsDialog";
+import { ProjectWordsDialog } from "./components/ProjectWordsDialog";
+import { ProjectDetailsDialog } from "./components/ProjectDetailsDialog";
+import { editorContext } from "./lib/editor-context";
+import { runCommand } from "./lib/commands";
+import { findRecoverableDrafts, clearDraft, flushDrafts, listDraftMetas } from "./lib/draft";
 import {
   getLocalProjectRegistry,
   loadChapterContentFromLocal,
@@ -27,8 +43,24 @@ interface PendingDraft {
 }
 
 function App() {
-  const { view, applyTheme } = useAppStore();
+  const applyTheme = useAppStore((s) => s.applyTheme);
+  const currentProject = useAppStore((s) => s.currentProject);
+  const searchOpen = useAppStore((s) => s.searchOpen);
+  const setSearchOpen = useAppStore((s) => s.setSearchOpen);
+  const settingsOpen = useAppStore((s) => s.settingsOpen);
+  const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
+  const projectEditTarget = useAppStore((s) => s.projectEditTarget);
+  const setProjectEditTarget = useAppStore((s) => s.setProjectEditTarget);
+  const projectDeleteTarget = useAppStore((s) => s.projectDeleteTarget);
+  const setProjectDeleteTarget = useAppStore((s) => s.setProjectDeleteTarget);
+  const backupConfirmOpen = useAppStore((s) => s.backupConfirm);
+  const setBackupConfirm = useAppStore((s) => s.setBackupConfirm);
+  const emptyTrashOpen = useAppStore((s) => s.emptyTrashConfirm);
+  const setEmptyTrashConfirm = useAppStore((s) => s.setEmptyTrashConfirm);
+  const updateProject = useAppStore((s) => s.updateProject);
+  const deleteProject = useAppStore((s) => s.deleteProject);
   const [recoveryDrafts, setRecoveryDrafts] = useState<PendingDraft[]>([]);
+  const [deleteChapterCount, setDeleteChapterCount] = useState(0);
   // Titles for drafts whose chapter is not in the currently open project —
   // looked up lazily from each project file.
   const [draftTitles, setDraftTitles] = useState<Record<string, string>>({});
@@ -36,6 +68,32 @@ function App() {
   useEffect(() => {
     applyTheme();
   }, [applyTheme]);
+
+  // 启动:加载作品索引;有「最近打开」的作品则自动打开它(失败则停留在
+  // 欢迎对话框,用户可另选)。无最近作品时欢迎对话框等待选择。
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const store = useAppStore.getState();
+      await store.loadProjects();
+      if (cancelled) return;
+      const { projects, appSettings } = useAppStore.getState();
+      const recentId = appSettings.recentProjects[0];
+      const recent = recentId ? projects.find((p) => p.id === recentId) : undefined;
+      if (recent) {
+        try {
+          await useAppStore.getState().openProject(recent);
+          if (!cancelled) useAppStore.getState().setWelcomeOpen(false);
+        } catch {
+          // 作品文件损坏等 —— 停留欢迎对话框,错误由 WelcomeDialog 再次
+          // 打开时展示;这里不打扰启动流程。
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Register the writable content roots with the Rust-side path whitelist:
   // the app data dir (default location) plus the user's custom content
@@ -68,27 +126,39 @@ function App() {
   // Crash recovery scan: compare every buffered draft against the on-disk
   // chapter file. Anything newer than disk is offered for restore. Runs once
   // on launch, after the project registry is available.
+  //
+  // Only projects that HAVE drafts are opened (to register chapter → project
+  // ownership so a restore writes into the right folder, and to resolve
+  // titles). The pre-hint fallback scans every project — one-time cost for
+  // drafts written before hints existed.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const settings = useAppStore.getState().appSettings;
+        const metas = listDraftMetas();
+        const projectIds = new Set(metas.map((m) => m.projectId).filter(Boolean) as string[]);
+        const needsFullScan = metas.some((m) => !m.projectId);
+        const titles: Record<string, string> = {};
+        if (needsFullScan) {
+          const registry = await getLocalProjectRegistry(settings);
+          for (const p of registry) projectIds.add(p.id);
+        }
+        for (const pid of projectIds) {
+          const loaded = await loadProjectFromLocal(pid, settings).catch(() => null);
+          if (!loaded) continue;
+          for (const c of loaded.chapters) {
+            titles[c.id] = `${c.title}（${loaded.project.name}）`;
+          }
+        }
+        if (!cancelled) setDraftTitles(titles);
+
         const drafts = await findRecoverableDrafts((id) =>
           loadChapterContentFromLocal(id, settings),
         );
         if (cancelled || drafts.length === 0) return;
         setRecoveryDrafts(drafts);
-        // Resolve chapter titles for display. Chapters are only identifiable
-        // via their project file, so scan all projects once.
-        const registry = await getLocalProjectRegistry(settings);
-        const titles: Record<string, string> = {};
-        for (const p of registry) {
-          const loaded = await loadProjectFromLocal(p.id, settings);
-          for (const c of loaded?.chapters || []) {
-            titles[c.id] = `${c.title}（${p.name}）`;
-          }
-        }
-        if (!cancelled) setDraftTitles(titles);
+        useAppStore.getState().setRecoveryPending(true);
       } catch {
         // Recovery is best-effort; a failed scan must not block the app.
       }
@@ -97,6 +167,20 @@ function App() {
       cancelled = true;
     };
   }, []);
+
+  const dismissRecovery = useCallback(() => {
+    setRecoveryDrafts([]);
+    useAppStore.getState().setRecoveryPending(false);
+  }, []);
+
+  // 删除作品确认打开时预查章节数(供确认文案)。
+  useEffect(() => {
+    if (!projectDeleteTarget) return;
+    setDeleteChapterCount(0);
+    loadProjectFromLocal(projectDeleteTarget.id, useAppStore.getState().appSettings)
+      .then((loaded) => setDeleteChapterCount(loaded?.chapters.length || 0))
+      .catch(() => setDeleteChapterCount(0));
+  }, [projectDeleteTarget]);
 
   // Flush any pending (not-yet-on-disk) chapter content before the window
   // closes. Rust owns the close itself (on_window_event in lib.rs) and emits
@@ -113,6 +197,8 @@ function App() {
         unlisten = await win.listen("inkwell:closing", () => {
           const settings = useAppStore.getState().appSettings;
           cancelAutoSave();
+          // 草稿防抖窗口内的最后内容同步落进 localStorage(崩溃恢复兜底)。
+          flushDrafts();
           void (async () => {
             try {
               await flushPendingChapterContents(settings);
@@ -157,12 +243,20 @@ function App() {
       // Keep the draft so recovery can be retried next launch.
       return;
     }
-    setRecoveryDrafts((prev) => prev.filter((d) => d.chapterId !== chapterId));
+    setRecoveryDrafts((prev) => {
+      const next = prev.filter((d) => d.chapterId !== chapterId);
+      if (next.length === 0) useAppStore.getState().setRecoveryPending(false);
+      return next;
+    });
   }, []);
 
   const handleDiscard = useCallback((chapterId: string) => {
     clearDraft(chapterId);
-    setRecoveryDrafts((prev) => prev.filter((d) => d.chapterId !== chapterId));
+    setRecoveryDrafts((prev) => {
+      const next = prev.filter((d) => d.chapterId !== chapterId);
+      if (next.length === 0) useAppStore.getState().setRecoveryPending(false);
+      return next;
+    });
   }, []);
 
   // Global F11 → toggle the native Tauri window fullscreen. Registered at the
@@ -193,16 +287,80 @@ function App() {
 
   return (
     <div className="h-full w-full bg-paper text-ink dark:bg-paper-dark dark:text-ink-dark">
-      {/* key 让两个视图各自重新挂载，触发 inkwell-view-enter 进场动效 */}
-      <div key={view} className="inkwell-view-enter h-full w-full">
-        {view === "projects" ? <ProjectList /> : <Workspace />}
+      <div className="flex h-full w-full flex-col">
+        <MenuBar />
+        <div className="min-h-0 flex-1">{currentProject ? <Workspace /> : null}</div>
       </div>
+      <SearchPanel
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectChapter={(chapter) => void editorContext.selectChapter?.(chapter)}
+      />
+      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <WelcomeDialog />
+      <AboutDialog />
+      <ProjectEditDialog
+        project={projectEditTarget}
+        onSave={async (data) => {
+          // Await (and let failures propagate into the dialog): renaming a
+          // work moves its folder on disk — a failed move must not close the
+          // dialog looking like a successful save.
+          if (projectEditTarget) await updateProject(projectEditTarget.id, data);
+        }}
+        onClose={() => setProjectEditTarget(null)}
+      />
+      <ConfirmDialog
+        open={projectDeleteTarget !== null}
+        title={`删除作品「${projectDeleteTarget?.name ?? ""}」?`}
+        message={
+          deleteChapterCount > 0
+            ? `将永久删除该作品及其 ${deleteChapterCount} 个章节的全部内容,此操作不可撤销。`
+            : "将永久删除该作品,此操作不可撤销。"
+        }
+        confirmLabel="永久删除"
+        onConfirm={() => {
+          if (projectDeleteTarget) void deleteProject(projectDeleteTarget.id);
+          setProjectDeleteTarget(null);
+        }}
+        onCancel={() => setProjectDeleteTarget(null)}
+      />
       <RecoveryDialog
         drafts={recoveryDrafts}
         chapterTitle={chapterTitle}
         onRestore={handleRestore}
         onDiscard={handleDiscard}
-        onDismissAll={() => setRecoveryDrafts([])}
+        onDismissAll={dismissRecovery}
+      />
+      <WritingStatsDialog />
+      <SplitDialog />
+      <MergeDialog />
+      <ManuscriptDialog />
+      <DocViewer />
+      <DocDetailsDialog />
+      <ProjectWordsDialog />
+      <ProjectDetailsDialog />
+      <ConfirmDialog
+        open={backupConfirmOpen}
+        title="备份项目?"
+        message="将把整个作品文件夹(正文、笔记、词典、快照)复制到 backups 子目录,不改动原数据。"
+        confirmLabel="立即备份"
+        danger={false}
+        onConfirm={() => {
+          setBackupConfirm(false);
+          void runCommand("tools.backupNow");
+        }}
+        onCancel={() => setBackupConfirm(false)}
+      />
+      <ConfirmDialog
+        open={emptyTrashOpen}
+        title="清空回收站?"
+        message="回收站中的全部文档及其正文将被永久删除,此操作不可撤销。"
+        confirmLabel="清空回收站"
+        onConfirm={() => {
+          setEmptyTrashConfirm(false);
+          void useAppStore.getState().emptyTrash();
+        }}
+        onCancel={() => setEmptyTrashConfirm(false)}
       />
     </div>
   );

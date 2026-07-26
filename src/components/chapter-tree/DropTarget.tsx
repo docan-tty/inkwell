@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "../../lib/utils";
 
 interface DropTargetProps {
@@ -13,7 +14,7 @@ interface DropTargetProps {
 // Drop indicator between tree rows. The visual line is 2px, but the hit
 // area is padded to ~10px via negative margins so the pointer doesn't have
 // to land on a hairline — the gap between rows stays visually unchanged.
-export function DropTarget({ active, onDrop, onDragOver, accepts }: DropTargetProps) {
+export const DropTarget = memo(function DropTarget({ active, onDrop, onDragOver, accepts }: DropTargetProps) {
   const matches = (e: React.DragEvent) =>
     !accepts || e.dataTransfer.types.includes(accepts);
 
@@ -56,4 +57,4 @@ export function DropTarget({ active, onDrop, onDragOver, accepts }: DropTargetPr
       />
     </div>
   );
-}
+});

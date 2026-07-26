@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { X, ListTree, History, RotateCcw, Eye, FileClock } from "lucide-react";
 import { useAppStore } from "../store";
 import type { Chapter } from "../types";
 import { listSnapshots, readSnapshot, type SnapshotInfo } from "../lib/snapshots";
 import { stripHtml, sanitizeHtml } from "../lib/export";
-import { formatDateTime, cn, sortChaptersByTreeOrder } from "../lib/utils";
+import { formatDateTime, cn } from "../lib/utils";
+import { collectOutline, REF_LABELS, REF_KEYWORDS, type OutlineRow } from "../lib/tags";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 export function RightPanel({ onSelectChapter }: { onSelectChapter?: (chapter: Chapter) => void }) {
@@ -14,8 +15,8 @@ export function RightPanel({ onSelectChapter }: { onSelectChapter?: (chapter: Ch
   if (rightPanelTab === "none") return null;
 
   return (
-    <div className="flex h-full w-72 flex-col overflow-hidden rounded-xl border border-warm-gray/80 bg-paper shadow-sm dark:border-warm-gray-dark/80 dark:bg-paper-dark animate-[inkwell-slide-in-right_0.15s_ease-out]">
-      <div className="flex h-12 items-center justify-between border-b border-warm-gray/60 px-3 dark:border-warm-gray-dark/60">
+    <div className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-l border-warm-gray/80 bg-paper dark:border-warm-gray-dark/80 dark:bg-paper-dark">
+      <div className="flex h-10 items-center justify-between border-b border-warm-gray/60 px-3 dark:border-warm-gray-dark/60">
         <div className="flex items-center gap-1">
           <PanelTab
             active={rightPanelTab === "outline"}
@@ -86,36 +87,86 @@ function OutlineView({ onSelectChapter }: { onSelectChapter?: (chapter: Chapter)
   const volumes = useAppStore((s) => s.volumes);
   const currentChapter = useAppStore((s) => s.currentChapter);
   const setCurrentChapter = useAppStore((s) => s.setCurrentChapter);
+  const tagsIndex = useAppStore((s) => s.tagsIndex);
   // Prefer the workspace's select path (saves + word-counts the outgoing
   // chapter and surfaces write failures); fall back to the raw store action.
   const select = onSelectChapter ?? ((c: Chapter) => void setCurrentChapter(c));
 
-  // Display chapters grouped by volume order, then chapter order — matching
-  // the left-hand chapter tree instead of the raw insertion order.
-  const sorted = sortChaptersByTreeOrder(chapters, volumes);
+  const rows = useMemo(() => collectOutline(chapters, volumes, tagsIndex.docs), [chapters, volumes, tagsIndex.docs]);
+  const usedRefs = useMemo(
+    () => REF_KEYWORDS.filter((kw) => rows.some((r) => (r.refs[kw]?.length ?? 0) > 0)),
+    [rows],
+  );
+
+  const openRow = (row: OutlineRow) => {
+    const chapter = chapters.find((c) => c.id === row.chapterId);
+    if (chapter) select(chapter);
+  };
+
+  if (rows.length === 0) {
+    return (
+      <div className="text-sm leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+        还没有小说结构。
+        <br />
+        在小说根下的文档里用「## 章节」「### 场景」标题组织内容,用「@pov:」「@char:」标注引用后,这里会列出整本大纲。
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-1">
-      {sorted.length === 0 && (
-        <div className="text-sm text-ink-muted dark:text-ink-muted-dark">暂无章节，请在左侧章节树中创建。</div>
-      )}
-      {sorted.map((chapter) => (
-        <button
-          key={chapter.id}
-          onClick={() => select(chapter)}
-          className={cn(
-            "w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-            currentChapter?.id === chapter.id
-              ? "bg-accent/10 text-accent dark:bg-accent/20"
-              : "text-ink hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark",
-          )}
-        >
-          <div className="font-medium">{chapter.title}</div>
-          {chapter.summary && (
-            <div className="mt-0.5 truncate text-xs text-ink-muted dark:text-ink-muted-dark">{chapter.summary}</div>
-          )}
-        </button>
-      ))}
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr className="text-left text-ink-muted dark:text-ink-muted-dark">
+            <th className="border-b border-warm-gray px-1.5 py-1 font-medium dark:border-warm-gray-dark">标题</th>
+            {usedRefs.map((kw) => (
+              <th key={kw} className="border-b border-warm-gray px-1.5 py-1 font-medium dark:border-warm-gray-dark">
+                {REF_LABELS[kw]}
+              </th>
+            ))}
+            <th className="border-b border-warm-gray px-1.5 py-1 font-medium dark:border-warm-gray-dark">简介</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr
+              key={`${row.chapterId}-${i}`}
+              onClick={() => openRow(row)}
+              className={cn(
+                "cursor-pointer transition-colors",
+                currentChapter?.id === row.chapterId
+                  ? "bg-accent/10 dark:bg-accent/15"
+                  : "hover:bg-warm-gray dark:hover:bg-warm-gray-dark",
+              )}
+            >
+              <td className="border-b border-warm-gray/60 px-1.5 py-1 dark:border-warm-gray-dark/60">
+                <span
+                  className={cn("block truncate font-medium text-ink dark:text-ink-dark", row.bang && "italic")}
+                  style={{ paddingLeft: `${(row.level - 1) * 12}px` }}
+                  title={row.title}
+                >
+                  {row.title || "（无标题）"}
+                </span>
+              </td>
+              {usedRefs.map((kw) => (
+                <td
+                  key={kw}
+                  className="max-w-24 truncate border-b border-warm-gray/60 px-1.5 py-1 text-ink-muted dark:border-warm-gray-dark/60 dark:text-ink-muted-dark"
+                  title={(row.refs[kw] ?? []).join(", ")}
+                >
+                  {(row.refs[kw] ?? []).join(", ")}
+                </td>
+              ))}
+              <td
+                className="max-w-40 truncate border-b border-warm-gray/60 px-1.5 py-1 text-ink-muted dark:border-warm-gray-dark/60 dark:text-ink-muted-dark"
+                title={row.synopsis}
+              >
+                {row.synopsis ?? ""}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

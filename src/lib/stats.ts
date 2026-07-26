@@ -67,12 +67,55 @@ export function addWritingSeconds(projectId: string, delta: number): number {
   return seconds;
 }
 
+// --- 按日历史(写作统计对话框用) ---
+// 在现有「当日快照/秒数」键之外,维护一个按日聚合的历史:每天最后一次
+// 调用时写入当日的 起始总字数/当前总字数/写作秒数。历史随快照键自然滚动,
+// 只保留最近 400 天。
+
+const historyKey = (projectId: string) => `inkwell-stats-history:${projectId}`;
+
+export interface DayStat {
+  date: string;
+  /** 当日开卷总字数(日初快照)。 */
+  startTotal: number;
+  /** 当日最后记录的总字数。 */
+  endTotal: number;
+  /** 当日有效写作秒数。 */
+  seconds: number;
+}
+
+function readHistory(projectId: string): DayStat[] {
+  return readJSON<DayStat[]>(historyKey(projectId)) ?? [];
+}
+
+/** 记录当日进度(每次字数/秒数更新时调用,幂等)。 */
+export function recordDailyProgress(projectId: string, currentTotal: number): void {
+  const today = todayKey();
+  const history = readHistory(projectId);
+  const startSnap = readJSON<{ date: string; total: number }>(snapshotKey(projectId));
+  const startTotal = startSnap && startSnap.date === today ? startSnap.total : currentTotal;
+  const seconds = getTodayWritingSeconds(projectId);
+  const idx = history.findIndex((d) => d.date === today);
+  const entry: DayStat = { date: today, startTotal, endTotal: currentTotal, seconds };
+  if (idx >= 0) history[idx] = entry;
+  else history.push(entry);
+  // 只保留最近 400 天。
+  while (history.length > 400) history.shift();
+  writeJSON(historyKey(projectId), history);
+}
+
+/** 读取按日历史(升序)。 */
+export function getWritingHistory(projectId: string): DayStat[] {
+  return readHistory(projectId).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /** Drops a project's stats keys — called when the project is deleted so the
  *  namespaced keys don't leak forever. */
 export function clearProjectStats(projectId: string): void {
   try {
     localStorage.removeItem(snapshotKey(projectId));
     localStorage.removeItem(secondsKey(projectId));
+    localStorage.removeItem(historyKey(projectId));
   } catch {
     // best-effort
   }

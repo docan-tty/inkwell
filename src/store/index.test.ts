@@ -25,7 +25,6 @@ describe("store save lifecycle", () => {
       currentChapter: null,
       notes: [],
       dictEntries: [],
-      view: "projects",
     });
   });
 
@@ -39,7 +38,7 @@ describe("store save lifecycle", () => {
     await useAppStore.getState().openProject(useAppStore.getState().projects[0]);
     const ch = await useAppStore.getState().createChapter(null, "第一章");
     scheduleAutoSave(ch.id, "<p>正文</p>");
-    await vi.advanceTimersByTimeAsync(3100);
+    await vi.advanceTimersByTimeAsync(1600);
     expect(localStorage.getItem(`inkwell-chapter-${ch.id}`)).toBe("<p>正文</p>");
     // Landing on disk drops the pending entry.
     expect(pendingChapterContent.has(ch.id)).toBe(false);
@@ -52,7 +51,7 @@ describe("store save lifecycle", () => {
     scheduleAutoSave(ch.id, "<p>old</p>");
     // Newer keystroke arrives before the timer fires — supersedes seq.
     setPendingChapterContent(ch.id, "<p>new</p>");
-    await vi.advanceTimersByTimeAsync(3100);
+    await vi.advanceTimersByTimeAsync(1600);
     // The stale timer must NOT have written its older buffer.
     expect(localStorage.getItem(`inkwell-chapter-${ch.id}`)).not.toBe("<p>old</p>");
   });
@@ -99,6 +98,16 @@ describe("store save lifecycle", () => {
     scheduleAutoSave(ch.id, "<p>未落盘的段落</p>");
     await useAppStore.getState().closeProject();
     expect(localStorage.getItem(`inkwell-chapter-${ch.id}`)).toBe("<p>未落盘的段落</p>");
+    expect(pendingChapterContent.has(ch.id)).toBe(false);
+  });
+
+  it("emptyTrash clears pending chapter content through the delete path", async () => {
+    await useAppStore.getState().createProject({ name: "A" });
+    await useAppStore.getState().openProject(useAppStore.getState().projects[0]);
+    const ch = await useAppStore.getState().createChapter(null, "第一章");
+    scheduleAutoSave(ch.id, "<p>未落盘的最后输入</p>");
+    await useAppStore.getState().trashChapter(ch.id);
+    await useAppStore.getState().emptyTrash();
     expect(pendingChapterContent.has(ch.id)).toBe(false);
   });
 

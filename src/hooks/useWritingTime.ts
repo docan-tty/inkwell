@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { addWritingSeconds, getTodayWritingSeconds } from "../lib/stats";
+import { addWritingSeconds, getTodayWritingSeconds, recordDailyProgress } from "../lib/stats";
+import { useAppStore } from "../store";
 
 // Writing-time tracker: while the user keeps typing, accumulate active
 // seconds once a minute (idle stretches longer than 30s don't count).
@@ -15,6 +16,9 @@ export function useWritingTime(projectId: string | undefined) {
       const typingRecently = Date.now() - lastTypeAt.current < 30_000;
       if (typingRecently) {
         setWritingSeconds(addWritingSeconds(projectId, 60));
+        // 同步当日历史(写作统计对话框)。
+        const total = useAppStore.getState().chapters.reduce((s, c) => s + c.wordCount, 0);
+        recordDailyProgress(projectId, total);
       } else {
         setWritingSeconds(getTodayWritingSeconds(projectId));
       }

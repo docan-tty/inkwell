@@ -1,12 +1,7 @@
 import {
   Undo,
   Redo,
-  Moon,
-  Sun,
   Check,
-  PanelLeft,
-  PanelRight,
-  Focus,
   Save,
   Download,
   FileText,
@@ -20,8 +15,7 @@ import { cn } from "../lib/utils";
 import type { Editor } from "@tiptap/react";
 import { useState, useRef, useEffect } from "react";
 import type { Project, Chapter, AppSettings } from "../types";
-import { exportChapter, exportProject } from "../lib/export";
-import { revealInFolder, dirname } from "../lib/storage";
+import { runExport, revealExportedFile, type ExportFormat } from "../lib/export-actions";
 import { useClickOutside } from "../hooks/useClickOutside";
 
 interface ToolbarProps {
@@ -65,14 +59,6 @@ function ToolbarButton({
 export function Toolbar({ editor, onSave, onAutoFormat }: ToolbarProps) {
   // Selector subscriptions — see Workspace for why the whole-store
   // destructure is avoided (typing re-renders everything subscribed).
-  const theme = useAppStore((s) => s.theme);
-  const setTheme = useAppStore((s) => s.setTheme);
-  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
-  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
-  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
-  const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
-  const focusMode = useAppStore((s) => s.focusMode);
-  const toggleFocusMode = useAppStore((s) => s.toggleFocusMode);
   const currentProject = useAppStore((s) => s.currentProject);
   const currentChapter = useAppStore((s) => s.currentChapter);
   const appSettings = useAppStore((s) => s.appSettings);
@@ -158,28 +144,10 @@ export function Toolbar({ editor, onSave, onAutoFormat }: ToolbarProps) {
             appSettings={appSettings}
           />
         )}
-        <span className="mx-0.5 h-4 w-px bg-warm-gray/80 dark:bg-warm-gray-dark/80" />
-        <ToolbarButton onClick={toggleLeftSidebar} active={leftSidebarOpen} title="左侧栏 (Ctrl+B)">
-          <PanelLeft size={15} />
-        </ToolbarButton>
-        <ToolbarButton onClick={toggleRightSidebar} active={rightSidebarOpen} title="右侧栏 (Ctrl+Alt+O)">
-          <PanelRight size={15} />
-        </ToolbarButton>
-        <ToolbarButton onClick={toggleFocusMode} active={focusMode} title="专注模式 (Ctrl+Shift+D)">
-          <Focus size={15} />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          title={theme === "light" ? "切换到深色" : "切换到浅色"}
-        >
-          {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
-        </ToolbarButton>
       </div>
     </div>
   );
 }
-
-type ExportFormat = "chapter-md" | "chapter-txt" | "project-html" | "project-md" | "project-txt";
 
 function ExportDropdown({
   project,
@@ -209,22 +177,15 @@ function ExportDropdown({
   const handleExport = async (format: ExportFormat) => {
     setOpen(false);
     try {
-      let result: { canceled: boolean; path?: string };
-      if (format === "project-html" || format === "project-md" || format === "project-txt") {
-        const projectFormat = format === "project-html" ? "html" : format === "project-md" ? "md" : "txt";
-        result = await exportProject(project, volumes, chapters, getChapterContent, appSettings, projectFormat);
-      } else {
-        result = await exportChapter(
-          project,
-          chapter,
-          getChapterContent,
-          format === "chapter-md" ? "md" : "txt",
-          appSettings,
-        );
-      }
-      if (!result.canceled && result.path) {
-        setExported(result.path);
-      }
+      const path = await runExport(format, {
+        project,
+        chapter,
+        volumes,
+        chapters,
+        appSettings,
+        getChapterContent,
+      });
+      if (path) setExported(path);
     } catch (err) {
       console.error("Export failed", err);
       alert(`导出失败：${err instanceof Error ? err.message : String(err)}`);
@@ -234,9 +195,7 @@ function ExportDropdown({
   const openExportedFolder = async () => {
     if (!exported) return;
     try {
-      const dir = await dirname(exported);
-      const err = await revealInFolder(dir);
-      if (err) alert(`无法打开文件夹：${err}`);
+      await revealExportedFile(exported);
     } catch {
       // Browser fallback export (a download) — no folder to open.
     }

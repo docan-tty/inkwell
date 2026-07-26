@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { BookOpen, ChevronDown, ChevronRight, Edit3, GripVertical, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useClickOutside } from "../../hooks/useClickOutside";
@@ -17,10 +17,12 @@ interface VolumeItemProps {
   draggable?: boolean;
   onVolumeDragStart?: () => void;
   onVolumeDragEnd?: () => void;
+  /** 根文件夹模式下图标由外层标题行渲染,行内不再重复。 */
+  hideIcon?: boolean;
   children: React.ReactNode;
 }
 
-export function VolumeItem({
+export const VolumeItem = memo(function VolumeItem({
   volume,
   expanded,
   onToggle,
@@ -32,6 +34,7 @@ export function VolumeItem({
   draggable = false,
   onVolumeDragStart,
   onVolumeDragEnd,
+  hideIcon = false,
   children,
 }: VolumeItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,7 +132,7 @@ export function VolumeItem({
         >
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        <BookOpen size={14} className="shrink-0 text-ink-muted dark:text-ink-muted-dark" />
+        {!hideIcon && <BookOpen size={14} className="shrink-0 text-ink-muted dark:text-ink-muted-dark" />}
         <EditableLabel
           value={volume.title}
           onSave={(title) => onUpdate(volume.id, { title })}
@@ -186,4 +189,4 @@ export function VolumeItem({
       {expanded && children}
     </div>
   );
-}
+});

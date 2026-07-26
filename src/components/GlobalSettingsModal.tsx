@@ -632,9 +632,9 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
                   <div className="grid grid-cols-2 gap-2">
                     <ShortcutItem label="加粗" shortcut={`${modifierKey}+B`} />
                     <ShortcutItem label="斜体" shortcut={`${modifierKey}+I`} />
-                    <ShortcutItem label="标题 1" shortcut={`${modifierKey}+Alt+1`} />
-                    <ShortcutItem label="标题 2" shortcut={`${modifierKey}+Alt+2`} />
-                    <ShortcutItem label="标题 3" shortcut={`${modifierKey}+Alt+3`} />
+                    <ShortcutItem label="标题 1" shortcut={`${modifierKey}+1`} />
+                    <ShortcutItem label="标题 2" shortcut={`${modifierKey}+2`} />
+                    <ShortcutItem label="标题 3" shortcut={`${modifierKey}+3`} />
                     <ShortcutItem label="撤销" shortcut={`${modifierKey}+Z`} />
                     <ShortcutItem label="重做" shortcut={redoShortcut} />
                   </div>

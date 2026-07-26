@@ -3,16 +3,19 @@ import type {
   AppSettings,
   Chapter,
   DictEntry,
+  DocKind,
   LeftSidebarTab,
   Note,
   Project,
   RightPanelTab,
-  ViewMode,
+  RootKind,
   Volume,
 } from "../types";
 import {
   DEFAULT_EDITOR_TYPOGRAPHY,
   DEFAULT_PROJECT_TARGET_WORDS,
+  DEFAULT_ROOTS,
+  ROOT_DEFS,
 } from "../types";
 import {
   getLocalProjectRegistry,
@@ -39,6 +42,8 @@ import { clearDraft } from "../lib/draft";
 import { createSnapshot, removeSnapshots } from "../lib/snapshots";
 import { computeThemeVars, type AccentKey, type PaperKey } from "../lib/theme";
 import { clearProjectStats } from "../lib/stats";
+import { buildProjectIndex, parseDocumentIndex, type ProjectIndex } from "../lib/tags";
+import { mergeDocuments, splitByHeadings } from "../lib/docops";
 
 export function reorderChaptersByVolume(chapters: Chapter[]): Chapter[] {
   const byVolume = new Map<string, Chapter[]>();
@@ -58,6 +63,17 @@ export function reorderChaptersByVolume(chapters: Chapter[]): Chapter[] {
     const list = reordered.get(key)!;
     return list.find((rc) => rc.id === c.id)!;
   });
+}
+
+/** 收集文档及其全部后代 id(文档下可挂子文档)。 */
+export function collectDescendantIds(chapters: Chapter[], rootId: string): string[] {
+  const out: string[] = [];
+  const walk = (id: string) => {
+    out.push(id);
+    for (const c of chapters) if (c.parentId === id) walk(c.id);
+  };
+  walk(rootId);
+  return out;
 }
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -126,10 +142,6 @@ export async function flushPendingMetaSaves(): Promise<void> {
 }
 
 interface AppState {
-  // Navigation
-  view: ViewMode;
-  setView: (view: ViewMode) => void;
-
   // Theme
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark" | "system") => void;
@@ -153,17 +165,25 @@ interface AppState {
   volumes: Volume[];
   chapters: Chapter[];
   currentChapter: Chapter | null;
-  createVolume: (title: string) => Promise<Volume>;
+  createVolume: (title: string, rootKind?: RootKind, parentId?: string | null) => Promise<Volume>;
+  /** 创建缺失的根文件夹(已存在则直接返回)。 */
+  ensureRootVolume: (rootKind: RootKind) => Promise<Volume>;
   updateVolume: (volumeId: string, data: Partial<Volume>) => Promise<void>;
   deleteVolume: (volumeId: string) => Promise<void>;
   moveVolume: (volumeId: string, targetIndex: number) => Promise<void>;
-  createChapter: (volumeId: string | null, title: string) => Promise<Chapter>;
+  createChapter: (volumeId: string | null, title: string, opts?: { parentDocId?: string; kind?: DocKind }) => Promise<Chapter>;
   updateChapter: (chapterId: string, data: Partial<Chapter>) => Promise<void>;
   updateChapterWordCount: (chapterId: string, wordCount: number) => void;
   /** 把「跟随默认」的章节目标字数重置为 0（随新默认值自动生效）。 */
   applyChapterTargetWords: (targetWords: number, previousDefault: number) => void;
   updateChapterContent: (chapterId: string, content: string) => Promise<void>;
   deleteChapter: (chapterId: string) => Promise<void>;
+  /** 移入回收站(连同子文档);无回收站根时自动创建。 */
+  trashChapter: (chapterId: string) => Promise<void>;
+  /** 从回收站恢复到第一个小说根末尾。 */
+  restoreChapter: (chapterId: string) => Promise<void>;
+  /** 清空回收站(永久删除其中全部文档)。 */
+  emptyTrash: () => Promise<void>;
   setCurrentChapter: (chapter: Chapter | null) => Promise<void>;
   moveChapter: (chapterId: string, targetVolumeId: string | null, targetIndex: number) => Promise<void>;
   getChapterContent: (chapterId: string) => Promise<string>;
@@ -188,6 +208,11 @@ interface AppState {
    *  stale buffer afterwards). */
   contentVersion: number;
 
+  /** 标签/引用索引:打开作品与每次保存后增量更新,F9 全量重建。 */
+  tagsIndex: ProjectIndex;
+  /** 全量重建索引(读所有文档正文)。 */
+  rebuildTagsIndex: () => Promise<void>;
+
   // UI
   rightPanelTab: RightPanelTab;
   setRightPanelTab: (tab: RightPanelTab) => void;
@@ -200,6 +225,66 @@ interface AppState {
   toggleRightSidebar: () => void;
   focusMode: boolean;
   toggleFocusMode: () => void;
+
+  // 全局模态/覆盖层开关。原本是 Workspace 的内部 state,菜单栏(App 级)
+  // 需要触发同样的入口,故提升到 store。
+  searchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+  /** 欢迎/项目选择对话框(启动页)。无作品时唯一入口,有作品时可 Esc 关闭。 */
+  welcomeOpen: boolean;
+  setWelcomeOpen: (open: boolean) => void;
+  /** 作品信息编辑对话框的目标作品(null = 关闭)。 */
+  projectEditTarget: Project | null;
+  setProjectEditTarget: (p: Project | null) => void;
+  /** 作品删除确认对话框的目标作品(null = 关闭)。 */
+  projectDeleteTarget: Project | null;
+  setProjectDeleteTarget: (p: Project | null) => void;
+  /** 「关于墨池」对话框。 */
+  aboutOpen: boolean;
+  setAboutOpen: (open: boolean) => void;
+  /** 有待恢复的崩溃草稿(App 层扫描后置位)。欢迎对话框在此期间不显示,
+   *  恢复对话框优先。 */
+  recoveryPending: boolean;
+  setRecoveryPending: (pending: boolean) => void;
+  /** 小说细节对话框。 */
+  projectDetailsOpen: boolean;
+  setProjectDetailsOpen: (open: boolean) => void;
+  /** 文档详情对话框。 */
+  docDetailsOpen: boolean;
+  setDocDetailsOpen: (open: boolean) => void;
+  /** 文档查看器(只读预览)。 */
+  viewerOpen: boolean;
+  setViewerOpen: (open: boolean) => void;
+  /** 项目单词列表对话框。 */
+  projectWordsOpen: boolean;
+  setProjectWordsOpen: (open: boolean) => void;
+  /** 备份确认。 */
+  backupConfirm: boolean;
+  setBackupConfirm: (open: boolean) => void;
+  /** 手稿构建工具。 */
+  manuscriptOpen: boolean;
+  setManuscriptOpen: (open: boolean) => void;
+  /** 写作统计对话框。 */
+  statsOpen: boolean;
+  setStatsOpen: (open: boolean) => void;
+  /** 清空回收站确认。 */
+  emptyTrashConfirm: boolean;
+  setEmptyTrashConfirm: (open: boolean) => void;
+  /** 重命名请求(菜单「重命名项」→ 树内选中项进入编辑态;时间戳触发)。 */
+  renameRequest: number;
+  setRenameRequest: (ts: number) => void;
+  /** 拆分文档对话框目标。 */
+  splitTarget: Chapter | null;
+  setSplitTarget: (c: Chapter | null) => void;
+  /** 合并文档对话框目标(父文档或文件夹卷 id)。 */
+  mergeTarget: { parentId: string; isVolume: boolean } | null;
+  setMergeTarget: (t: { parentId: string; isVolume: boolean } | null) => void;
+  /** 按标题拆分文档:pieces 依次建为同父级新文档,源文档可选移入回收站。 */
+  splitChapter: (chapterId: string, level: 1 | 2 | 3 | 4, trashSource: boolean) => Promise<number>;
+  /** 合并多个文档到一个新文档(挂在目标父级下,源文档移入回收站)。 */
+  mergeChapters: (sourceIds: string[], parentId: string, newTitle: string) => Promise<Chapter | null>;
 
   // Notes (写作笔记) — per-project scratch notes, debounced autosave.
   notes: Note[];
@@ -288,9 +373,6 @@ let preFocusLayout: { left: boolean; right: boolean; tab: RightPanelTab } | null
 let openProjectSeq = 0;
 
 export const useAppStore = create<AppState>((set, get) => ({
-  view: "projects",
-  setView: (view) => set({ view }),
-
   theme: "light",
   setTheme: (theme) => {
     get().updateAppSettings({ theme });
@@ -431,7 +513,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         volumes: loaded.volumes || [],
         chapters,
         currentChapter,
-        view: "editor",
         focusMode: false,
       });
     } else {
@@ -440,9 +521,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         volumes: [],
         chapters: [],
         currentChapter: null,
-        view: "editor",
         focusMode: false,
       });
+    }
+    // 老作品补齐默认根文件夹(小说/情节/角色/位置/归档/回收站);新作品在
+    // 首次打开时同样经此路径创建。已存在的根不会重复创建。
+    if (get().volumes.length === 0) {
+      for (const kind of DEFAULT_ROOTS) {
+        await get().ensureRootVolume(kind);
+      }
+      const novelRoot = get().volumes.find((v) => !v.parentId && (v.rootKind ?? "novel") === "novel");
+      if (novelRoot && get().chapters.length === 0) {
+        await get().createChapter(novelRoot.id, "");
+      }
     }
     const { appSettings } = get();
     const recent = [project.id, ...appSettings.recentProjects.filter((id) => id !== project.id)].slice(0, 10);
@@ -457,6 +548,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const dictEntries = await loadDictFromLocal(project.id, appSettings).catch(() => []);
     if (stale()) return;
     set({ notes, activeNoteId: notes[0]?.id ?? null, dictEntries, activeDictId: dictEntries[0]?.id ?? null });
+    // 打开后异步全量建一次标签索引(不阻塞界面)。
+    void get().rebuildTagsIndex().catch(() => {});
   },
   closeProject: async () => {
     // Invalidate any in-flight openProject so its late resolutions can't
@@ -482,7 +575,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         volumes: [],
         chapters: [],
         currentChapter: null,
-        view: "projects",
         focusMode: false,
         notes: [],
         activeNoteId: null,
@@ -495,21 +587,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   volumes: [],
   chapters: [],
   currentChapter: null,
-  createVolume: async (title) => {
+  createVolume: async (title, rootKind = "novel", parentId = null) => {
     const { currentProject, volumes } = get();
     if (!currentProject) throw new Error("No project open");
+    const siblings = volumes.filter((v) => (v.parentId ?? null) === parentId);
     const volume: Volume = {
       id: generateId(),
       projectId: currentProject.id,
-      title: title || `第 ${volumes.length + 1} 卷`,
-      order: volumes.length,
+      title: title || (parentId ? `文件夹 ${siblings.length + 1}` : ROOT_DEFS[rootKind].label),
+      order: siblings.length,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      rootKind,
+      parentId,
     };
     const nextVolumes = [...volumes, volume];
     set({ volumes: nextVolumes });
     await get().saveCurrentProject();
     return volume;
+  },
+  ensureRootVolume: async (rootKind) => {
+    const { volumes } = get();
+    const existing = volumes.find((v) => !v.parentId && (v.rootKind ?? "novel") === rootKind);
+    if (existing) return existing;
+    return get().createVolume(ROOT_DEFS[rootKind].label, rootKind, null);
   },
   updateVolume: async (volumeId, data) => {
     const nextVolumes = get().volumes.map((v) =>
@@ -565,15 +666,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  createChapter: async (volumeId, title) => {
+  createChapter: async (volumeId, title, opts) => {
     const { currentProject, chapters } = get();
     if (!currentProject) throw new Error("No project open");
-    const volumeChapters = chapters.filter((c) => c.parentId === volumeId);
+    const parentId = opts?.parentDocId ?? volumeId;
+    const volumeChapters = chapters.filter((c) => c.parentId === parentId);
+    const volume = get().volumes.find((v) => v.id === (opts?.parentDocId ? undefined : volumeId));
+    const isNote = opts?.kind === "note" || (volume && (volume.rootKind ?? "novel") !== "novel");
     const chapter: Chapter = {
       id: generateId(),
       projectId: currentProject.id,
-      parentId: volumeId,
-      title: title || `第 ${volumeChapters.length + 1} 章`,
+      parentId,
+      title:
+        title ||
+        (isNote ? `笔记 ${volumeChapters.length + 1}` : `第 ${volumeChapters.length + 1} 章`),
       summary: "",
       order: volumeChapters.length,
       status: "draft",
@@ -583,6 +689,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       notes: "",
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      kind: isNote ? "note" : "novel",
     };
     const nextChapters = [...chapters, chapter];
     set({ chapters: nextChapters, currentChapter: chapter });
@@ -590,6 +697,43 @@ export const useAppStore = create<AppState>((set, get) => ({
     await saveChapterContentToLocal(chapter.id, "", get().appSettings, chapter.title);
     await get().saveCurrentProject();
     return chapter;
+  },
+  splitChapter: async (chapterId, level, trashSource) => {
+    const source = get().chapters.find((c) => c.id === chapterId);
+    if (!source) return 0;
+    const html = await get().getChapterContent(chapterId);
+    const pieces = splitByHeadings(html, level);
+    if (pieces.length === 0) return 0;
+    const parentId = source.parentId;
+    for (const piece of pieces) {
+      const created = await get().createChapter(parentId, piece.title, {
+        parentDocId: parentId ?? undefined,
+        kind: source.kind ?? "novel",
+      });
+      await get().updateChapterContent(created.id, piece.html);
+    }
+    if (trashSource) await get().trashChapter(chapterId);
+    return pieces.length;
+  },
+  mergeChapters: async (sourceIds, parentId, newTitle) => {
+    const { chapters } = get();
+    const sources = sourceIds
+      .map((id) => chapters.find((c) => c.id === id))
+      .filter((c): c is Chapter => Boolean(c));
+    if (sources.length < 2) return null;
+    const contents: string[] = [];
+    for (const s of sources) {
+      contents.push(await get().getChapterContent(s.id));
+    }
+    const merged = await get().createChapter(parentId, newTitle, {
+      parentDocId: parentId,
+      kind: sources[0].kind ?? "novel",
+    });
+    await get().updateChapterContent(merged.id, mergeDocuments(contents));
+    for (const s of sources) {
+      await get().trashChapter(s.id);
+    }
+    return merged;
   },
   updateChapter: async (chapterId, data) => {
     const oldChapter = get().chapters.find((c) => c.id === chapterId);
@@ -636,6 +780,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     const wordCount = countWords(text, appSettings.includePunctuationInWordCount);
     get().updateChapterWordCount(chapterId, wordCount);
     set({ lastSavedAt: Date.now(), saveError: null });
+    // 标签索引增量更新:只重解析这一篇,汇总全作品的 tag 表。
+    {
+      const chapter = get().chapters.find((c) => c.id === chapterId);
+      if (chapter) {
+        const prev = get().tagsIndex;
+        const docs = new Map(prev.docs);
+        docs.set(chapterId, parseDocumentIndex(chapterId, content));
+        const tags = new Map(prev.tags);
+        // 先摘除该文档旧的 tag,再挂新的。
+        for (const [key, entry] of tags) if (entry.chapterId === chapterId) tags.delete(key);
+        const rootKind = chapter.parentId
+          ? (get().volumes.find((v) => v.id === chapter.parentId)?.rootKind ?? "novel")
+          : (chapter.rootKey ?? "novel");
+        for (const h of docs.get(chapterId)!.headings) {
+          if (!h.tag) continue;
+          const display = (h as { display?: string }).display;
+          tags.set(h.tag.toLowerCase(), {
+            tag: h.tag,
+            display: display || h.tag,
+            chapterId,
+            chapterTitle: chapter.title,
+            rootKind,
+          });
+        }
+        set({ tagsIndex: { tags, docs } });
+      }
+    }
 
     // Version snapshots: at most one per SNAPSHOT_INTERVAL_MS per chapter,
     // only when the content actually changed since the last snapshot.
@@ -652,15 +823,69 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   deleteChapter: async (chapterId) => {
     const { chapters, appSettings } = get();
+    const title = chapters.find((c) => c.id === chapterId)?.title;
+    // Deleting is destructive: first land the autosave debounce window's last
+    // buffer so the draft channel does not lose the user's final keystrokes if
+    // they immediately empty the trash.
+    const pending = pendingChapterContent.get(chapterId);
+    if (pending) {
+      await saveChapterContentToLocal(chapterId, pending.content, appSettings, title);
+      clearDraft(chapterId);
+      pendingChapterContent.delete(chapterId);
+    }
     const nextChapters = reorderChaptersByVolume(chapters.filter((c) => c.id !== chapterId));
     set({ chapters: nextChapters });
     if (get().currentChapter?.id === chapterId) set({ currentChapter: null });
     pendingChapterContent.delete(chapterId);
     clearDraft(chapterId);
     await removeSnapshots(chapterId, appSettings);
-    const title = chapters.find((c) => c.id === chapterId)?.title;
     await removeChapterContentFromLocal(chapterId, appSettings, title);
     await get().saveCurrentProject();
+  },
+  trashChapter: async (chapterId) => {
+    const trash = await get().ensureRootVolume("trash");
+    const { chapters } = get();
+    // 连同全部后代一起移入回收站;顶层项挂到回收站根,后代保持相对父子关系。
+    const ids = new Set(collectDescendantIds(chapters, chapterId));
+    const targetOrder = chapters.filter((c) => c.parentId === trash.id).length;
+    const nextChapters = reorderChaptersByVolume(
+      chapters.map((c) =>
+        c.id === chapterId ? { ...c, parentId: trash.id, order: targetOrder } : c,
+      ),
+    );
+    set({ chapters: nextChapters });
+    if (ids.has(get().currentChapter?.id ?? "")) set({ currentChapter: null });
+    await get().saveCurrentProject();
+  },
+  restoreChapter: async (chapterId) => {
+    const novel = await get().ensureRootVolume("novel");
+    const { chapters } = get();
+    const targetOrder = chapters.filter((c) => c.parentId === novel.id).length;
+    const nextChapters = reorderChaptersByVolume(
+      chapters.map((c) => (c.id === chapterId ? { ...c, parentId: novel.id, order: targetOrder } : c)),
+    );
+    set({ chapters: nextChapters });
+    await get().saveCurrentProject();
+  },
+  emptyTrash: async () => {
+    const { volumes, chapters } = get();
+    const trash = volumes.find((v) => !v.parentId && (v.rootKind ?? "novel") === "trash");
+    if (!trash) return;
+    // 回收站根下的全部文档及其后代。
+    const inTrash = new Set<string>();
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const c of chapters) {
+        if (!inTrash.has(c.id) && c.parentId && (c.parentId === trash.id || inTrash.has(c.parentId))) {
+          inTrash.add(c.id);
+          grew = true;
+        }
+      }
+    }
+    for (const id of inTrash) {
+      await get().deleteChapter(id);
+    }
   },
   setCurrentChapter: async (chapter) => {
     const prev = get().currentChapter;
@@ -727,6 +952,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     return { replaced: result.replaced, skipped: result.skipped };
   },
   contentVersion: 0,
+  tagsIndex: { tags: new Map(), docs: new Map() },
+  rebuildTagsIndex: async () => {
+    const { chapters, volumes, appSettings } = get();
+    const docs = await Promise.all(
+      chapters.map(async (c) => ({
+        chapter: c,
+        html: await loadChapterContentFromLocal(c.id, appSettings, c.title).catch(() => ""),
+      })),
+    );
+    set({ tagsIndex: buildProjectIndex(docs, volumes) });
+  },
   restoreChapterContent: async (chapterId, content) => {
     // Same persistence path as a normal save, minus the snapshot policy —
     // restoring a recovery draft should not itself create a snapshot.
@@ -784,6 +1020,43 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastSavedAt: 0,
   saveError: null,
   dismissSaveError: () => set({ saveError: null }),
+
+  searchOpen: false,
+  setSearchOpen: (open) => set({ searchOpen: open }),
+  settingsOpen: false,
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
+  welcomeOpen: true,
+  setWelcomeOpen: (open) => set({ welcomeOpen: open }),
+  projectEditTarget: null,
+  setProjectEditTarget: (p) => set({ projectEditTarget: p }),
+  projectDeleteTarget: null,
+  setProjectDeleteTarget: (p) => set({ projectDeleteTarget: p }),
+  aboutOpen: false,
+  setAboutOpen: (open) => set({ aboutOpen: open }),
+  recoveryPending: false,
+  setRecoveryPending: (pending) => set({ recoveryPending: pending }),
+  projectDetailsOpen: false,
+  setProjectDetailsOpen: (open) => set({ projectDetailsOpen: open }),
+  docDetailsOpen: false,
+  setDocDetailsOpen: (open) => set({ docDetailsOpen: open }),
+  viewerOpen: false,
+  setViewerOpen: (open) => set({ viewerOpen: open }),
+  projectWordsOpen: false,
+  setProjectWordsOpen: (open) => set({ projectWordsOpen: open }),
+  backupConfirm: false,
+  setBackupConfirm: (open) => set({ backupConfirm: open }),
+  manuscriptOpen: false,
+  setManuscriptOpen: (open) => set({ manuscriptOpen: open }),
+  statsOpen: false,
+  setStatsOpen: (open) => set({ statsOpen: open }),
+  emptyTrashConfirm: false,
+  setEmptyTrashConfirm: (open) => set({ emptyTrashConfirm: open }),
+  renameRequest: 0,
+  setRenameRequest: (ts) => set({ renameRequest: ts }),
+  splitTarget: null,
+  setSplitTarget: (c) => set({ splitTarget: c }),
+  mergeTarget: null,
+  setMergeTarget: (t) => set({ mergeTarget: t }),
 
   // --- Notes --------------------------------------------------------------
   notes: [],
@@ -877,6 +1150,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 // the seq captured at schedule time against the pending map's current seq:
 // if a newer keystroke landed (or a flush already wrote the content), this
 // stale timer silently stands down instead of overwriting with older bytes.
+const AUTOSAVE_DELAY_MS = 1500;
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function cancelAutoSave() {
@@ -904,7 +1178,7 @@ export function scheduleAutoSave(chapterId: string, content: string) {
           saveError: err instanceof Error ? err.message : String(err),
         });
       });
-  }, 3000);
+  }, AUTOSAVE_DELAY_MS);
 }
 
 // Debounced persistence for the notes list of the open project. The payload

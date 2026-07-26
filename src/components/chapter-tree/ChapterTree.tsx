@@ -1,9 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, ChevronsUpDown, Plus } from "lucide-react";
+import {
+  Archive,
+  BookMarked,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  Clock,
+  FolderPlus,
+  Globe,
+  Layers,
+  MapPin,
+  Package,
+  Plus,
+  Sparkles,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useAppStore } from "../../store";
-import type { Chapter, Volume } from "../../types";
+import type { Chapter, RootKind, Volume } from "../../types";
+import { ROOT_DEFS, ROOT_KIND_ORDER } from "../../types";
+import { chapterRootKind } from "../../lib/docs";
 import { ChapterItem } from "./ChapterItem";
-import { VolumeItem } from "./VolumeItem";
 import { DropTarget } from "./DropTarget";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { cn } from "../../lib/utils";
@@ -17,18 +35,36 @@ type DropPosition = {
   index: number;
 } | null;
 
+const ROOT_ICONS: Record<RootKind, React.ReactNode> = {
+  novel: <BookOpen size={14} />,
+  plot: <Sparkles size={14} />,
+  characters: <Users size={14} />,
+  locations: <MapPin size={14} />,
+  timeline: <Clock size={14} />,
+  objects: <Package size={14} />,
+  entities: <Globe size={14} />,
+  custom: <BookMarked size={14} />,
+  templates: <Layers size={14} />,
+  archive: <Archive size={14} />,
+  trash: <Trash2 size={14} />,
+};
+
+/** 项目内容树(novelWriter 式):按根文件夹(小说/情节/角色/位置/归档/回收站…)
+ *  分组,每个根下是文件夹与文档的层级,文档显示字数与状态点,支持拖拽
+ *  排序、拖入回收站、新建根文件夹/子文件夹/文档。 */
 export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
-  // Selector subscriptions — a whole-store subscription would re-render the
-  // tree (and its O(V·C) grouping) on every keystroke's word-count bump.
   const volumes = useAppStore((s) => s.volumes);
   const chapters = useAppStore((s) => s.chapters);
   const currentChapterId = useAppStore((s) => s.currentChapter?.id);
+  const ensureRootVolume = useAppStore((s) => s.ensureRootVolume);
   const createVolume = useAppStore((s) => s.createVolume);
   const createChapter = useAppStore((s) => s.createChapter);
-  const updateVolume = useAppStore((s) => s.updateVolume);
   const updateChapter = useAppStore((s) => s.updateChapter);
   const deleteVolume = useAppStore((s) => s.deleteVolume);
-  const deleteChapter = useAppStore((s) => s.deleteChapter);
+  const trashChapter = useAppStore((s) => s.trashChapter);
+  const restoreChapter = useAppStore((s) => s.restoreChapter);
+  const emptyTrash = useAppStore((s) => s.emptyTrash);
+  const renameRequest = useAppStore((s) => s.renameRequest);
   const moveChapter = useAppStore((s) => s.moveChapter);
   const moveVolume = useAppStore((s) => s.moveVolume);
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(
@@ -40,12 +76,24 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
   const [draggingVolumeId, setDraggingVolumeId] = useState<string | null>(null);
   const [deletingChapter, setDeletingChapter] = useState<Chapter | null>(null);
   const [deletingVolume, setDeletingVolume] = useState<Volume | null>(null);
+  const [addRootOpen, setAddRootOpen] = useState(false);
+  const [emptyTrashConfirm, setEmptyTrashConfirm] = useState(false);
+  const addRootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sortedVolumes = [...volumes].sort((a, b) => a.order - b.order);
+
+  // 顶层根文件夹,按 ROOT_KIND_ORDER 稳定排序(novel 总在最前,trash 最后),
+  // 同类多个(如两部小说)按 order。
+  const roots = useMemo(() => {
+    const top = volumes.filter((v) => !v.parentId);
+    const kindRank = (v: Volume) => ROOT_KIND_ORDER.indexOf(v.rootKind ?? "novel");
+    return top.sort((a, b) => kindRank(a) - kindRank(b) || a.order - b.order);
+  }, [volumes]);
+
+  const trashRoot = roots.find((v) => (v.rootKind ?? "novel") === "trash");
+  const trashCount = trashRoot ? chapters.filter((c) => c.parentId === trashRoot.id).length : 0;
 
   // Keep the selected chapter visible: scroll it into view and make sure its
-  // parent volume is expanded (C4 — opening a project jumps to the most
-  // recently edited chapter, which may live in a collapsed volume).
+  // parent volume is expanded.
   useEffect(() => {
     if (!currentChapterId) return;
     const currentChapter = useAppStore.getState().chapters.find((c) => c.id === currentChapterId);
@@ -78,23 +126,15 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
   };
 
   const allExpanded = volumes.length > 0 && volumes.every((v) => expandedVolumes.has(v.id));
-
   const toggleAll = () => {
-    if (allExpanded) {
-      setExpandedVolumes(new Set());
-    } else {
-      setExpandedVolumes(new Set(volumes.map((v) => v.id)));
-    }
+    if (allExpanded) setExpandedVolumes(new Set());
+    else setExpandedVolumes(new Set(volumes.map((v) => v.id)));
   };
 
-  // Chapters grouped by volume, sorted once per chapters change — NOT per
-  // render. Word-count updates replace the chapters array on every typing
-  // pause, so recomputing this O(V·C) filter+sort inline was the hottest
-  // wasted work in the tree.
-  const chaptersByVolume = useMemo(() => {
-    const map = new Map<string | null, Chapter[]>();
+  const chaptersByParent = useMemo(() => {
+    const map = new Map<string, Chapter[]>();
     for (const c of chapters) {
-      const key = c.parentId;
+      const key = c.parentId ?? "";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(c);
     }
@@ -102,118 +142,99 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
     return map;
   }, [chapters]);
 
-  const volumeChapters = (volumeId: string | null) =>
-    chaptersByVolume.get(volumeId) ?? [];
+  const childrenOf = (parentId: string) => chaptersByParent.get(parentId) ?? [];
 
-  const orphanedChapters = volumeChapters(null);
-
-  const handleDragStart = (chapterId: string) => {
-    setDraggingChapterId(chapterId);
-  };
-
-  const handleDragEnd = () => {
-    setDraggingChapterId(null);
-    setActiveDrop(null);
-  };
-
-  // While a drag is in progress, auto-scroll the tree when the pointer
-  // nears the top/bottom edge — otherwise long lists can't be reordered
-  // past the visible window.
   const handleListDragOver = (e: React.DragEvent) => {
     const el = scrollRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const margin = 48;
     const speed = 12;
-    if (e.clientY < rect.top + margin) {
-      el.scrollTop -= speed;
-    } else if (e.clientY > rect.bottom - margin) {
-      el.scrollTop += speed;
-    }
+    if (e.clientY < rect.top + margin) el.scrollTop -= speed;
+    else if (e.clientY > rect.bottom - margin) el.scrollTop += speed;
   };
 
   const handleDrop = (volumeId: string | null, index: number) => {
-    if (draggingChapterId) {
-      moveChapter(draggingChapterId, volumeId, index);
-    }
+    if (draggingChapterId) moveChapter(draggingChapterId, volumeId, index);
     setDraggingChapterId(null);
     setActiveDrop(null);
   };
 
   const handleVolumeDrop = (index: number) => {
-    if (draggingVolumeId) {
-      moveVolume(draggingVolumeId, index);
-    }
+    if (draggingVolumeId) moveVolume(draggingVolumeId, index);
     setDraggingVolumeId(null);
     setVolumeDropIndex(null);
   };
 
-  const renderChapterList = (volumeId: string | null) => {
-    const children = volumeChapters(volumeId);
-    const isExpanded = volumeId === null || expandedVolumes.has(volumeId);
-    if (!isExpanded) return null;
-
-    return (
-      <div className="ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark">
-        {children.length === 0 ? (
+  /** 渲染某父级(卷或文档)下的文档列表,递归处理文档的子文档。 */
+  const renderChapterList = (parentId: string, depth: number) => {
+    const children = childrenOf(parentId);
+    if (children.length === 0) {
+      return (
+        <div
+          className="ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark"
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+            setActiveDrop({ volumeId: parentId, index: 0 });
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData("inkwell/chapter-id");
+            if (id) moveChapter(id, parentId, 0);
+            setActiveDrop(null);
+            setDraggingChapterId(null);
+          }}
+        >
           <div
-            onDragEnter={(e) => {
-              e.preventDefault();
-              setActiveDrop({ volumeId, index: 0 });
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              setActiveDrop(null);
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              const id = e.dataTransfer.getData("inkwell/chapter-id");
-              if (id) moveChapter(id, volumeId, 0);
-              setActiveDrop(null);
-              setDraggingChapterId(null);
-            }}
             className={cn(
-              "rounded-md px-2 py-3 text-center text-xs text-ink-muted transition-colors dark:text-ink-muted-dark",
-              activeDrop?.volumeId === volumeId && activeDrop?.index === 0
-                ? "bg-warm-gray text-ink dark:bg-warm-gray-dark dark:text-ink-dark"
-                : "",
+              "rounded-md px-2 py-2 text-center text-xs text-ink-muted transition-colors dark:text-ink-muted-dark",
+              activeDrop?.volumeId === parentId ? "bg-warm-gray text-ink dark:bg-warm-gray-dark dark:text-ink-dark" : "",
             )}
           >
-            拖拽章节到此处
+            拖拽文档到此处
           </div>
-        ) : (
-          <>
-            <DropTarget
-              active={activeDrop?.volumeId === volumeId && activeDrop?.index === 0}
-              onDrop={() => handleDrop(volumeId, 0)}
-              onDragOver={(active) => setActiveDrop(active ? { volumeId, index: 0 } : null)}
-            />
-            {children.map((chapter, idx) => (
-              <div key={chapter.id} data-chapter-id={chapter.id}>
-                <ChapterItem
-                  chapter={chapter}
-                  active={currentChapterId === chapter.id}
-                  onSelect={() => onSelectChapter(chapter)}
-                  onUpdate={updateChapter}
-                  onDelete={() => setDeletingChapter(chapter)}
-                  onDragStart={() => handleDragStart(chapter.id)}
-                  onDragEnd={handleDragEnd}
-                />
-                <DropTarget
-                  active={activeDrop?.volumeId === volumeId && activeDrop?.index === idx + 1}
-                  onDrop={() => handleDrop(volumeId, idx + 1)}
-                  onDragOver={(active) =>
-                    setActiveDrop(active ? { volumeId, index: idx + 1 } : null)
-                  }
-                />
-              </div>
-            ))}
-          </>
-        )}
+        </div>
+      );
+    }
+    return (
+      <div className={cn(depth >= 0 && "ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark")}>
+        <DropTarget
+          active={activeDrop?.volumeId === parentId && activeDrop?.index === 0}
+          onDrop={() => handleDrop(parentId, 0)}
+          onDragOver={(active) => setActiveDrop(active ? { volumeId: parentId, index: 0 } : null)}
+        />
+        {children.map((chapter, idx) => {
+          const kids = childrenOf(chapter.id);
+          return (
+            <div key={chapter.id} data-chapter-id={chapter.id}>
+              <ChapterItem
+                chapter={chapter}
+                active={currentChapterId === chapter.id}
+                inTrash={chapterRootKind(chapter, volumes) === "trash"}
+                onSelect={() => onSelectChapter(chapter)}
+                onUpdate={updateChapter}
+                onDelete={() => setDeletingChapter(chapter)}
+                onTrash={() => void trashChapter(chapter.id)}
+                onRestore={() => void restoreChapter(chapter.id)}
+                renameSignal={renameRequest}
+                onDragStart={() => setDraggingChapterId(chapter.id)}
+                onDragEnd={() => {
+                  setDraggingChapterId(null);
+                  setActiveDrop(null);
+                }}
+              />
+              {kids.length > 0 && renderChapterList(chapter.id, depth + 1)}
+              <DropTarget
+                active={activeDrop?.volumeId === parentId && activeDrop?.index === idx + 1}
+                onDrop={() => handleDrop(parentId, idx + 1)}
+                onDragOver={(active) =>
+                  setActiveDrop(active ? { volumeId: parentId, index: idx + 1 } : null)
+                }
+              />
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -221,8 +242,8 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
   return (
     <div className="flex h-full flex-col bg-paper dark:bg-paper-dark">
       <div className="flex h-11 items-center justify-between border-b border-warm-gray px-3 dark:border-warm-gray-dark">
-        <span className="text-sm font-medium text-ink dark:text-ink-dark">目录</span>
-        <div className="flex gap-1">
+        <span className="text-sm font-medium text-ink dark:text-ink-dark">项目内容</span>
+        <div className="flex items-center gap-1">
           <button
             onClick={toggleAll}
             className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 transition-colors hover:bg-warm-gray dark:text-ink-dark/70 dark:hover:bg-warm-gray-dark"
@@ -230,17 +251,37 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
           >
             <ChevronsUpDown size={14} />
           </button>
+          <div ref={addRootRef} className="relative">
+            <button
+              onClick={() => setAddRootOpen(!addRootOpen)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 transition-colors hover:bg-warm-gray dark:text-ink-dark/70 dark:hover:bg-warm-gray-dark"
+              title="添加根文件夹"
+            >
+              <FolderPlus size={14} />
+            </button>
+            {addRootOpen && (
+              <AddRootMenu
+                existing={new Set(roots.map((v) => v.rootKind ?? "novel"))}
+                onPick={(kind, alreadyExists) => {
+                  setAddRootOpen(false);
+                  if (alreadyExists) {
+                    const count = roots.filter((v) => (v.rootKind ?? "novel") === kind).length;
+                    void createVolume(`${ROOT_DEFS[kind].label} ${count + 1}`, kind, null);
+                  } else {
+                    void ensureRootVolume(kind);
+                  }
+                }}
+                onClose={() => setAddRootOpen(false)}
+              />
+            )}
+          </div>
           <button
-            onClick={() => createVolume("")}
+            onClick={() => {
+              const novelRoot = roots.find((v) => (v.rootKind ?? "novel") === "novel");
+              if (novelRoot) void createChapter(novelRoot.id, "");
+            }}
             className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 transition-colors hover:bg-warm-gray dark:text-ink-dark/70 dark:hover:bg-warm-gray-dark"
-            title="新建卷"
-          >
-            <BookOpen size={14} />
-          </button>
-          <button
-            onClick={() => createChapter(null, "")}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 transition-colors hover:bg-warm-gray dark:text-ink-dark/70 dark:hover:bg-warm-gray-dark"
-            title="新建章节 (Ctrl+N)"
+            title="新建文档 (Ctrl+N)"
           >
             <Plus size={16} />
           </button>
@@ -248,100 +289,191 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
       </div>
 
       <div ref={scrollRef} onDragOver={handleListDragOver} className="flex-1 overflow-y-auto p-2">
-        {volumes.length === 0 && orphanedChapters.length === 0 && (
+        {roots.length === 0 && (
           <div className="mt-8 px-3 text-sm leading-relaxed text-ink-muted dark:text-ink-muted-dark">
-            还没有章节。
+            还没有内容。
             <br />
-            点击上方按钮创建卷或章节。
+            点击上方 FolderPlus 添加根文件夹。
           </div>
         )}
 
-        {/* Volume-level drop indicator before the first volume */}
-        {sortedVolumes.length > 1 && (
-          <DropTarget
-            active={volumeDropIndex === 0}
-            onDrop={() => handleVolumeDrop(0)}
-            onDragOver={(active) => setVolumeDropIndex(active ? 0 : null)}
-            accepts="inkwell/volume-id"
-          />
-        )}
-
-        {sortedVolumes.map((volume, idx) => (
-          <div key={volume.id} className="mb-1">
-            <VolumeItem
-              volume={volume}
-              expanded={expandedVolumes.has(volume.id)}
-              onToggle={() => toggleVolume(volume.id)}
-              onUpdate={updateVolume}
-              onDelete={() => setDeletingVolume(volume)}
-              onAddChapter={() => {
-                expandVolume(volume.id);
-                createChapter(volume.id, "");
-              }}
-              onDropChapter={(chapterId) => {
-                expandVolume(volume.id);
-                moveChapter(chapterId, volume.id, 0);
-              }}
-              onDragEnter={() => expandVolume(volume.id)}
-              draggable={sortedVolumes.length > 1}
-              onVolumeDragStart={() => setDraggingVolumeId(volume.id)}
-              onVolumeDragEnd={() => {
-                setDraggingVolumeId(null);
-                setVolumeDropIndex(null);
-              }}
-            >
-              {renderChapterList(volume.id)}
-            </VolumeItem>
-            {sortedVolumes.length > 1 && (
-              <DropTarget
-                active={volumeDropIndex === idx + 1}
-                onDrop={() => handleVolumeDrop(idx + 1)}
-                onDragOver={(active) => setVolumeDropIndex(active ? idx + 1 : null)}
-                accepts="inkwell/volume-id"
-              />
-            )}
-          </div>
-        ))}
-
-        {orphanedChapters.length > 0 && (
-          <div className="mt-2">
-            <div className="px-2 py-1 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
-              未分类章节
+        {roots.map((volume, idx) => {
+          const kind = volume.rootKind ?? "novel";
+          const isTrash = kind === "trash";
+          return (
+            <div key={volume.id} className="mb-1">
+              {roots.length > 1 && idx === 0 && (
+                <DropTarget
+                  active={volumeDropIndex === 0}
+                  onDrop={() => handleVolumeDrop(0)}
+                  onDragOver={(active) => setVolumeDropIndex(active ? 0 : null)}
+                  accepts="inkwell/volume-id"
+                />
+              )}
+              <div
+                className={cn(
+                  "group flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-ink transition-colors dark:text-ink-dark",
+                  "hover:bg-warm-gray dark:hover:bg-warm-gray-dark",
+                )}
+                draggable={roots.filter((v) => (v.rootKind ?? "novel") === kind).length > 1}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("inkwell/volume-id", volume.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  setDraggingVolumeId(volume.id);
+                }}
+                onDragEnd={() => {
+                  setDraggingVolumeId(null);
+                  setVolumeDropIndex(null);
+                }}
+                onDragEnter={(e) => {
+                  if (e.dataTransfer.types.includes("inkwell/volume-id")) return;
+                  e.preventDefault();
+                  expandVolume(volume.id);
+                }}
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes("inkwell/volume-id")) return;
+                  e.preventDefault();
+                  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  if (e.dataTransfer.types.includes("inkwell/volume-id")) return;
+                  e.preventDefault();
+                  expandVolume(volume.id);
+                  const chapterId = e.dataTransfer.getData("inkwell/chapter-id");
+                  if (chapterId) moveChapter(chapterId, volume.id, 0);
+                }}
+              >
+                <button
+                  onClick={() => toggleVolume(volume.id)}
+                  className="flex h-5 w-5 shrink-0 items-center justify-center text-ink-muted dark:text-ink-muted-dark"
+                  title={expandedVolumes.has(volume.id) ? "折叠" : "展开"}
+                >
+                  {expandedVolumes.has(volume.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+                <span className="shrink-0 text-ink-muted dark:text-ink-muted-dark">{ROOT_ICONS[kind]}</span>
+                <span className="min-w-0 flex-1 truncate">{volume.title}</span>
+                {isTrash && trashCount > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEmptyTrashConfirm(true);
+                    }}
+                    className="rounded px-1 py-0.5 text-[10px] text-red-600/80 transition-colors hover:bg-red-500/10 dark:text-red-400/80"
+                    title="清空回收站"
+                  >
+                    清空
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    expandVolume(volume.id);
+                    void createChapter(volume.id, "", { kind: ROOT_DEFS[kind].docKind === "note" ? "note" : "novel" });
+                  }}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+                  title="在此处新建文档"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              {expandedVolumes.has(volume.id) && renderChapterList(volume.id, -1)}
+              {roots.length > 1 && (
+                <DropTarget
+                  active={volumeDropIndex === idx + 1}
+                  onDrop={() => handleVolumeDrop(idx + 1)}
+                  onDragOver={(active) => setVolumeDropIndex(active ? idx + 1 : null)}
+                  accepts="inkwell/volume-id"
+                />
+              )}
             </div>
-            {renderChapterList(null)}
-          </div>
-        )}
+          );
+        })}
       </div>
 
       <ConfirmDialog
         open={deletingChapter !== null}
-        title={`删除章节「${deletingChapter?.title ?? ""}」？`}
-        message="章节正文将被永久删除，此操作不可撤销。"
+        title={`永久删除「${deletingChapter?.title ?? ""}」?`}
+        message="文档正文将被永久删除,此操作不可撤销。若只想移除,可改为移入回收站。"
         confirmLabel="永久删除"
         onConfirm={() => {
-          if (deletingChapter) deleteChapter(deletingChapter.id);
+          if (deletingChapter) {
+            void useAppStore.getState().deleteChapter(deletingChapter.id);
+          }
           setDeletingChapter(null);
         }}
         onCancel={() => setDeletingChapter(null)}
       />
       <ConfirmDialog
         open={deletingVolume !== null}
-        title={`删除卷「${deletingVolume?.title ?? ""}」？`}
+        title={`删除文件夹「${deletingVolume?.title ?? ""}」?`}
         message={(() => {
           const count = deletingVolume
             ? chapters.filter((c) => c.parentId === deletingVolume.id).length
             : 0;
           return count > 0
-            ? `将同时删除该卷下的 ${count} 个章节及其全部正文，此操作不可撤销。`
+            ? `将同时删除其中的 ${count} 个文档及其全部正文,此操作不可撤销。`
             : "此操作不可撤销。";
         })()}
         confirmLabel="永久删除"
         onConfirm={() => {
-          if (deletingVolume) deleteVolume(deletingVolume.id);
+          if (deletingVolume) void deleteVolume(deletingVolume.id);
           setDeletingVolume(null);
         }}
         onCancel={() => setDeletingVolume(null)}
       />
+      <ConfirmDialog
+        open={emptyTrashConfirm}
+        title="清空回收站?"
+        message={`回收站中的 ${trashCount} 个文档及其正文将被永久删除,此操作不可撤销。`}
+        confirmLabel="清空回收站"
+        onConfirm={() => {
+          void emptyTrash();
+          setEmptyTrashConfirm(false);
+        }}
+        onCancel={() => setEmptyTrashConfirm(false)}
+      />
+    </div>
+  );
+}
+
+/** 添加根文件夹的下拉:列出尚未存在的根类型(小说/自定义可多个,其余唯一)。 */
+function AddRootMenu({
+  existing,
+  onPick,
+  onClose,
+}: {
+  existing: Set<RootKind>;
+  onPick: (kind: RootKind, alreadyExists: boolean) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [onClose]);
+  // 每种根类型都可以有多个(novelWriter 允许多个小说根),唯独回收站唯一。
+  const candidates = ROOT_KIND_ORDER.filter((k) => k !== "trash" || !existing.has("trash"));
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-8 z-20 w-36 rounded-lg border border-warm-gray bg-paper py-1 shadow-lg dark:border-warm-gray-dark dark:bg-paper-dark"
+    >
+      {candidates.map((kind) => (
+        <button
+          key={kind}
+          onClick={() => onPick(kind, existing.has(kind))}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors hover:bg-warm-gray dark:text-ink-dark dark:hover:bg-warm-gray-dark"
+        >
+          {ROOT_ICONS[kind]}
+          {ROOT_DEFS[kind].label}
+          {existing.has(kind) && kind !== "trash" && (
+            <span className="ml-auto text-[10px] text-ink-muted dark:text-ink-muted-dark">再建一个</span>
+          )}
+        </button>
+      ))}
     </div>
   );
 }

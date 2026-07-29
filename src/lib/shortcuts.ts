@@ -99,8 +99,8 @@ export function parsedToString(p: ParsedKeys): string {
   if (p.alt) mods.push("Alt");
   if (p.shift) mods.push("Shift");
   if (p.meta) mods.push("Meta");
-  const main = p.key.length === 1 ? p.key.toUpperCase() : p.key;
-  return [...mods, main].join("+");
+  // 主键统一大写存储（Del→DEL、F2→F2、s→S），显示层无需再加工。
+  return [...mods, p.key.toUpperCase()].join("+");
 }
 
 /** 事件是否命中按键串（Ctrl 与 Meta 互通——mac 的 ⌘ 对应 Win 的 Ctrl）。 */
@@ -128,7 +128,7 @@ export function shortcutFor(
   return custom && normalizeKeys(custom) ? custom : def.defaultKeys;
 }
 
-/** 展示用按键串：mac 上 Ctrl 显示为 ⌘，主键单字符大写。 */
+/** 展示用按键串：mac 上 Ctrl 显示为 ⌘，主键统一大写。 */
 export function displayKeys(raw: string, isMac: boolean): string {
   const p = normalizeKeys(raw);
   if (!p) return raw;
@@ -136,6 +136,5 @@ export function displayKeys(raw: string, isMac: boolean): string {
   if (p.ctrl || p.meta) mods.push(isMac ? "⌘" : "Ctrl");
   if (p.alt) mods.push(isMac ? "⌥" : "Alt");
   if (p.shift) mods.push(isMac ? "⇧" : "Shift");
-  const main = p.key.length === 1 ? p.key.toUpperCase() : p.key;
-  return [...mods, main].join("+");
+  return [...mods, p.key.toUpperCase()].join("+");
 }

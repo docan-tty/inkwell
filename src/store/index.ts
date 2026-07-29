@@ -621,10 +621,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   deleteVolume: async (volumeId) => {
     const { volumes, chapters, appSettings } = get();
+    // 级联收集整棵子树:卷可嵌套(小说根下的卷/子卷),删除时子卷一并移除,
+    // 否则子卷会变成指向已删父级的孤儿。
+    const doomedVolumeIds = new Set<string>([volumeId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const v of volumes) {
+        if (v.parentId && doomedVolumeIds.has(v.parentId) && !doomedVolumeIds.has(v.id)) {
+          doomedVolumeIds.add(v.id);
+          grew = true;
+        }
+      }
+    }
     const nextVolumes = volumes
-      .filter((v) => v.id !== volumeId)
+      .filter((v) => !doomedVolumeIds.has(v.id))
       .map((v, idx) => ({ ...v, order: idx }));
-    const doomedChapters = chapters.filter((c) => c.parentId === volumeId);
+    // 直接挂在被删卷下的文档 + 这些文档自己的后代文档(文档下可挂子文档)。
+    const doomedChapterIds = new Set<string>();
+    for (const c of chapters) {
+      if (c.parentId && doomedVolumeIds.has(c.parentId)) {
+        for (const id of collectDescendantIds(chapters, c.id)) doomedChapterIds.add(id);
+      }
+    }
+    const doomedChapters = chapters.filter((c) => doomedChapterIds.has(c.id));
     await Promise.all(
       doomedChapters.map(async (c) => {
         pendingChapterContent.delete(c.id);
@@ -633,7 +653,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         await removeChapterContentFromLocal(c.id, appSettings, c.title);
       }),
     );
-    const nextChapters = reorderChaptersByVolume(chapters.filter((c) => c.parentId !== volumeId));
+    const nextChapters = reorderChaptersByVolume(
+      chapters.filter((c) => !doomedChapterIds.has(c.id)),
+    );
     set({ volumes: nextVolumes, chapters: nextChapters });
     if (doomedChapters.some((c) => c.id === get().currentChapter?.id)) {
       set({ currentChapter: null });
@@ -871,13 +893,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { volumes, chapters } = get();
     const trash = volumes.find((v) => !v.parentId && (v.rootKind ?? "novel") === "trash");
     if (!trash) return;
-    // 回收站根下的全部文档及其后代。
+    // 回收站根下的全部子卷(卷可嵌套,需级联收集)。
+    const trashVolumeIds = new Set<string>([trash.id]);
+    let grewV = true;
+    while (grewV) {
+      grewV = false;
+      for (const v of volumes) {
+        if (v.parentId && trashVolumeIds.has(v.parentId) && !trashVolumeIds.has(v.id)) {
+          trashVolumeIds.add(v.id);
+          grewV = true;
+        }
+      }
+    }
+    // 回收站卷里的全部文档及其后代(文档下可挂子文档)。
     const inTrash = new Set<string>();
     let grew = true;
     while (grew) {
       grew = false;
       for (const c of chapters) {
-        if (!inTrash.has(c.id) && c.parentId && (c.parentId === trash.id || inTrash.has(c.parentId))) {
+        if (!inTrash.has(c.id) && c.parentId && (trashVolumeIds.has(c.parentId) || inTrash.has(c.parentId))) {
           inTrash.add(c.id);
           grew = true;
         }
@@ -885,6 +919,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     for (const id of inTrash) {
       await get().deleteChapter(id);
+    }
+    // 清掉回收站里的空子卷行(deleteChapter 只删文档,不碰卷)。
+    const nextVolumes = get().volumes.filter((v) => v.id === trash.id || !trashVolumeIds.has(v.id));
+    if (nextVolumes.length !== get().volumes.length) {
+      set({ volumes: nextVolumes });
+      await get().saveCurrentProject();
     }
   },
   setCurrentChapter: async (chapter) => {

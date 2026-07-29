@@ -16,6 +16,7 @@ import {
   FolderInput,
   BarChart3,
   SlidersHorizontal,
+  SpellCheck,
   Check,
 } from "lucide-react";
 import { useAppStore } from "../store";
@@ -467,8 +468,52 @@ export function GlobalSettingsModal({ open, onClose }: GlobalSettingsModalProps)
                     unit="px"
                     onChange={(v) => updateAppSettings({ editorPadding: v })}
                   />
+                  <NumberField
+                    label="左侧栏宽度"
+                    value={appSettings.leftSidebarWidth || 256}
+                    min={200}
+                    max={480}
+                    step={8}
+                    unit="px"
+                    onChange={(v) => updateAppSettings({ leftSidebarWidth: v })}
+                  />
                   <p className="text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
-                    宽度随窗口自适应收缩，不会超过此处设置的最大值；边距是正文与编辑区两侧的空隙。
+                    宽度随窗口自适应收缩，不会超过此处设置的最大值；边距是正文与编辑区两侧的空隙。左侧栏宽度也可拖拽其右缘调整。
+                  </p>
+                </div>
+                <div className="border-t border-warm-gray/60 pt-4 dark:border-warm-gray-dark/60">
+                  <div className="mb-2.5 text-xs font-medium text-ink-muted dark:text-ink-muted-dark">
+                    拼写检查
+                  </div>
+                  <div className="space-y-2.5">
+                    <label className="flex items-center justify-between text-sm text-ink dark:text-ink-dark">
+                      <span className="flex items-center gap-1.5">
+                        <SpellCheck size={14} className="text-ink-muted dark:text-ink-muted-dark" />
+                        启用拼写检查
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={appSettings.spellCheck === true}
+                        onChange={(e) => updateAppSettings({ spellCheck: e.target.checked })}
+                        className="h-4 w-4 accent-accent"
+                      />
+                    </label>
+                    {appSettings.spellCheck === true && (
+                      <label className="flex items-center justify-between gap-3 text-sm text-ink dark:text-ink-dark">
+                        <span>检查语言</span>
+                        <input
+                          type="text"
+                          value={appSettings.spellCheckLang || "zh-CN"}
+                          onChange={(e) => updateAppSettings({ spellCheckLang: e.target.value })}
+                          placeholder="zh-CN"
+                          spellCheck={false}
+                          className="w-28 rounded-md border border-warm-gray bg-paper px-2 py-1 text-right text-sm outline-none focus:border-accent dark:border-warm-gray-dark dark:bg-paper-dark"
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-ink-muted dark:text-ink-muted-dark">
+                    使用浏览器/webview 原生拼写检查，在编辑区对疑似拼写错误下划红线。语言填 BCP-47 代码（如 zh-CN、en-US、en-GB）。
                   </p>
                 </div>
                 <div className="border-t border-warm-gray/60 pt-4 dark:border-warm-gray-dark/60">

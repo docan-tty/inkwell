@@ -3,13 +3,36 @@ import { twMerge } from "tailwind-merge";
 import type { Chapter, Volume } from "../types";
 
 /** 卷序 + 卷内章序的目录树排序（未入卷的章节排在最后，与章节树一致）。
- *  搜索面板、大纲视图、全书导出共用同一套顺序，勿再各自实现。 */
+ *  搜索面板、大纲视图、全书导出共用同一套顺序，勿再各自实现。
+ *  卷可嵌套（小说根下的卷/子卷），故用前序 DFS 计算每个父级在目录树中的
+ *  位置，而不是直接取卷的全局 order——扁平卷假设下嵌套卷会同序撞车。 */
 export function sortChaptersByTreeOrder(chapters: Chapter[], volumes: Volume[]): Chapter[] {
-  const volumeOrder = new Map(volumes.map((v) => [v.id, v.order]));
+  const groupByParent = <T extends { id: string; parentId?: string | null; order: number }>(items: T[]) => {
+    const map = new Map<string, T[]>();
+    for (const it of items) {
+      const key = it.parentId ?? "";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(it);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.order - b.order);
+    return map;
+  };
+  const volKids = groupByParent(volumes);
+  const chapKids = groupByParent(chapters);
+  // 每个父级（卷 id 或文档 id）在前序遍历中的位次。
+  const rank = new Map<string, number>();
+  let counter = 0;
+  const walk = (parentId: string) => {
+    if (!rank.has(parentId)) rank.set(parentId, counter++);
+    for (const v of volKids.get(parentId) ?? []) walk(v.id);
+    for (const c of chapKids.get(parentId) ?? []) walk(c.id);
+  };
+  for (const v of volKids.get("") ?? []) walk(v.id);
+  const INF = Number.MAX_SAFE_INTEGER;
   return [...chapters].sort((a, b) => {
-    const va = volumeOrder.get(a.parentId || "") ?? Number.MAX_SAFE_INTEGER;
-    const vb = volumeOrder.get(b.parentId || "") ?? Number.MAX_SAFE_INTEGER;
-    if (va !== vb) return va - vb;
+    const ra = rank.get(a.parentId || "") ?? INF;
+    const rb = rank.get(b.parentId || "") ?? INF;
+    if (ra !== rb) return ra - rb;
     return a.order - b.order;
   });
 }

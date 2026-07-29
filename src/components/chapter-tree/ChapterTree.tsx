@@ -24,6 +24,7 @@ import { chapterRootKind } from "../../lib/docs";
 import { ChapterItem } from "./ChapterItem";
 import { DropTarget } from "./DropTarget";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { EditableLabel } from "./EditableLabel";
 import { cn } from "../../lib/utils";
 
 interface ChapterTreeProps {
@@ -50,14 +51,16 @@ const ROOT_ICONS: Record<RootKind, React.ReactNode> = {
 };
 
 /** 项目内容树(novelWriter 式):按根文件夹(小说/情节/角色/位置/归档/回收站…)
- *  分组,每个根下是文件夹与文档的层级,文档显示字数与状态点,支持拖拽
- *  排序、拖入回收站、新建根文件夹/子文件夹/文档。 */
+ *  分组。每个根下是「卷(子文件夹) + 文档」的层级:卷可新建/重命名/收拢/删除,
+ *  章可新建在卷内或直接挂在根下,文档显示字数与状态点,支持拖拽排序、
+ *  拖入回收站、新建根文件夹/卷/文档。 */
 export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
   const volumes = useAppStore((s) => s.volumes);
   const chapters = useAppStore((s) => s.chapters);
   const currentChapterId = useAppStore((s) => s.currentChapter?.id);
   const ensureRootVolume = useAppStore((s) => s.ensureRootVolume);
   const createVolume = useAppStore((s) => s.createVolume);
+  const updateVolume = useAppStore((s) => s.updateVolume);
   const createChapter = useAppStore((s) => s.createChapter);
   const updateChapter = useAppStore((s) => s.updateChapter);
   const deleteVolume = useAppStore((s) => s.deleteVolume);
@@ -92,16 +95,36 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
   const trashRoot = roots.find((v) => (v.rootKind ?? "novel") === "trash");
   const trashCount = trashRoot ? chapters.filter((c) => c.parentId === trashRoot.id).length : 0;
 
-  // Keep the selected chapter visible: scroll it into view and make sure its
-  // parent volume is expanded.
+  // Keep the selected chapter visible: scroll it into view and expand every
+  // collapsed ancestor. 卷可嵌套、文档下可挂子文档,所以要从当前章一路向上
+  // 收集所有卷 id(父级是文档时继续沿文档的 parentId 上溯),否则收拢的卷里
+  // 的选中章会不可见。
   useEffect(() => {
     if (!currentChapterId) return;
-    const currentChapter = useAppStore.getState().chapters.find((c) => c.id === currentChapterId);
+    const { chapters: allChapters, volumes: allVolumes } = useAppStore.getState();
+    const currentChapter = allChapters.find((c) => c.id === currentChapterId);
     if (!currentChapter) return;
-    if (currentChapter.parentId) {
+    const chapterById = new Map(allChapters.map((c) => [c.id, c]));
+    const volumeById = new Map(allVolumes.map((v) => [v.id, v]));
+    const ancestorVolumeIds: string[] = [];
+    let pid = currentChapter.parentId;
+    let guard = 0;
+    while (pid && guard++ < 100) {
+      if (volumeById.has(pid)) {
+        ancestorVolumeIds.push(pid);
+        pid = volumeById.get(pid)!.parentId ?? null;
+      } else if (chapterById.has(pid)) {
+        pid = chapterById.get(pid)!.parentId;
+      } else {
+        break;
+      }
+    }
+    if (ancestorVolumeIds.length > 0) {
       setExpandedVolumes((prev) => {
-        if (prev.has(currentChapter.parentId!)) return prev;
-        return new Set(prev).add(currentChapter.parentId!);
+        if (ancestorVolumeIds.every((id) => prev.has(id))) return prev;
+        const next = new Set(prev);
+        for (const id of ancestorVolumeIds) next.add(id);
+        return next;
       });
     }
     const t = setTimeout(() => {
@@ -144,6 +167,19 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
 
   const childrenOf = (parentId: string) => chaptersByParent.get(parentId) ?? [];
 
+  const subVolumesByParent = useMemo(() => {
+    const map = new Map<string, Volume[]>();
+    for (const v of volumes) {
+      if (!v.parentId) continue;
+      if (!map.has(v.parentId)) map.set(v.parentId, []);
+      map.get(v.parentId)!.push(v);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.order - b.order);
+    return map;
+  }, [volumes]);
+
+  const subVolumesOf = (parentId: string) => subVolumesByParent.get(parentId) ?? [];
+
   const handleListDragOver = (e: React.DragEvent) => {
     const el = scrollRef.current;
     if (!el) return;
@@ -166,36 +202,119 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
     setVolumeDropIndex(null);
   };
 
+  /** 某父级(根或卷)下的空态:既是提示,也是拖入空卷/空根的放置目标。 */
+  const renderEmptyDrop = (parentId: string) => (
+    <div
+      className="ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark"
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        setActiveDrop({ volumeId: parentId, index: 0 });
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("inkwell/chapter-id");
+        if (id) moveChapter(id, parentId, 0);
+        setActiveDrop(null);
+        setDraggingChapterId(null);
+      }}
+    >
+      <div
+        className={cn(
+          "rounded-md px-2 py-2 text-center text-xs text-ink-muted transition-colors dark:text-ink-muted-dark",
+          activeDrop?.volumeId === parentId ? "bg-warm-gray text-ink dark:bg-warm-gray-dark dark:text-ink-dark" : "",
+        )}
+      >
+        拖拽文档到此处
+      </div>
+    </div>
+  );
+
+  /** 渲染一个卷(子文件夹)行,及其收拢后的递归内容。 */
+  const renderVolumeNode = (volume: Volume, depth: number): React.ReactNode => {
+    const kind = volume.rootKind ?? "novel";
+    const expanded = expandedVolumes.has(volume.id);
+    const childChapters = childrenOf(volume.id);
+    const childVolumes = subVolumesOf(volume.id);
+    const isEmpty = childChapters.length === 0 && childVolumes.length === 0;
+    return (
+      <div key={`vol-${volume.id}`}>
+        <div
+          className={cn(
+            "group flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-ink transition-colors dark:text-ink-dark",
+            "hover:bg-warm-gray dark:hover:bg-warm-gray-dark",
+          )}
+          onDragEnter={(e) => {
+            if (e.dataTransfer.types.includes("inkwell/volume-id")) return;
+            e.preventDefault();
+            expandVolume(volume.id);
+          }}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes("inkwell/volume-id")) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            if (e.dataTransfer.types.includes("inkwell/volume-id")) return;
+            e.preventDefault();
+            expandVolume(volume.id);
+            const chapterId = e.dataTransfer.getData("inkwell/chapter-id");
+            if (chapterId) moveChapter(chapterId, volume.id, 0);
+          }}
+        >
+          <button
+            onClick={() => toggleVolume(volume.id)}
+            className="flex h-5 w-5 shrink-0 items-center justify-center text-ink-muted dark:text-ink-muted-dark"
+            title={expanded ? "折叠" : "展开"}
+          >
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+          <span className="shrink-0 text-ink-muted dark:text-ink-muted-dark">{ROOT_ICONS[kind]}</span>
+          <EditableLabel
+            value={volume.title}
+            onSave={(title) => void updateVolume(volume.id, { title })}
+            className="min-w-0 flex-1 truncate font-medium"
+          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              expandVolume(volume.id);
+              void createChapter(volume.id, "", { kind: "novel" });
+            }}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+            title="在此卷下新建章"
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeletingVolume(volume);
+            }}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-600 group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:text-red-400"
+            title="删除卷"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+        {expanded &&
+          (isEmpty ? (
+            renderEmptyDrop(volume.id)
+          ) : (
+            <div className="ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark">
+              {childVolumes.map((sv) => renderVolumeNode(sv, depth + 1))}
+              {renderChapterList(volume.id, depth + 1)}
+            </div>
+          ))}
+      </div>
+    );
+  };
+
   /** 渲染某父级(卷或文档)下的文档列表,递归处理文档的子文档。 */
   const renderChapterList = (parentId: string, depth: number) => {
     const children = childrenOf(parentId);
     if (children.length === 0) {
-      return (
-        <div
-          className="ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark"
-          onDragOver={(e) => {
-            e.preventDefault();
-            if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-            setActiveDrop({ volumeId: parentId, index: 0 });
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const id = e.dataTransfer.getData("inkwell/chapter-id");
-            if (id) moveChapter(id, parentId, 0);
-            setActiveDrop(null);
-            setDraggingChapterId(null);
-          }}
-        >
-          <div
-            className={cn(
-              "rounded-md px-2 py-2 text-center text-xs text-ink-muted transition-colors dark:text-ink-muted-dark",
-              activeDrop?.volumeId === parentId ? "bg-warm-gray text-ink dark:bg-warm-gray-dark dark:text-ink-dark" : "",
-            )}
-          >
-            拖拽文档到此处
-          </div>
-        </div>
-      );
+      return null; // 空态由调用方(renderVolumeNode / 根)统一渲染,避免重复
     }
     return (
       <div className={cn(depth >= 0 && "ml-4 border-l border-warm-gray pl-2 dark:border-warm-gray-dark")}>
@@ -300,6 +419,9 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
         {roots.map((volume, idx) => {
           const kind = volume.rootKind ?? "novel";
           const isTrash = kind === "trash";
+          const rootChapters = childrenOf(volume.id);
+          const rootSubVolumes = subVolumesOf(volume.id);
+          const rootEmpty = rootChapters.length === 0 && rootSubVolumes.length === 0;
           return (
             <div key={volume.id} className="mb-1">
               {roots.length > 1 && idx === 0 && (
@@ -364,19 +486,42 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
                     清空
                   </button>
                 )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    expandVolume(volume.id);
-                    void createChapter(volume.id, "", { kind: ROOT_DEFS[kind].docKind === "note" ? "note" : "novel" });
-                  }}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
-                  title="在此处新建文档"
-                >
-                  <Plus size={14} />
-                </button>
+                {!isTrash && kind === "novel" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      expandVolume(volume.id);
+                      void createVolume(`第 ${subVolumesOf(volume.id).length + 1} 卷`, "novel", volume.id);
+                    }}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+                    title="新建卷"
+                  >
+                    <BookOpen size={13} />
+                  </button>
+                )}
+                {!isTrash && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      expandVolume(volume.id);
+                      void createChapter(volume.id, "", { kind: ROOT_DEFS[kind].docKind === "note" ? "note" : "novel" });
+                    }}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted opacity-0 transition-opacity hover:bg-warm-gray group-hover:opacity-100 dark:text-ink-muted-dark dark:hover:bg-warm-gray-dark"
+                    title="在此处新建文档"
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
               </div>
-              {expandedVolumes.has(volume.id) && renderChapterList(volume.id, -1)}
+              {expandedVolumes.has(volume.id) &&
+                (rootEmpty ? (
+                  renderEmptyDrop(volume.id)
+                ) : (
+                  <>
+                    {rootSubVolumes.map((sv) => renderVolumeNode(sv, 0))}
+                    {renderChapterList(volume.id, -1)}
+                  </>
+                ))}
               {roots.length > 1 && (
                 <DropTarget
                   active={volumeDropIndex === idx + 1}
@@ -405,7 +550,7 @@ export function ChapterTree({ onSelectChapter }: ChapterTreeProps) {
       />
       <ConfirmDialog
         open={deletingVolume !== null}
-        title={`删除文件夹「${deletingVolume?.title ?? ""}」?`}
+        title={`删除卷「${deletingVolume?.title ?? ""}」?`}
         message={(() => {
           const count = deletingVolume
             ? chapters.filter((c) => c.parentId === deletingVolume.id).length

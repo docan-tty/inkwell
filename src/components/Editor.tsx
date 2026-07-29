@@ -449,9 +449,6 @@ export function Editor({
         h1: editor.isActive("heading", { level: 1 }),
         h2: editor.isActive("heading", { level: 2 }),
         h3: editor.isActive("heading", { level: 3 }),
-        quote: editor.isActive("blockquote"),
-        bullet: editor.isActive("bulletList"),
-        ordered: editor.isActive("orderedList"),
       };
       setCtxMenu({
         x: e.clientX,
@@ -478,9 +475,6 @@ export function Editor({
               onClick: () => editor.chain().focus().toggleHeading({ level }).run(),
             })),
           },
-          { label: "引用", checked: blockChecked.quote, onClick: () => editor.chain().focus().toggleBlockquote().run() },
-          { label: "无序列表", checked: blockChecked.bullet, onClick: () => editor.chain().focus().toggleBulletList().run() },
-          { label: "有序列表", checked: blockChecked.ordered, onClick: () => editor.chain().focus().toggleOrderedList().run() },
           { divider: true, label: "" },
           {
             label: "自动整理格式",

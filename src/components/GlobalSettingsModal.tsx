@@ -759,7 +759,7 @@ function ChapterTargetField({
     // previousDefault 必须是「本次输入开始前的旧默认值」，而不是当前章节
     // 的 targetWords——预览阶段可能已经把 currentChapter.targetWords 改掉。
     updateAppSettings({ defaultChapterTargetWords: v });
-    applyChapterTargetWords(v, saved);
+    applyChapterTargetWords(saved);
   };
 
   const onInput = (v: number) => {

@@ -28,21 +28,6 @@ export function chapterDocKind(chapter: Chapter, volumes: Volume[]): DocKind {
   return def.docKind === "novel" ? "novel" : "note";
 }
 
-/** 该文档在当前所在根下是否使用 status(否则用 importance)。 */
-export function chapterUsesStatus(chapter: Chapter, volumes: Volume[]): boolean {
-  return ROOT_DEFS[chapterRootKind(chapter, volumes)].usesStatus;
-}
-
-/** 卷内顶层文档(parentId === volumeId),按 order 排序。 */
-export function chaptersOfVolume(chapters: Chapter[], volumeId: string): Chapter[] {
-  return chapters.filter((c) => c.parentId === volumeId).sort((a, b) => a.order - b.order);
-}
-
-/** 某文档的子文档(novelWriter 允许文档下挂文档);按 order 排序。 */
-export function childDocuments(chapters: Chapter[], parentDocId: string): Chapter[] {
-  return chapters.filter((c) => c.parentId === parentDocId).sort((a, b) => a.order - b.order);
-}
-
 /** 收集文档及其全部后代 id(移动到回收站/删除时用)。 */
 export function collectDescendants(chapters: Chapter[], rootId: string): string[] {
   const out: string[] = [];
@@ -52,18 +37,6 @@ export function collectDescendants(chapters: Chapter[], rootId: string): string[
   };
   walk(rootId);
   return out;
-}
-
-/** 某卷下的所有根(顶层卷,parentId 为空),按 order。 */
-export function rootVolumes(volumes: Volume[]): Volume[] {
-  return volumes
-    .filter((v) => !v.parentId)
-    .sort((a, b) => a.order - b.order);
-}
-
-/** 某卷的子文件夹,按 order。 */
-export function childVolumes(volumes: Volume[], parentId: string): Volume[] {
-  return volumes.filter((v) => v.parentId === parentId).sort((a, b) => a.order - b.order);
 }
 
 /** 文档目标字数:0/未设置 = 跟随全局默认。 */

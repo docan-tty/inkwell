@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { useAppStore } from "../store";
 import { STATUS_LABELS } from "../types";
 import { formatDateTime, formatNumber } from "../lib/utils";
-import { chapterRootKind, chapterDocKind } from "../lib/docs";
+import { chapterRootKind, chapterDocKind, chapterTarget } from "../lib/docs";
 import { ROOT_DEFS } from "../types";
 
 // 文档详情(novelWriter「显示文件详情」):路径、所属根、类型、状态、
@@ -31,7 +31,7 @@ export function DocDetailsDialog() {
 
   const root = chapterRootKind(chapter, volumes);
   const kind = chapterDocKind(chapter, volumes);
-  const target = chapter.targetWords || appSettings.defaultChapterTargetWords;
+  const target = chapterTarget(chapter, appSettings.defaultChapterTargetWords);
   const volume = volumes.find((v) => v.id === chapter.parentId);
 
   const rows: [string, string][] = [

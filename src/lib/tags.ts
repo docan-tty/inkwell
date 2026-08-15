@@ -42,21 +42,6 @@ export const REF_LABELS: Record<RefKeyword, string> = {
   story: "故事",
 };
 
-/** 引用关键字 → 期望的根文件夹类型(mention 任意;story 指向小说文档)。 */
-export const REF_TARGET_ROOT: Record<RefKeyword, RootKind | "any" | "noveldoc"> = {
-  pov: "characters",
-  focus: "characters",
-  char: "characters",
-  plot: "plot",
-  time: "timeline",
-  location: "locations",
-  object: "objects",
-  entity: "entities",
-  custom: "custom",
-  mention: "any",
-  story: "noveldoc",
-};
-
 export interface HeadingInfo {
   level: number; // 1-4
   title: string;

@@ -44,6 +44,7 @@ import { computeThemeVars, type AccentKey, type PaperKey } from "../lib/theme";
 import { clearProjectStats } from "../lib/stats";
 import { buildProjectIndex, parseDocumentIndex, type ProjectIndex } from "../lib/tags";
 import { mergeDocuments, splitByHeadings } from "../lib/docops";
+import { collectDescendants } from "../lib/docs";
 
 export function reorderChaptersByVolume(chapters: Chapter[]): Chapter[] {
   const byVolume = new Map<string, Chapter[]>();
@@ -66,15 +67,7 @@ export function reorderChaptersByVolume(chapters: Chapter[]): Chapter[] {
 }
 
 /** 收集文档及其全部后代 id(文档下可挂子文档)。 */
-export function collectDescendantIds(chapters: Chapter[], rootId: string): string[] {
-  const out: string[] = [];
-  const walk = (id: string) => {
-    out.push(id);
-    for (const c of chapters) if (c.parentId === id) walk(c.id);
-  };
-  walk(rootId);
-  return out;
-}
+export const collectDescendantIds = collectDescendants;
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
   theme: "system",
@@ -83,7 +76,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   editorPadding: 64,
   editorMaxWidth: 880,
   includePunctuationInWordCount: true,
-  defaultChapterTargetWords: 4000,
+  defaultChapterTargetWords: DEFAULT_PROJECT_TARGET_WORDS,
   leftSidebarWidth: 256,
   firstLineIndent: true,
   themeColor: "brown",
@@ -175,7 +168,7 @@ interface AppState {
   updateChapter: (chapterId: string, data: Partial<Chapter>) => Promise<void>;
   updateChapterWordCount: (chapterId: string, wordCount: number) => void;
   /** 把「跟随默认」的章节目标字数重置为 0（随新默认值自动生效）。 */
-  applyChapterTargetWords: (targetWords: number, previousDefault: number) => void;
+  applyChapterTargetWords: (previousDefault: number) => void;
   updateChapterContent: (chapterId: string, content: string) => Promise<void>;
   deleteChapter: (chapterId: string) => Promise<void>;
   /** 移入回收站(连同子文档);无回收站根时自动创建。 */
@@ -674,7 +667,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // 章节目标字数：0/未设置 = 跟随全局默认；正数为该章自定义目标。
   // 老数据的章节目标是具体数值，改默认值时若本章目标恰好等于旧默认值，
   // 视为「跟随默认」一并更新——否则用户改了设置却看不到当前章节变化。
-  applyChapterTargetWords: (_targetWords, previousDefault) => {
+  applyChapterTargetWords: (previousDefault) => {
     const follows = (c: Chapter) =>
       !c.targetWords || c.targetWords === previousDefault;
     const chapters = get().chapters.map((c) =>

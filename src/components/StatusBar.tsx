@@ -1,6 +1,7 @@
 import { useAppStore } from "../store";
 import { formatNumber, formatDateTime, formatTime, cn } from "../lib/utils";
 import { getTodayGained, formatDuration } from "../lib/stats";
+import { chapterTarget } from "../lib/docs";
 import { Save, AlertCircle, X, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -21,8 +22,7 @@ export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
 
   const totalWords = chapters.reduce((sum, c) => sum + c.wordCount, 0);
   // 章节目标字数：0/未设置 = 跟随全局默认；正数为该章自定义目标。
-  const chapterTarget =
-    currentChapter?.targetWords || appSettings.defaultChapterTargetWords;
+  const target = chapterTarget(currentChapter, appSettings.defaultChapterTargetWords);
   const todayGained = currentProject ? getTodayGained(currentProject.id, totalWords) : 0;
   const projectProgress = currentProject?.targetWords
     ? Math.min(100, Math.round((totalWords / currentProject.targetWords) * 100))
@@ -77,12 +77,12 @@ export function StatusBar({ writingSeconds = 0 }: { writingSeconds?: number }) {
               <>
                 <span className="h-3 w-px bg-warm-gray dark:bg-warm-gray-dark" />
                 <span className="shrink-0">
-                  本章 {formatNumber(currentChapter.wordCount)} / {formatNumber(chapterTarget)}
+                  本章 {formatNumber(currentChapter.wordCount)} / {formatNumber(target)}
                 </span>
                 <span className="relative hidden h-1 w-16 overflow-hidden rounded-full bg-warm-gray dark:bg-warm-gray-dark lg:block">
                   <span
                     className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-300"
-                    style={{ width: `${Math.min(100, (currentChapter.wordCount / chapterTarget) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (currentChapter.wordCount / target) * 100)}%` }}
                   />
                 </span>
               </>

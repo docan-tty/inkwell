@@ -119,11 +119,6 @@ export interface EditorTypography {
 export interface AppSettings {
   theme: "light" | "dark" | "system";
   recentProjects: string[];
-  windowState?: {
-    width: number;
-    height: number;
-    maximized: boolean;
-  };
   editorTypography: EditorTypography;
   /** 编辑区正文字体（UI_FONT_PRESETS 中的字体栈）。 */
   editorFontFamily?: string;

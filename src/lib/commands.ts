@@ -8,7 +8,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "../store";
 import { editorContext } from "./editor-context";
-import { revealInFolder, getAppDataDir, isTauri } from "./storage";
+import { revealInFolder, getAppDataDir } from "./storage";
 import { runExport, type ExportFormat } from "./export-actions";
 
 export interface CommandContext {
@@ -610,10 +610,6 @@ export async function openRecentProject(projectId: string): Promise<void> {
   } catch (err) {
     alert(`打开作品失败:${err instanceof Error ? err.message : String(err)}`);
   }
-}
-
-export function isTauriApp(): boolean {
-  return isTauri();
 }
 
 /** 执行命令;disabled 或不存在时 no-op。 */

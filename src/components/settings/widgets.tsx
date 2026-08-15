@@ -4,53 +4,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { cn } from "../../lib/utils";
 import { revealInFolder, isTauri } from "../../lib/storage";
 
-export function ThemeButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors",
-        active
-          ? "border-accent bg-accent/10 text-accent dark:bg-accent/20"
-          : "border-warm-gray text-ink hover:bg-warm-gray dark:border-warm-gray-dark dark:text-ink-dark dark:hover:bg-warm-gray-dark",
-      )}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-export function SettingGroup({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-ink dark:text-ink-dark">
-        {icon}
-        {title}
-      </div>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
-}
-
 // 数值输入框：替代滑杆的精确填值方式。本地草稿态允许中间输入（空串、
 // 小数点），失焦或回车时按 min/max 收敛提交；外部值变化时回填。
 // step 为小数时保留对应精度（如 0.05 → 两位小数）。
